@@ -1,0 +1,499 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0390EE84DDCA46ADEE516A70 /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505E991D55A534262FCDF113 /* TranscriptionEngine.swift */; };
+		094130D98811BDD02D2A1555 /* LLMProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0883B8EE127B0560E01584 /* LLMProcessor.swift */; };
+		0E254EBBA921F84B3E41ED4E /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2276C69754697A5C25F690 /* AudioRecorder.swift */; };
+		1CCC7DE6233407D1FC35BA35 /* DownloadedModelsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */; };
+		25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */; };
+		3B970FB1993D02CE75C23202 /* DictationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894B0245FC883E24EDFB48BB /* DictationPipeline.swift */; };
+		4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */; };
+		53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 24108E4098C7D8A965EFAEEA /* MLXLMCommon */; };
+		660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */; };
+		8A19028D5A4F72649B94A26B /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */; };
+		A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2490B7196B6C0D292B9AF54C /* PasteManager.swift */; };
+		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
+		B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */; };
+		CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A45404D11A8845C3F109251 /* Assets.xcassets */; };
+		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
+		DD50DB580798C88C6A1357C5 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8783DFB2FE338D342D231BF /* AppSettings.swift */; };
+		E5715E5682888026CE990F8E /* DictumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */; };
+		E779256781738096534067BF /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2490B7196B6C0D292B9AF54C /* PasteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteManager.swift; sourceTree = "<group>"; };
+		26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		3A45404D11A8845C3F109251 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedModelsManager.swift; sourceTree = "<group>"; };
+		505E991D55A534262FCDF113 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
+		64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dictum.entitlements; sourceTree = "<group>"; };
+		894B0245FC883E24EDFB48BB /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
+		8F0883B8EE127B0560E01584 /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
+		8F2276C69754697A5C25F690 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
+		A52C02DC25B522AB15CF93A1 /* Dictum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dictum.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5A63125D12472619B955131 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		B8783DFB2FE338D342D231BF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
+		C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
+		CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelManager.swift; sourceTree = "<group>"; };
+		D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelBrowser.swift; sourceTree = "<group>"; };
+		EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
+		FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictumApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BBBA2F8FB50BAF5BE9F5FFB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */,
+				B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */,
+				53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3718B04233CA674E3E8B2920 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3A45404D11A8845C3F109251 /* Assets.xcassets */,
+				64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */,
+				B5A63125D12472619B955131 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4147A054DD14721EF52D30D2 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				8F2276C69754697A5C25F690 /* AudioRecorder.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		4FA1514C5C4087CFB5C24C02 /* dictum */ = {
+			isa = PBXGroup;
+			children = (
+				894B0245FC883E24EDFB48BB /* DictationPipeline.swift */,
+				FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */,
+				4147A054DD14721EF52D30D2 /* Audio */,
+				99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */,
+				D0B308DDB463408282EA812E /* MenuBar */,
+				CBCA2C739007B1BA731849FF /* ModelBrowser */,
+				3718B04233CA674E3E8B2920 /* Resources */,
+				53F2B65AEF98BE04D611E774 /* Settings */,
+				DF821B50D0AA9F4629DEF890 /* TextProcessing */,
+				8D610DEB45D3E7B82C4A1660 /* Transcription */,
+			);
+			name = dictum;
+			path = .;
+			sourceTree = "<group>";
+		};
+		53F2B65AEF98BE04D611E774 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				B8783DFB2FE338D342D231BF /* AppSettings.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		8D610DEB45D3E7B82C4A1660 /* Transcription */ = {
+			isa = PBXGroup;
+			children = (
+				505E991D55A534262FCDF113 /* TranscriptionEngine.swift */,
+				CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */,
+			);
+			path = Transcription;
+			sourceTree = "<group>";
+		};
+		9559F4F0E1F239A398D6EB04 = {
+			isa = PBXGroup;
+			children = (
+				4147A054DD14721EF52D30D2 /* Audio */,
+				4FA1514C5C4087CFB5C24C02 /* dictum */,
+				99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */,
+				D0B308DDB463408282EA812E /* MenuBar */,
+				CBCA2C739007B1BA731849FF /* ModelBrowser */,
+				3718B04233CA674E3E8B2920 /* Resources */,
+				53F2B65AEF98BE04D611E774 /* Settings */,
+				DF821B50D0AA9F4629DEF890 /* TextProcessing */,
+				8D610DEB45D3E7B82C4A1660 /* Transcription */,
+				C8222A1FA74A22D09DA6898F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */ = {
+			isa = PBXGroup;
+			children = (
+				BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */,
+				2490B7196B6C0D292B9AF54C /* PasteManager.swift */,
+			);
+			path = HotkeyAndPaste;
+			sourceTree = "<group>";
+		};
+		C8222A1FA74A22D09DA6898F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A52C02DC25B522AB15CF93A1 /* Dictum.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CBCA2C739007B1BA731849FF /* ModelBrowser */ = {
+			isa = PBXGroup;
+			children = (
+				3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */,
+				D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */,
+			);
+			path = ModelBrowser;
+			sourceTree = "<group>";
+		};
+		D0B308DDB463408282EA812E /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */,
+				C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */,
+				26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		DF821B50D0AA9F4629DEF890 /* TextProcessing */ = {
+			isa = PBXGroup;
+			children = (
+				8F0883B8EE127B0560E01584 /* LLMProcessor.swift */,
+			);
+			path = TextProcessing;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CBE02459CFDF081B93E9F5F7 /* Dictum */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7676ADBAE213A40494ED4E49 /* Build configuration list for PBXNativeTarget "Dictum" */;
+			buildPhases = (
+				C45851DE3A8157DBACB2AC0A /* Sources */,
+				924FADEDACAE94BFFA4B4D3D /* Resources */,
+				BBBA2F8FB50BAF5BE9F5FFB9 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Dictum;
+			packageProductDependencies = (
+				A231C686F6E1BB95E9757D00 /* WhisperKit */,
+				266F3D418D9459D6424F7AE7 /* MLXLLM */,
+				24108E4098C7D8A965EFAEEA /* MLXLMCommon */,
+			);
+			productName = Dictum;
+			productReference = A52C02DC25B522AB15CF93A1 /* Dictum.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		ECF71239C46929138E73F781 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 368E86BA8944907E08E756C0 /* Build configuration list for PBXProject "Dictum" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 9559F4F0E1F239A398D6EB04;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */,
+				C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C8222A1FA74A22D09DA6898F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CBE02459CFDF081B93E9F5F7 /* Dictum */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		924FADEDACAE94BFFA4B4D3D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C45851DE3A8157DBACB2AC0A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD50DB580798C88C6A1357C5 /* AppSettings.swift in Sources */,
+				0E254EBBA921F84B3E41ED4E /* AudioRecorder.swift in Sources */,
+				3B970FB1993D02CE75C23202 /* DictationPipeline.swift in Sources */,
+				E5715E5682888026CE990F8E /* DictumApp.swift in Sources */,
+				1CCC7DE6233407D1FC35BA35 /* DownloadedModelsManager.swift in Sources */,
+				8A19028D5A4F72649B94A26B /* GlobalHotkeyManager.swift in Sources */,
+				094130D98811BDD02D2A1555 /* LLMProcessor.swift in Sources */,
+				E779256781738096534067BF /* MenuBarIcon.swift in Sources */,
+				660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */,
+				B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */,
+				A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */,
+				4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */,
+				0390EE84DDCA46ADEE516A70 /* TranscriptionEngine.swift in Sources */,
+				25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		12F48CB2EA182ED69146E25C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4670B6B8E5203493BE7D7C6F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/Dictum.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
+				PRODUCT_NAME = Dictum;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		B6F5959F6290AAC27A4F72F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		EFCC333045A15E1272006BDC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/Dictum.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
+				PRODUCT_NAME = Dictum;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		368E86BA8944907E08E756C0 /* Build configuration list for PBXProject "Dictum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B6F5959F6290AAC27A4F72F2 /* Debug */,
+				12F48CB2EA182ED69146E25C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7676ADBAE213A40494ED4E49 /* Build configuration list for PBXNativeTarget "Dictum" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4670B6B8E5203493BE7D7C6F /* Debug */,
+				EFCC333045A15E1272006BDC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/whisperkit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.29.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		24108E4098C7D8A965EFAEEA /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		266F3D418D9459D6424F7AE7 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		A231C686F6E1BB95E9757D00 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = ECF71239C46929138E73F781 /* Project object */;
+}

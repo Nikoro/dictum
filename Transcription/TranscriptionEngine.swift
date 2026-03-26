@@ -1,0 +1,68 @@
+import Foundation
+import WhisperKit
+
+enum TranscriptionError: LocalizedError {
+    case modelNotLoaded
+    case transcriptionFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .modelNotLoaded:
+            return "Model STT nie jest załadowany."
+        case .transcriptionFailed(let reason):
+            return "Transkrypcja nie powiodła się: \(reason)"
+        }
+    }
+}
+
+actor TranscriptionEngine {
+    static let shared = TranscriptionEngine()
+
+    private var whisperKit: WhisperKit?
+    private(set) var isModelLoaded = false
+    private(set) var isLoading = false
+    private(set) var currentModelId: String?
+
+    func loadModel(_ modelName: String = "large-v3-turbo") async throws {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        // Unload previous model
+        whisperKit = nil
+        isModelLoaded = false
+
+        let config = WhisperKitConfig(
+            model: modelName,
+            verbose: false,
+            logLevel: .none
+        )
+        whisperKit = try await WhisperKit(config)
+        isModelLoaded = true
+        currentModelId = modelName
+    }
+
+    func transcribe(audioSamples: [Float]) async throws -> String {
+        guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
+
+        let options = DecodingOptions(
+            language: "pl",
+            skipSpecialTokens: true,
+            withoutTimestamps: true
+        )
+
+        let results = try await whisperKit.transcribe(
+            audioArray: audioSamples,
+            decodeOptions: options
+        )
+
+        let text = results.map(\.text).joined(separator: " ")
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func unloadModel() {
+        whisperKit = nil
+        isModelLoaded = false
+        currentModelId = nil
+    }
+}
