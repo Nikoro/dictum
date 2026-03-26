@@ -2,92 +2,28 @@ import AppKit
 
 enum MenuBarIcon {
 
-    /// Tworzy ikonę mikrofonu z falami dźwiękowymi dla menu bar (18x18 pt, template).
+    /// SF Symbol mikrofonu dla menu bar (template — dopasowuje się do light/dark).
     static func microphone(state: AppState) -> NSImage {
-        let size = NSSize(width: 18, height: 18)
-        let image = NSImage(size: size, flipped: false) { rect in
-            NSColor.black.setFill()
-            NSColor.black.setStroke()
-
-            // -- Mikrofon (korpus) --
-            let micBody = NSBezierPath(
-                roundedRect: NSRect(x: 6, y: 7, width: 6, height: 9),
-                xRadius: 3,
-                yRadius: 3
-            )
-            micBody.fill()
-
-            // -- Uchwyt (łuk pod mikrofonem) --
-            let arc = NSBezierPath()
-            arc.lineWidth = 1.4
-            arc.appendArc(
-                withCenter: NSPoint(x: 9, y: 7),
-                radius: 5.5,
-                startAngle: 180,
-                endAngle: 0,
-                clockwise: true
-            )
-            arc.stroke()
-
-            // -- Nóżka --
-            let stem = NSBezierPath()
-            stem.lineWidth = 1.4
-            stem.move(to: NSPoint(x: 9, y: 1.5))
-            stem.line(to: NSPoint(x: 9, y: 4))
-            stem.stroke()
-
-            // -- Podstawka --
-            let base = NSBezierPath()
-            base.lineWidth = 1.4
-            base.move(to: NSPoint(x: 6.5, y: 1.5))
-            base.line(to: NSPoint(x: 11.5, y: 1.5))
-            base.stroke()
-
-            return true
-        }
-
+        let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+        let image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Dictum")?
+            .withSymbolConfiguration(config) ?? NSImage()
         image.isTemplate = true
         return image
     }
 
-    /// Ikona nagrywania — mikrofon z czerwoną kropką.
+    /// Ikona nagrywania — mikrofon z czerwoną kropką REC.
     /// Nie jest template (kolorowa).
     static func recording() -> NSImage {
         let size = NSSize(width: 18, height: 18)
         let image = NSImage(size: size, flipped: false) { rect in
-            // Rysujemy mikrofon
-            NSColor.white.setFill()
-            NSColor.white.setStroke()
-
-            let micBody = NSBezierPath(
-                roundedRect: NSRect(x: 6, y: 7, width: 6, height: 9),
-                xRadius: 3,
-                yRadius: 3
-            )
-            micBody.fill()
-
-            let arc = NSBezierPath()
-            arc.lineWidth = 1.4
-            arc.appendArc(
-                withCenter: NSPoint(x: 9, y: 7),
-                radius: 5.5,
-                startAngle: 180,
-                endAngle: 0,
-                clockwise: true
-            )
-            arc.stroke()
-
-            let stem = NSBezierPath()
-            stem.lineWidth = 1.4
-            stem.move(to: NSPoint(x: 9, y: 1.5))
-            stem.line(to: NSPoint(x: 9, y: 4))
-            stem.stroke()
-
-            let base = NSBezierPath()
-            base.lineWidth = 1.4
-            base.move(to: NSPoint(x: 6.5, y: 1.5))
-            base.line(to: NSPoint(x: 11.5, y: 1.5))
-            base.stroke()
+            // Rysujemy mic.fill jako SF Symbol
+            let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+            if let mic = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: nil)?
+                .withSymbolConfiguration(config) {
+                NSColor.white.set()
+                let micRect = NSRect(x: 1, y: 2, width: 14, height: 16)
+                mic.draw(in: micRect)
+            }
 
             // Czerwona kropka (rec indicator)
             NSColor.systemRed.setFill()

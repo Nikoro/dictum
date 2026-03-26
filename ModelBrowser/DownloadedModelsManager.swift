@@ -21,9 +21,10 @@ final class DownloadedModelsManager: ObservableObject {
 
     @Published var downloadedModels: [DownloadedModel] = []
 
-    private var cacheDir: URL {
+    /// MLX Swift downloads to ~/Library/Caches/models/
+    private var mlxCacheDir: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".cache/huggingface/hub")
+            .appendingPathComponent("Library/Caches/models/mlx-community")
     }
 
     private init() {
@@ -32,7 +33,7 @@ final class DownloadedModelsManager: ObservableObject {
 
     func scanDownloadedModels() {
         guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: cacheDir,
+            at: mlxCacheDir,
             includingPropertiesForKeys: nil
         ) else {
             downloadedModels = []
@@ -42,24 +43,24 @@ final class DownloadedModelsManager: ObservableObject {
         let activeModelId = AppSettings.shared.llmModelId
 
         downloadedModels = contents
-            .filter { $0.lastPathComponent.hasPrefix("models--mlx-community--") }
+            .filter { $0.hasDirectoryPath }
             .compactMap { url -> DownloadedModel? in
-                let name = url.lastPathComponent
-                    .replacingOccurrences(of: "models--", with: "")
-                    .replacingOccurrences(of: "--", with: "/")
+                let folderName = url.lastPathComponent
+                let modelId = "mlx-community/\(folderName)"
                 let size = directorySize(url)
+                guard size > 0 else { return nil }
                 return DownloadedModel(
-                    id: name,
+                    id: modelId,
                     sizeOnDisk: size,
-                    isActive: name == activeModelId
+                    isActive: modelId == activeModelId
                 )
             }
             .sorted { $0.sizeOnDisk > $1.sizeOnDisk }
     }
 
     func deleteModel(_ modelId: String) throws {
-        let folderName = "models--" + modelId.replacingOccurrences(of: "/", with: "--")
-        let modelDir = cacheDir.appendingPathComponent(folderName)
+        let folderName = modelId.replacingOccurrences(of: "mlx-community/", with: "")
+        let modelDir = mlxCacheDir.appendingPathComponent(folderName)
         try FileManager.default.removeItem(at: modelDir)
         scanDownloadedModels()
     }

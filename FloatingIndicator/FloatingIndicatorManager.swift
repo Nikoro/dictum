@@ -48,9 +48,10 @@ struct FloatingIndicatorView: View {
 
     private var transcribingContent: some View {
         let base = String(localized: "pill.transcribing", defaultValue: "Transcribing")
-        let texts = [base + ".", base + "..", base + "..."]
-        return Text(texts[dotCount])
-            .font(.system(size: 12, weight: .medium))
+        let dots = String(repeating: ".", count: dotCount + 1)
+        let pad = String(repeating: " ", count: 3 - (dotCount + 1))
+        return Text(base + dots + pad)
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
             .foregroundStyle(.white)
             .fixedSize()
             .onAppear { startDotAnimation() }

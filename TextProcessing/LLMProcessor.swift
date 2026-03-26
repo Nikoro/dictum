@@ -25,7 +25,7 @@ actor LLMProcessor {
     private(set) var isLoading = false
     private(set) var currentModelId: String?
 
-    func loadModel(_ modelId: String = "mlx-community/Qwen3-4B-Instruct-4bit") async throws {
+    func loadModel(_ modelId: String = "mlx-community/Qwen3.5-4B-4bit") async throws {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
@@ -49,12 +49,18 @@ actor LLMProcessor {
             instructions: systemPrompt,
             generateParameters: GenerateParameters(
                 maxTokens: 2048,
-                temperature: 0.1,
+                temperature: 0.7,
                 topP: 0.9
             )
         )
 
-        let result = try await session.respond(to: rawText)
+        var result = try await session.respond(to: rawText)
+
+        // Qwen3 generuje <think>...</think> — usuwamy blok thinking
+        if let thinkEnd = result.range(of: "</think>") {
+            result = String(result[thinkEnd.upperBound...])
+        }
+
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

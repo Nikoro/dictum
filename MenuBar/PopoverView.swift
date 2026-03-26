@@ -32,8 +32,6 @@ struct PopoverView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HeaderSection()
                 Divider()
-                PromptSection()
-                Divider()
                 RecordingSettingsSection()
                 Divider()
                 STTModelSection()
@@ -71,8 +69,8 @@ private let llmModelOptions: [LLMModelOption] = [
         recommended: false
     ),
     LLMModelOption(
-        id: "mlx-community/Qwen3-4B-Instruct-4bit",
-        displayName: "Qwen3 4B",
+        id: "mlx-community/Qwen3.5-4B-4bit",
+        displayName: "Qwen3.5 4B",
         sizeGB: "~2.5 GB",
         descriptionKey: "llm.qwen3_4b.desc",
         recommended: true
@@ -496,7 +494,6 @@ private struct HeaderSection: View {
                 Text("Dictum")
                     .font(.title2.bold())
                 Spacer()
-                StatusDot(state: settings.appState)
             }
 
             if let statusText = stateDescription {
@@ -882,8 +879,20 @@ private struct LLMModelSection: View {
     @EnvironmentObject var pipeline: DictationPipeline
     @ObservedObject private var browser: ModelBrowser
 
+    @State private var isDownloading = false
+    @State private var downloadingModelId: String?
+    @State private var downloadError: String?
+
     init() {
         _browser = ObservedObject(wrappedValue: DictationPipeline.shared.modelBrowser)
+    }
+
+    private var isLLMModelDownloaded: Bool {
+        pipeline.downloadedModelsManager.downloadedModels.contains { $0.id == settings.llmModelId }
+    }
+
+    private var downloadedModels: [DownloadedModel] {
+        pipeline.downloadedModelsManager.downloadedModels
     }
 
     var body: some View {
@@ -891,6 +900,48 @@ private struct LLMModelSection: View {
             Text(String(localized: "section.llm", defaultValue: "LLM Model"))
                 .font(.headline)
 
+            // Downloaded models list (like STT)
+            if !downloadedModels.isEmpty {
+                VStack(spacing: 2) {
+                    ForEach(downloadedModels) { model in
+                        Button {
+                            settings.llmModelId = model.id
+                            pipeline.downloadedModelsManager.scanDownloadedModels()
+                        } label: {
+                            HStack {
+                                Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
+                                    .foregroundColor(model.id == settings.llmModelId ? .accentColor : .secondary)
+                                    .font(.caption2)
+                                Text(model.shortName)
+                                    .font(.system(.body, design: .monospaced))
+                                    .fontWeight(model.id == settings.llmModelId ? .semibold : .regular)
+                                Spacer()
+                                Text(model.formattedSize)
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Button {
+                                    if model.id == settings.llmModelId {
+                                        Task { await LLMProcessor.shared.unloadModel() }
+                                    }
+                                    try? pipeline.downloadedModelsManager.deleteModel(model.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .background(.quaternary)
+                .cornerRadius(8)
+            }
+
+            // Search bar
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
@@ -917,21 +968,43 @@ private struct LLMModelSection: View {
             .background(.quaternary)
             .cornerRadius(8)
 
+            // Search results
             if !browser.searchResults.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(browser.searchResults) { model in
-                            ModelResultRow(
-                                model: model,
-                                isActive: model.id == settings.llmModelId
-                            ) {
-                                Task {
-                                    settings.llmModelId = model.id
-                                    try? await LLMProcessor.shared.loadModel(model.id)
-                                    pipeline.downloadedModelsManager.scanDownloadedModels()
+                            let isDownloaded = downloadedModels.contains { $0.id == model.id }
+                            let isThisDownloading = downloadingModelId == model.id && isDownloading
+                            Button {
+                                guard !isDownloading else { return }
+                                downloadModel(model.id)
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(model.shortName)
+                                            .font(.system(.body, design: .monospaced))
+                                            .fontWeight(isDownloaded ? .semibold : .regular)
+                                        if model.totalSizeBytes > 0 {
+                                            Text(model.formattedSize)
+                                                .font(.caption)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
+                                    Spacer()
+                                    if isThisDownloading {
+                                        ProgressView()
+                                            .scaleEffect(0.6)
+                                    } else if isDownloaded {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.green)
+                                            .font(.caption)
+                                    }
                                 }
-                                browser.clearSearch()
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
                             }
+                            .buttonStyle(.plain)
+                            .disabled(isDownloaded || isDownloading)
                         }
                     }
                 }
@@ -941,64 +1014,92 @@ private struct LLMModelSection: View {
                 .shadow(radius: 4)
             }
 
-            HStack {
-                Text(String(localized: "section.llm.active", defaultValue: "Active:"))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                Text(settings.llmModelId.replacingOccurrences(of: "mlx-community/", with: ""))
-                    .font(.system(.subheadline, design: .monospaced))
-                    .lineLimit(1)
+            // Download progress
+            if isDownloading, let modelId = downloadingModelId {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .frame(width: 12, height: 12)
+                    Text(String(localized: "section.llm.downloading", defaultValue: "Downloading \(modelId.replacingOccurrences(of: "mlx-community/", with: ""))..."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
-            Toggle(String(localized: "section.llm.cleanup", defaultValue: "LLM cleanup"), isOn: $settings.llmCleanupEnabled)
-                .toggleStyle(.switch)
-                .font(.subheadline)
+            if let error = downloadError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+
+            // LLM Prompt toggle + editor
+            HStack {
+                Toggle("", isOn: $settings.llmCleanupEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .disabled(!isLLMModelDownloaded)
+                Text(String(localized: "section.llm.prompt", defaultValue: "LLM Prompt"))
+                    .font(.headline)
+                    .foregroundColor(isLLMModelDownloaded ? .primary : .secondary)
+            }
+
+            if !isLLMModelDownloaded && !isDownloading {
+                Text(String(localized: "section.llm.nomodel", defaultValue: "Download a model first"))
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+
+            if settings.llmCleanupEnabled && isLLMModelDownloaded {
+                TextEditor(text: $settings.llmPrompt)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(minHeight: 100, maxHeight: 140)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .background(.quaternary)
+                    .cornerRadius(8)
+
+                Button(String(localized: "section.prompt.reset", defaultValue: "Reset to default")) {
+                    settings.resetPrompt()
+                }
+                .buttonStyle(.link)
+                .font(.caption)
+            }
         }
         .padding()
+        .onAppear {
+            if !isLLMModelDownloaded {
+                settings.llmCleanupEnabled = false
+            }
+        }
+        .onChange(of: isLLMModelDownloaded) { _, downloaded in
+            if !downloaded {
+                settings.llmCleanupEnabled = false
+            }
+        }
     }
-}
 
-private struct ModelResultRow: View {
-    let model: HFModelInfo
-    let isActive: Bool
-    let onSelect: () -> Void
-
-    var body: some View {
-        Button(action: onSelect) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(model.shortName)
-                        .font(.system(.body, design: .monospaced))
-                        .fontWeight(isActive ? .bold : .regular)
-                    HStack(spacing: 8) {
-                        if model.totalSizeBytes > 0 {
-                            Label(model.formattedSize, systemImage: "internaldrive")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                        if let downloads = model.downloads {
-                            Label(formatDownloads(downloads), systemImage: "arrow.down.circle")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+    private func downloadModel(_ modelId: String) {
+        isDownloading = true
+        downloadingModelId = modelId
+        downloadError = nil
+        Task {
+            do {
+                try await LLMProcessor.shared.loadModel(modelId)
+                await MainActor.run {
+                    settings.llmModelId = modelId
+                    pipeline.downloadedModelsManager.scanDownloadedModels()
+                    isDownloading = false
+                    downloadingModelId = nil
+                    browser.clearSearch()
                 }
-                Spacer()
-                if isActive {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
+            } catch {
+                await MainActor.run {
+                    downloadError = error.localizedDescription
+                    isDownloading = false
+                    downloadingModelId = nil
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
         }
-        .buttonStyle(.plain)
-    }
-
-    private func formatDownloads(_ n: Int) -> String {
-        if n >= 1_000_000 { return "\(n / 1_000_000)M" }
-        if n >= 1_000 { return "\(n / 1_000)k" }
-        return "\(n)"
     }
 }
 
@@ -1010,41 +1111,6 @@ private struct DownloadedModelsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            let llmModels = pipeline.downloadedModelsManager.downloadedModels
-            if !llmModels.isEmpty {
-                HStack {
-                    Text(String(localized: "section.downloaded.llm", defaultValue: "Downloaded LLM models:"))
-                        .font(.subheadline.bold())
-                    Spacer()
-                    Text(pipeline.downloadedModelsManager.formattedTotalSize)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                ForEach(llmModels) { model in
-                    HStack {
-                        Image(systemName: model.id == settings.llmModelId ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(model.id == settings.llmModelId ? .green : .secondary)
-                            .font(.caption)
-                        Text(model.shortName)
-                            .font(.system(.caption, design: .monospaced))
-                            .lineLimit(1)
-                        Spacer()
-                        Text(model.formattedSize)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Button {
-                            try? pipeline.downloadedModelsManager.deleteModel(model.id)
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-
             let whisperDownloaded = pipeline.whisperModelManager.downloadedModelIds
             if !whisperDownloaded.isEmpty {
                 HStack {

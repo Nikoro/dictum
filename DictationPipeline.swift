@@ -193,10 +193,13 @@ final class DictationPipeline: ObservableObject {
                         try await LLMProcessor.shared.loadModel(settings.llmModelId)
                     }
 
+                    dlog("[Dictum] LLM prompt: '\(settings.llmPrompt)'")
+                    dlog("[Dictum] LLM input: '\(rawText)'")
                     finalText = try await LLMProcessor.shared.cleanText(
                         rawText: rawText,
                         systemPrompt: settings.llmPrompt
                     )
+                    dlog("[Dictum] LLM raw output: '\(finalText)'")
                 } catch {
                     dlog("[Dictum] LLM cleanup failed, using raw text: \(error)")
                     finalText = rawText
