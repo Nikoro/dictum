@@ -39,8 +39,9 @@ final class AppSettings: ObservableObject {
     @AppStorage("llmModelId") var llmModelId: String = "mlx-community/Qwen3-4B-Instruct-4bit"
     @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
     @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = true
-    @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 49 // Space
-    @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 524288 // Option
+    @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 54 // Right Command
+    @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
+    @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true
 
     var recordingMode: RecordingMode {
         get { RecordingMode(rawValue: recordingModeRaw) ?? .hold }

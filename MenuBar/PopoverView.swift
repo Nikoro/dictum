@@ -108,6 +108,7 @@ private struct PromptSection: View {
 
 private struct RecordingSettingsSection: View {
     @EnvironmentObject var settings: AppSettings
+    @State private var isRecordingHotkey = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -128,34 +129,176 @@ private struct RecordingSettingsSection: View {
                 Text("Hotkey:")
                     .font(.headline)
                 Spacer()
-                Text(hotkeyDescription)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.quaternary)
-                    .cornerRadius(4)
-                    .font(.system(.body, design: .monospaced))
+                HotkeyRecorderButton(
+                    isRecording: $isRecordingHotkey,
+                    hotkeyDescription: hotkeyDescription
+                )
             }
         }
         .padding()
     }
 
     private var hotkeyDescription: String {
+        if settings.hotkeyIsModifierOnly {
+            return GlobalHotkeyManager.modifierKeyName(settings.hotkeyKeyCode) ?? "Key \(settings.hotkeyKeyCode)"
+        }
+
         var parts: [String] = []
         let modifiers = settings.hotkeyModifiers
-        if modifiers & 1048576 != 0 { parts.append("⌘") } // Command
-        if modifiers & 524288 != 0 { parts.append("⌥") }  // Option
-        if modifiers & 262144 != 0 { parts.append("⌃") }  // Control
-        if modifiers & 131072 != 0 { parts.append("⇧") }  // Shift
+        if modifiers & 1048576 != 0 { parts.append("⌘") }
+        if modifiers & 524288 != 0 { parts.append("⌥") }
+        if modifiers & 262144 != 0 { parts.append("⌃") }
+        if modifiers & 131072 != 0 { parts.append("⇧") }
 
         let keyName: String
         switch settings.hotkeyKeyCode {
         case 49: keyName = "Space"
         case 36: keyName = "Return"
         case 48: keyName = "Tab"
-        default: keyName = "Key \(settings.hotkeyKeyCode)"
+        case 53: keyName = "Esc"
+        case 51: keyName = "Delete"
+        case 76: keyName = "Enter"
+        default:
+            if let scalar = KeyCodeMapping.keyName(for: settings.hotkeyKeyCode) {
+                keyName = scalar
+            } else {
+                keyName = "Key \(settings.hotkeyKeyCode)"
+            }
         }
         parts.append(keyName)
         return parts.joined(separator: " ")
+    }
+}
+
+// MARK: - Hotkey Recorder
+
+private struct HotkeyRecorderButton: View {
+    @Binding var isRecording: Bool
+    let hotkeyDescription: String
+
+    var body: some View {
+        Button {
+            isRecording.toggle()
+        } label: {
+            Text(isRecording ? "Naciśnij klawisz..." : hotkeyDescription)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(isRecording ? Color.accentColor.opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
+                .cornerRadius(4)
+                .font(.system(.body, design: .monospaced))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(isRecording ? Color.accentColor : .clear, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .background(
+            isRecording ? HotkeyRecorderEventView(isRecording: $isRecording) : nil
+        )
+    }
+}
+
+/// NSView that installs a local event monitor to capture the next key for hotkey assignment.
+private struct HotkeyRecorderEventView: NSViewRepresentable {
+    @Binding var isRecording: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let view = HotkeyCapturingNSView()
+        view.onCapture = { keyCode, modifiers, isModifierOnly in
+            let settings = AppSettings.shared
+            settings.hotkeyKeyCode = keyCode
+            settings.hotkeyModifiers = modifiers
+            settings.hotkeyIsModifierOnly = isModifierOnly
+
+            // Restart hotkey listener with new settings
+            DictationPipeline.shared.hotkeyManager.stop()
+            DictationPipeline.shared.setupHotkey()
+
+            DispatchQueue.main.async {
+                isRecording = false
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+private final class HotkeyCapturingNSView: NSView {
+    var onCapture: ((Int, Int, Bool) -> Void)?
+    private var keyMonitor: Any?
+    private var flagsMonitor: Any?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil else { return }
+
+        // Monitor for regular keys (key + modifiers combo)
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            let keyCode = Int(event.keyCode)
+            let modifiers = Int(event.modifierFlags.intersection(.deviceIndependentFlagsMask).rawValue)
+            self.onCapture?(keyCode, modifiers, false)
+            self.removeMonitors()
+            return nil // consume
+        }
+
+        // Monitor for modifier-only keys (e.g. Right Command)
+        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self else { return event }
+            let keyCode = Int(event.keyCode)
+            guard GlobalHotkeyManager.isModifierKeyCode(keyCode) else { return event }
+            // Only capture on press (flag going up), not release
+            let flag = GlobalHotkeyManager.modifierFlag(forKeyCode: keyCode)
+            let flags = CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
+            if flags.contains(flag) {
+                self.onCapture?(keyCode, 0, true)
+                self.removeMonitors()
+                return nil
+            }
+            return event
+        }
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil {
+            removeMonitors()
+        }
+        super.viewWillMove(toWindow: newWindow)
+    }
+
+    private func removeMonitors() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
+        }
+        if let flagsMonitor {
+            NSEvent.removeMonitor(flagsMonitor)
+            self.flagsMonitor = nil
+        }
+    }
+}
+
+/// Maps common key codes to human-readable names.
+private enum KeyCodeMapping {
+    static func keyName(for keyCode: Int) -> String? {
+        // Map of common key codes to display characters
+        let mapping: [Int: String] = [
+            0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X",
+            8: "C", 9: "V", 11: "B", 12: "Q", 13: "W", 14: "E", 15: "R",
+            16: "Y", 17: "T", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
+            23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
+            30: "]", 31: "O", 32: "U", 33: "[", 34: "I", 35: "P",
+            37: "L", 38: "J", 39: "'", 40: "K", 41: ";", 42: "\\",
+            43: ",", 44: "/", 45: "N", 46: "M", 47: ".",
+            50: "`",
+            96: "F5", 97: "F6", 98: "F7", 99: "F3", 100: "F8",
+            101: "F9", 103: "F11", 105: "F13", 107: "F14",
+            109: "F10", 111: "F12", 113: "F15",
+            118: "F4", 119: "F2", 120: "F1",
+            121: "Page Down", 122: "F16", 123: "←", 124: "→", 125: "↓", 126: "↑",
+        ]
+        return mapping[keyCode]
     }
 }
 

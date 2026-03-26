@@ -15,6 +15,9 @@ final class GlobalHotkeyManager: ObservableObject {
 
     private let settings = AppSettings.shared
 
+    /// Tracks whether a modifier-only hotkey is currently "pressed"
+    private var modifierKeyDown = false
+
     private init() {}
 
     var accessibilityGranted: Bool {
@@ -48,6 +51,7 @@ final class GlobalHotkeyManager: ObservableObject {
         eventTap = nil
         runLoopSource = nil
         isListening = false
+        modifierKeyDown = false
     }
 
     private func setupEventTap() {
@@ -86,32 +90,92 @@ final class GlobalHotkeyManager: ObservableObject {
     private nonisolated func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-
-        // Check if this matches our hotkey
+        let isModifierOnly = AppSettings.shared.hotkeyIsModifierOnly
         let expectedKeyCode = Int64(AppSettings.shared.hotkeyKeyCode)
-        let expectedModifiers = CGEventFlags(rawValue: UInt64(AppSettings.shared.hotkeyModifiers))
 
-        // Check modifiers match (mask out non-modifier bits)
-        let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
-        let currentModifiers = flags.intersection(modifierMask)
-        let expectedMods = expectedModifiers.intersection(modifierMask)
+        if isModifierOnly {
+            // Modifier-only hotkey: listen to flagsChanged for the specific modifier keyCode
+            guard type == .flagsChanged && keyCode == expectedKeyCode else {
+                return Unmanaged.passRetained(event)
+            }
 
-        guard keyCode == expectedKeyCode && currentModifiers == expectedMods else {
+            let modifierFlag = Self.modifierFlag(forKeyCode: Int(expectedKeyCode))
+            let isPressed = flags.contains(modifierFlag)
+
+            if isPressed {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.modifierKeyDown = true
+                    self.keyDownHandler?()
+                }
+                return nil
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    if self.modifierKeyDown {
+                        self.modifierKeyDown = false
+                        self.keyUpHandler?()
+                    }
+                }
+                return nil
+            }
+        } else {
+            // Key + modifier combo
+            let expectedModifiers = CGEventFlags(rawValue: UInt64(AppSettings.shared.hotkeyModifiers))
+            let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
+            let currentModifiers = flags.intersection(modifierMask)
+            let expectedMods = expectedModifiers.intersection(modifierMask)
+
+            guard keyCode == expectedKeyCode && currentModifiers == expectedMods else {
+                return Unmanaged.passRetained(event)
+            }
+
+            if type == .keyDown {
+                DispatchQueue.main.async { [weak self] in
+                    self?.keyDownHandler?()
+                }
+                return nil
+            } else if type == .keyUp {
+                DispatchQueue.main.async { [weak self] in
+                    self?.keyUpHandler?()
+                }
+                return nil
+            }
+
             return Unmanaged.passRetained(event)
         }
+    }
 
-        if type == .keyDown {
-            DispatchQueue.main.async { [weak self] in
-                self?.keyDownHandler?()
-            }
-            return nil // Consume the event
-        } else if type == .keyUp {
-            DispatchQueue.main.async { [weak self] in
-                self?.keyUpHandler?()
-            }
-            return nil
+    // MARK: - Helpers
+
+    /// Maps a modifier keyCode to the corresponding CGEventFlags bit.
+    nonisolated static func modifierFlag(forKeyCode keyCode: Int) -> CGEventFlags {
+        switch keyCode {
+        case 54, 55: return .maskCommand     // Right/Left Command
+        case 56, 60: return .maskShift       // Left/Right Shift
+        case 58, 61: return .maskAlternate   // Left/Right Option
+        case 59, 62: return .maskControl     // Left/Right Control
+        default: return []
         }
+    }
 
-        return Unmanaged.passRetained(event)
+    /// Whether a keyCode is a modifier key.
+    nonisolated static func isModifierKeyCode(_ keyCode: Int) -> Bool {
+        [54, 55, 56, 57, 58, 59, 60, 61, 62].contains(keyCode)
+    }
+
+    /// Human-readable name for a modifier keyCode.
+    nonisolated static func modifierKeyName(_ keyCode: Int) -> String? {
+        switch keyCode {
+        case 54: return "Right ⌘"
+        case 55: return "Left ⌘"
+        case 56: return "Left ⇧"
+        case 60: return "Right ⇧"
+        case 58: return "Left ⌥"
+        case 61: return "Right ⌥"
+        case 59: return "Left ⌃"
+        case 62: return "Right ⌃"
+        default: return nil
+        }
     }
 }
