@@ -67,3 +67,7 @@ Hotkey (GlobalHotkeyManager) → DictationPipeline
 - Accessibility permission nie da się poprosić programowo — user dodaje ręcznie
 - Pierwsze uruchomienie modelu WhisperKit: CoreML kompilacja na ANE, 30-60s
 - RAM: WhisperKit ~3GB + LLM ~2.5GB = ~5.5GB unified memory
+
+## Findings
+
+See [FINDINGS.md](FINDINGS.md) for crucial discoveries and "aha moments" captured during development sessions. Review before making changes to unfamiliar areas.
