@@ -136,6 +136,7 @@ final class DictationPipeline: ObservableObject {
             isRecording = true
             settings.appState = .recording
             dlog("[Dictum] recording started, showing floating indicator")
+            FloatingIndicatorManager.shared.captureTargetApp()
             FloatingIndicatorManager.shared.show(audioRecorder: audioRecorder)
         } catch {
             dlog("[Dictum] startRecording error: \(error)")

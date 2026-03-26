@@ -6,6 +6,7 @@ import AppKit
 struct FloatingIndicatorView: View {
     let audioRecorder: AudioRecorder
     @ObservedObject var settings: AppSettings
+    let appIcon: NSImage
 
     @State private var levels: [Float] = Array(repeating: 0, count: 16)
     @State private var smoothedLevel: Float = 0
@@ -14,7 +15,13 @@ struct FloatingIndicatorView: View {
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.016)) { context in
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 20, height: 20)
+
                 switch settings.appState {
                 case .recording:
                     recordingContent(time: context.date.timeIntervalSince1970)
@@ -102,16 +109,33 @@ final class FloatingIndicatorManager {
     static let shared = FloatingIndicatorManager()
     private var panel: NSPanel?
     private var hostingView: NSHostingView<FloatingIndicatorView>?
+    private var targetPID: pid_t = 0
+    private var targetAppIcon: NSImage?
     private init() {}
+
+    /// Call before showing to capture which app the user is typing in.
+    func captureTargetApp() {
+        if let app = NSWorkspace.shared.frontmostApplication {
+            targetPID = app.processIdentifier
+            if let bundleURL = app.bundleURL {
+                targetAppIcon = NSWorkspace.shared.icon(forFile: bundleURL.path)
+            } else {
+                targetAppIcon = app.icon
+            }
+            dlog("[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil")")
+        }
+    }
 
     func show(audioRecorder: AudioRecorder) {
         guard panel == nil else { return }
 
-        let view = FloatingIndicatorView(audioRecorder: audioRecorder, settings: AppSettings.shared)
+        let icon = targetAppIcon ?? NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
+        dlog("[Pill] showing with icon size: \(icon.size), reps: \(icon.representations.count)")
+        let view = FloatingIndicatorView(audioRecorder: audioRecorder, settings: AppSettings.shared, appIcon: icon)
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = [.intrinsicContentSize]
 
-        let panelSize = NSSize(width: 180, height: 44)
+        let panelSize = NSSize(width: 210, height: 44)
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
@@ -130,11 +154,8 @@ final class FloatingIndicatorManager {
         hosting.frame = NSRect(origin: .zero, size: panelSize)
         panel.contentView = hosting
 
-        let mouse = NSEvent.mouseLocation
-        panel.setFrameOrigin(NSPoint(
-            x: mouse.x - panelSize.width / 2,
-            y: mouse.y - panelSize.height - 16
-        ))
+        let origin = caretOrigin(panelSize: panelSize)
+        panel.setFrameOrigin(origin)
 
         panel.orderFrontRegardless()
         self.panel = panel
@@ -146,5 +167,109 @@ final class FloatingIndicatorManager {
         panel.orderOut(nil)
         self.panel = nil
         self.hostingView = nil
+    }
+
+    /// Get caret (text cursor) position via Accessibility API.
+    /// Falls back to mouse position if caret is unavailable.
+    private func caretOrigin(panelSize: NSSize) -> NSPoint {
+        if targetPID > 0, let caretRect = Self.caretRect(pid: targetPID) {
+            // AX uses top-left origin; find the screen containing the caret
+            let caretCenter = NSPoint(x: caretRect.midX, y: caretRect.midY)
+            let screen = NSScreen.screens.first { screen in
+                // Convert screen frame to top-left coords for comparison
+                let mainH = NSScreen.screens.first?.frame.height ?? 900
+                let topLeftFrame = NSRect(
+                    x: screen.frame.origin.x,
+                    y: mainH - screen.frame.origin.y - screen.frame.height,
+                    width: screen.frame.width,
+                    height: screen.frame.height
+                )
+                return topLeftFrame.contains(caretCenter)
+            } ?? NSScreen.main
+
+            let mainH = NSScreen.screens.first?.frame.height ?? 900
+
+            // Convert AX top-left Y to AppKit bottom-left Y
+            let caretAppKitY = mainH - caretRect.origin.y - caretRect.size.height
+            let caretAppKitX = caretRect.origin.x
+
+            // Position pill to the left of caret, vertically aligned
+            var x = caretAppKitX - panelSize.width - 8
+            var y = caretAppKitY
+
+            // Clamp to screen bounds
+            if let screenFrame = screen?.visibleFrame {
+                if x < screenFrame.minX {
+                    // Not enough space on left — put it above caret instead
+                    x = caretAppKitX
+                    y = caretAppKitY + caretRect.height + 8
+                }
+                x = max(x, screenFrame.minX)
+                x = min(x, screenFrame.maxX - panelSize.width)
+                y = max(y, screenFrame.minY)
+                y = min(y, screenFrame.maxY - panelSize.height)
+            }
+
+            dlog("[Pill] caretAX=(\(caretRect.origin.x),\(caretRect.origin.y)) → appKit=(\(x),\(y))")
+            return NSPoint(x: x, y: y)
+        }
+
+        // Fallback: mouse position
+        let mouse = NSEvent.mouseLocation
+        dlog("[Pill] no caret, using mouse=(\(mouse.x),\(mouse.y))")
+        return NSPoint(
+            x: mouse.x - panelSize.width / 2,
+            y: mouse.y - panelSize.height - 16
+        )
+    }
+
+    /// Query the focused text element's caret position via AX API.
+    /// Uses the stored target PID (the app that was active when recording started).
+    private static func caretRect(pid: pid_t) -> CGRect? {
+        let axApp = AXUIElementCreateApplication(pid)
+
+        var focusedElement: AnyObject?
+        guard AXUIElementCopyAttributeValue(axApp, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
+            return nil
+        }
+
+        // Check this is actually a text element
+        var role: AnyObject?
+        AXUIElementCopyAttributeValue(focusedElement as! AXUIElement, kAXRoleAttribute as CFString, &role)
+        let roleStr = role as? String ?? ""
+        guard roleStr == kAXTextFieldRole as String
+           || roleStr == kAXTextAreaRole as String
+           || roleStr == "AXWebArea"
+           || roleStr == "AXComboBox"
+        else {
+            return nil
+        }
+
+        var selectedRange: AnyObject?
+        guard AXUIElementCopyAttributeValue(focusedElement as! AXUIElement, kAXSelectedTextRangeAttribute as CFString, &selectedRange) == .success else {
+            return nil
+        }
+
+        var caretBounds: AnyObject?
+        guard AXUIElementCopyParameterizedAttributeValue(
+            focusedElement as! AXUIElement,
+            kAXBoundsForRangeParameterizedAttribute as CFString,
+            selectedRange!,
+            &caretBounds
+        ) == .success else {
+            return nil
+        }
+
+        var rect = CGRect.zero
+        guard AXValueGetValue(caretBounds as! AXValue, .cgRect, &rect) else {
+            return nil
+        }
+
+        // Validate — x=0 with non-zero y is likely a bogus result
+        guard rect.origin.x > 0 || rect.size.width > 0 else {
+            return nil
+        }
+
+        return rect
     }
 }
