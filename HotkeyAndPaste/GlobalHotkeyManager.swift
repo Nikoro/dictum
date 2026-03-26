@@ -12,6 +12,7 @@ final class GlobalHotkeyManager: ObservableObject {
     private var runLoopSource: CFRunLoopSource?
     private var keyDownHandler: (() -> Void)?
     private var keyUpHandler: (() -> Void)?
+    private var cancelHandler: (() -> Void)?
 
     private let settings = AppSettings.shared
 
@@ -29,11 +30,15 @@ final class GlobalHotkeyManager: ObservableObject {
         AXIsProcessTrustedWithOptions(options)
     }
 
-    func start(onKeyDown: @escaping () -> Void, onKeyUp: @escaping () -> Void) {
+    func start(onKeyDown: @escaping () -> Void, onKeyUp: @escaping () -> Void, onCancel: @escaping () -> Void) {
         self.keyDownHandler = onKeyDown
         self.keyUpHandler = onKeyUp
+        self.cancelHandler = onCancel
+
+        dlog("[Hotkey] start() called, accessibility=\(accessibilityGranted), keyCode=\(settings.hotkeyKeyCode), isModifierOnly=\(settings.hotkeyIsModifierOnly)")
 
         guard accessibilityGranted else {
+            dlog("[Hotkey] accessibility NOT granted, requesting...")
             requestAccessibility()
             return
         }
@@ -85,6 +90,7 @@ final class GlobalHotkeyManager: ObservableObject {
 
         CGEvent.tapEnable(tap: tap, enable: true)
         isListening = true
+        dlog("[Hotkey] event tap created and enabled")
     }
 
     private nonisolated func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -93,14 +99,26 @@ final class GlobalHotkeyManager: ObservableObject {
         let isModifierOnly = AppSettings.shared.hotkeyIsModifierOnly
         let expectedKeyCode = Int64(AppSettings.shared.hotkeyKeyCode)
 
+        // Escape key cancels current operation
+        if type == .keyDown && keyCode == 53 {
+            DispatchQueue.main.async { [weak self] in
+                self?.cancelHandler?()
+            }
+            return Unmanaged.passRetained(event)
+        }
+
         if isModifierOnly {
             // Modifier-only hotkey: listen to flagsChanged for the specific modifier keyCode
+            if type == .flagsChanged {
+                dlog("[Hotkey] flagsChanged: keyCode=\(keyCode), expected=\(expectedKeyCode), flags=\(flags.rawValue)")
+            }
             guard type == .flagsChanged && keyCode == expectedKeyCode else {
                 return Unmanaged.passRetained(event)
             }
 
             let modifierFlag = Self.modifierFlag(forKeyCode: Int(expectedKeyCode))
             let isPressed = flags.contains(modifierFlag)
+            dlog("[Hotkey] modifier match! isPressed=\(isPressed)")
 
             if isPressed {
                 DispatchQueue.main.async { [weak self] in

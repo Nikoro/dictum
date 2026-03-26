@@ -35,10 +35,10 @@ final class AppSettings: ObservableObject {
     """
 
     @AppStorage("llmPrompt") var llmPrompt: String = AppSettings.defaultPrompt
-    @AppStorage("sttModelId") var sttModelId: String = "large-v3-turbo"
+    @AppStorage("sttModelId") var sttModelId: String = "openai_whisper-large-v3_turbo"
     @AppStorage("llmModelId") var llmModelId: String = "mlx-community/Qwen3-4B-Instruct-4bit"
     @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
-    @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = true
+    @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = false
     @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 54 // Right Command
     @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
     @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true

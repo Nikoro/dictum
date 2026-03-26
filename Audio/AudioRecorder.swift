@@ -1,7 +1,6 @@
 import AVFoundation
 import Combine
 
-@MainActor
 final class AudioRecorder: ObservableObject {
     @Published var isRecording = false
     @Published var audioLevel: Float = 0
@@ -10,6 +9,7 @@ final class AudioRecorder: ObservableObject {
     private var audioBuffer: [Float] = []
     private let bufferLock = NSLock()
 
+    @MainActor
     func startRecording() throws {
         audioBuffer = []
         let engine = AVAudioEngine()
@@ -17,8 +17,8 @@ final class AudioRecorder: ObservableObject {
 
         let inputNode = engine.inputNode
         let hardwareFormat = inputNode.outputFormat(forBus: 0)
+        dlog("[Audio] hardware format: \(hardwareFormat.sampleRate)Hz, \(hardwareFormat.channelCount)ch")
 
-        // Install tap at hardware format — AVAudioEngine handles conversion
         let desiredSampleRate: Double = 16000
         let desiredFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
@@ -27,7 +27,6 @@ final class AudioRecorder: ObservableObject {
             interleaved: false
         )!
 
-        // If hardware is different from desired, use a converter
         let converter: AVAudioConverter?
         if hardwareFormat.sampleRate != desiredSampleRate || hardwareFormat.channelCount != 1 {
             converter = AVAudioConverter(from: hardwareFormat, to: desiredFormat)
@@ -63,22 +62,25 @@ final class AudioRecorder: ObservableObject {
             let frameLength = Int(samplesBuffer.frameLength)
             let samples = Array(UnsafeBufferPointer(start: channelData, count: frameLength))
 
-            // Calculate audio level for UI
             let rms = sqrt(samples.map { $0 * $0 }.reduce(0, +) / Float(frameLength))
 
             self.bufferLock.lock()
             self.audioBuffer.append(contentsOf: samples)
             self.bufferLock.unlock()
 
+            // Use objectWillChange directly to ensure propagation
             DispatchQueue.main.async {
+                self.objectWillChange.send()
                 self.audioLevel = rms
             }
         }
 
         try engine.start()
         isRecording = true
+        dlog("[Audio] engine started")
     }
 
+    @MainActor
     func stopRecording() -> [Float] {
         engine?.inputNode.removeTap(onBus: 0)
         engine?.stop()
@@ -91,6 +93,7 @@ final class AudioRecorder: ObservableObject {
         audioBuffer = []
         bufferLock.unlock()
 
+        dlog("[Audio] stopped, \(samples.count) samples captured")
         return samples
     }
 }

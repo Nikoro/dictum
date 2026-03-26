@@ -1,0 +1,55 @@
+/* Floating pill */
+"pill.transcribing" = "Transkrybuję";
+
+/* Setup */
+"setup.title" = "Konfiguracja";
+"setup.step1.title" = "Uprawnienia";
+"setup.step1.mic.title" = "Mikrofon";
+"setup.step1.mic.desc" = "Nagrywanie głosu do transkrypcji";
+"setup.step1.acc.title" = "Accessibility";
+"setup.step1.acc.desc" = "Globalny hotkey i auto-paste (Cmd+V)";
+"setup.step1.enable" = "Włącz";
+"setup.step1.locked" = "Najpierw włącz uprawnienia powyżej.";
+"setup.step2.title" = "Model rozpoznawania mowy";
+"setup.step2.locked" = "Najpierw pobierz model STT.";
+"setup.step3.title" = "Czyszczenie tekstu LLM (opcjonalne)";
+"setup.step3.skip" = "Pomiń — używaj tylko transkrypcji";
+"setup.recommended" = "Rekomendowany";
+
+/* Header */
+"header.recording" = "Nagrywanie...";
+"header.transcribing" = "Transkrypcja...";
+"header.processingLLM" = "Czyszczenie tekstu przez LLM...";
+"header.done" = "Gotowe — tekst wklejony";
+
+/* Sections */
+"section.prompt" = "Prompt LLM";
+"section.prompt.reset" = "Przywróć domyślny";
+"section.mode" = "Tryb:";
+"section.hotkey" = "Hotkey:";
+"section.hotkey.press" = "Naciśnij klawisz...";
+"section.stt" = "Model STT";
+"section.llm" = "Model LLM";
+"section.llm.search" = "Szukaj modeli (np. qwen, gemma, llama)...";
+"section.llm.active" = "Aktywny:";
+"section.llm.cleanup" = "LLM cleanup";
+"section.downloaded.llm" = "Pobrane modele LLM:";
+"section.downloaded.whisper" = "Pobrane modele Whisper:";
+"section.downloaded.total" = "Łącznie na dysku:";
+
+/* Errors */
+"error.mic" = "Nie można uruchomić mikrofonu:";
+"error.download.stt" = "Pobierz model STT w ustawieniach";
+
+/* Model descriptions — STT */
+"stt.large_v3_turbo.desc" = "Rekomendowany. Najlepszy balans szybkości i dokładności.";
+"stt.large_v3.desc" = "Najwyższa dokładność. 2x wolniejszy niż Turbo.";
+"stt.distil_large_v3_turbo.desc" = "Dystylowany. Bardzo szybki.";
+"stt.medium.desc" = "Dobra dokładność, umiarkowany rozmiar.";
+"stt.small.desc" = "Kompromis między rozmiarem a dokładnością.";
+"stt.base.desc" = "Bardzo mały i szybki. Niższa dokładność.";
+
+/* Model descriptions — LLM */
+"llm.qwen3_1.7b.desc" = "Szybki, lekki. Dobry do prostych poprawek.";
+"llm.qwen3_4b.desc" = "Rekomendowany. Dobra jakość poprawek.";
+"llm.qwen3_8b.desc" = "Najlepsza jakość. Wymaga więcej RAM.";

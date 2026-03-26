@@ -4,6 +4,8 @@ import Combine
 
 @MainActor
 final class MenuBarManager: ObservableObject {
+    static weak var shared: MenuBarManager?
+
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var eventMonitor: Any?
@@ -13,6 +15,7 @@ final class MenuBarManager: ObservableObject {
     private let pipeline = DictationPipeline.shared
 
     init() {
+        MenuBarManager.shared = self
         setupStatusItem()
         setupPopover()
         setupEventMonitor()
@@ -72,6 +75,14 @@ final class MenuBarManager: ObservableObject {
         default:
             // Template image — system automatycznie dopasuje do light/dark mode
             button.image = MenuBarIcon.microphone(state: state)
+        }
+    }
+
+    func showPopover() {
+        guard let popover, let button = statusItem?.button else { return }
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover.contentViewController?.view.window?.makeKey()
         }
     }
 

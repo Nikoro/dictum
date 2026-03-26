@@ -5,7 +5,11 @@ struct WhisperModelInfo: Identifiable {
     let id: String
     let displayName: String
     let sizeBytes: Int64
-    let description: String
+    let descriptionKey: String
+
+    var description: String {
+        String(localized: String.LocalizationValue(descriptionKey))
+    }
 
     var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file)
@@ -18,77 +22,62 @@ final class WhisperModelManager: ObservableObject {
 
     @Published var availableModels: [WhisperModelInfo] = WhisperModelManager.defaultModels
     @Published var downloadedModelIds: Set<String> = []
-    @Published var activeModelId: String = "large-v3-turbo"
+    @Published var activeModelId: String = "openai_whisper-large-v3_turbo"
     @Published var isDownloading = false
     @Published var downloadingModelId: String?
 
+    private static let downloadedKey = "whisperDownloadedModelIds"
+
     static let defaultModels: [WhisperModelInfo] = [
         WhisperModelInfo(
-            id: "large-v3-turbo",
+            id: "openai_whisper-large-v3_turbo",
             displayName: "Large V3 Turbo",
-            sizeBytes: 1_600_000_000,
-            description: "Rekomendowany. Najlepszy balans szybkości i dokładności."
+            sizeBytes: 954_000_000,
+            descriptionKey: "stt.large_v3_turbo.desc"
         ),
         WhisperModelInfo(
-            id: "large-v3",
+            id: "openai_whisper-large-v3",
             displayName: "Large V3",
-            sizeBytes: 3_100_000_000,
-            description: "Najwyższa dokładność. 2x wolniejszy niż Turbo."
+            sizeBytes: 947_000_000,
+            descriptionKey: "stt.large_v3.desc"
         ),
         WhisperModelInfo(
-            id: "distil-large-v3",
-            displayName: "Distil Large V3",
-            sizeBytes: 1_500_000_000,
-            description: "Dystylowany. Szybki, dobry dla angielskiego."
+            id: "distil-whisper_distil-large-v3_turbo",
+            displayName: "Distil Large V3 Turbo",
+            sizeBytes: 600_000_000,
+            descriptionKey: "stt.distil_large_v3_turbo.desc"
         ),
         WhisperModelInfo(
-            id: "medium",
+            id: "openai_whisper-medium",
             displayName: "Medium",
             sizeBytes: 1_500_000_000,
-            description: "Dobra dokładność, umiarkowany rozmiar."
+            descriptionKey: "stt.medium.desc"
         ),
         WhisperModelInfo(
-            id: "small",
+            id: "openai_whisper-small",
             displayName: "Small",
-            sizeBytes: 500_000_000,
-            description: "Kompromis między rozmiarem a dokładnością."
+            sizeBytes: 216_000_000,
+            descriptionKey: "stt.small.desc"
         ),
         WhisperModelInfo(
-            id: "base",
+            id: "openai_whisper-base",
             displayName: "Base",
             sizeBytes: 150_000_000,
-            description: "Bardzo mały i szybki. Niższa dokładność."
+            descriptionKey: "stt.base.desc"
         ),
     ]
 
     private init() {
-        scanDownloaded()
+        loadPersistedIds()
     }
 
-    func scanDownloaded() {
-        // WhisperKit stores models in application support or caches
-        // Check common WhisperKit cache locations
-        let possiblePaths = [
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Library/Caches/huggingface/models--argmaxinc--whisperkit-coreml"),
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".cache/huggingface/hub/models--argmaxinc--whisperkit-coreml"),
-        ]
+    private func loadPersistedIds() {
+        let saved = UserDefaults.standard.stringArray(forKey: Self.downloadedKey) ?? []
+        downloadedModelIds = Set(saved)
+    }
 
-        for path in possiblePaths {
-            guard let contents = try? FileManager.default.contentsOfDirectory(
-                at: path,
-                includingPropertiesForKeys: nil
-            ) else { continue }
-
-            // WhisperKit models are stored as subdirectories
-            for model in Self.defaultModels {
-                let modelDirName = "openai_whisper-\(model.id)"
-                if contents.contains(where: { $0.lastPathComponent.contains(modelDirName) || $0.lastPathComponent.contains(model.id) }) {
-                    downloadedModelIds.insert(model.id)
-                }
-            }
-        }
+    private func persistIds() {
+        UserDefaults.standard.set(Array(downloadedModelIds), forKey: Self.downloadedKey)
     }
 
     func downloadAndActivate(_ modelId: String) async throws {
@@ -103,26 +92,15 @@ final class WhisperModelManager: ObservableObject {
         downloadedModelIds.insert(modelId)
         activeModelId = modelId
         AppSettings.shared.sttModelId = modelId
+        persistIds()
     }
 
     func deleteModel(_ modelId: String) {
-        let possiblePaths = [
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Library/Caches/huggingface/models--argmaxinc--whisperkit-coreml"),
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".cache/huggingface/hub/models--argmaxinc--whisperkit-coreml"),
-        ]
-
-        for basePath in possiblePaths {
-            let modelDir = basePath.appendingPathComponent("openai_whisper-\(modelId)")
-            try? FileManager.default.removeItem(at: modelDir)
-        }
-
         downloadedModelIds.remove(modelId)
         if activeModelId == modelId {
-            activeModelId = Self.defaultModels.first?.id ?? "large-v3-turbo"
+            activeModelId = Self.defaultModels.first?.id ?? ""
         }
-        scanDownloaded()
+        persistIds()
     }
 
     func totalSizeOnDisk() -> Int64 {

@@ -8,11 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		0390EE84DDCA46ADEE516A70 /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505E991D55A534262FCDF113 /* TranscriptionEngine.swift */; };
+		03E225740534B98B26F65606 /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */; };
 		094130D98811BDD02D2A1555 /* LLMProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0883B8EE127B0560E01584 /* LLMProcessor.swift */; };
 		0E254EBBA921F84B3E41ED4E /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2276C69754697A5C25F690 /* AudioRecorder.swift */; };
 		1CCC7DE6233407D1FC35BA35 /* DownloadedModelsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */; };
 		25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */; };
 		3B970FB1993D02CE75C23202 /* DictationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894B0245FC883E24EDFB48BB /* DictationPipeline.swift */; };
+		409764D750CA32FF7E320034 /* FloatingIndicatorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D98577BC75D1EED950058D /* FloatingIndicatorManager.swift */; };
 		4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */; };
 		53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 24108E4098C7D8A965EFAEEA /* MLXLMCommon */; };
 		660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */; };
@@ -23,11 +25,13 @@
 		CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A45404D11A8845C3F109251 /* Assets.xcassets */; };
 		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
 		DD50DB580798C88C6A1357C5 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8783DFB2FE338D342D231BF /* AppSettings.swift */; };
+		DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F49B35EF21214DF3B51CC21B /* Localizable.strings */; };
 		E5715E5682888026CE990F8E /* DictumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */; };
 		E779256781738096534067BF /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		14D98577BC75D1EED950058D /* FloatingIndicatorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIndicatorManager.swift; sourceTree = "<group>"; };
 		2490B7196B6C0D292B9AF54C /* PasteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteManager.swift; sourceTree = "<group>"; };
 		26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		3A45404D11A8845C3F109251 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -37,13 +41,16 @@
 		894B0245FC883E24EDFB48BB /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		8F0883B8EE127B0560E01584 /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		8F2276C69754697A5C25F690 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
+		A218D3C8C6E7E4EE3E45D009 /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		A52C02DC25B522AB15CF93A1 /* Dictum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dictum.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A860B5A4689C4D0EE913A43F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B5A63125D12472619B955131 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B8783DFB2FE338D342D231BF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
 		C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelManager.swift; sourceTree = "<group>"; };
 		D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelBrowser.swift; sourceTree = "<group>"; };
+		EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
 		FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictumApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -68,6 +75,7 @@
 				3A45404D11A8845C3F109251 /* Assets.xcassets */,
 				64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */,
 				B5A63125D12472619B955131 /* Info.plist */,
+				F49B35EF21214DF3B51CC21B /* Localizable.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -86,6 +94,7 @@
 				894B0245FC883E24EDFB48BB /* DictationPipeline.swift */,
 				FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */,
 				4147A054DD14721EF52D30D2 /* Audio */,
+				CF352ABC2D3E3FA2A01BA47D /* FloatingIndicator */,
 				99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */,
 				D0B308DDB463408282EA812E /* MenuBar */,
 				CBCA2C739007B1BA731849FF /* ModelBrowser */,
@@ -102,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				B8783DFB2FE338D342D231BF /* AppSettings.swift */,
+				EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -120,6 +130,7 @@
 			children = (
 				4147A054DD14721EF52D30D2 /* Audio */,
 				4FA1514C5C4087CFB5C24C02 /* dictum */,
+				CF352ABC2D3E3FA2A01BA47D /* FloatingIndicator */,
 				99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */,
 				D0B308DDB463408282EA812E /* MenuBar */,
 				CBCA2C739007B1BA731849FF /* ModelBrowser */,
@@ -155,6 +166,14 @@
 				D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */,
 			);
 			path = ModelBrowser;
+			sourceTree = "<group>";
+		};
+		CF352ABC2D3E3FA2A01BA47D /* FloatingIndicator */ = {
+			isa = PBXGroup;
+			children = (
+				14D98577BC75D1EED950058D /* FloatingIndicatorManager.swift */,
+			);
+			path = FloatingIndicator;
 			sourceTree = "<group>";
 		};
 		D0B308DDB463408282EA812E /* MenuBar */ = {
@@ -209,6 +228,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					CBE02459CFDF081B93E9F5F7 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
 				};
 			};
 			buildConfigurationList = 368E86BA8944907E08E756C0 /* Build configuration list for PBXProject "Dictum" */;
@@ -217,6 +240,7 @@
 			knownRegions = (
 				Base,
 				en,
+				pl,
 			);
 			mainGroup = 9559F4F0E1F239A398D6EB04;
 			minimizedProjectReferenceProxies = 1;
@@ -240,6 +264,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */,
+				DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,12 +280,14 @@
 				3B970FB1993D02CE75C23202 /* DictationPipeline.swift in Sources */,
 				E5715E5682888026CE990F8E /* DictumApp.swift in Sources */,
 				1CCC7DE6233407D1FC35BA35 /* DownloadedModelsManager.swift in Sources */,
+				409764D750CA32FF7E320034 /* FloatingIndicatorManager.swift in Sources */,
 				8A19028D5A4F72649B94A26B /* GlobalHotkeyManager.swift in Sources */,
 				094130D98811BDD02D2A1555 /* LLMProcessor.swift in Sources */,
 				E779256781738096534067BF /* MenuBarIcon.swift in Sources */,
 				660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */,
 				B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */,
 				A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */,
+				03E225740534B98B26F65606 /* PermissionsManager.swift in Sources */,
 				4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */,
 				0390EE84DDCA46ADEE516A70 /* TranscriptionEngine.swift in Sources */,
 				25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */,
@@ -268,6 +295,18 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		F49B35EF21214DF3B51CC21B /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A860B5A4689C4D0EE913A43F /* en */,
+				A218D3C8C6E7E4EE3E45D009 /* pl */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		12F48CB2EA182ED69146E25C /* Release */ = {
@@ -315,7 +354,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -331,16 +370,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/Dictum.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Dictum Development";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
@@ -400,7 +441,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -417,16 +458,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/Dictum.entitlements;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Dictum Development";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;

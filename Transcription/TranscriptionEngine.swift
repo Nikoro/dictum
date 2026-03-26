@@ -23,7 +23,7 @@ actor TranscriptionEngine {
     private(set) var isLoading = false
     private(set) var currentModelId: String?
 
-    func loadModel(_ modelName: String = "large-v3-turbo") async throws {
+    func loadModel(_ modelName: String = "openai_whisper-large-v3_turbo") async throws {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
@@ -32,14 +32,16 @@ actor TranscriptionEngine {
         whisperKit = nil
         isModelLoaded = false
 
+        dlog("[STT] loading model: \(modelName)")
         let config = WhisperKitConfig(
             model: modelName,
-            verbose: false,
-            logLevel: .none
+            verbose: true,
+            logLevel: .debug
         )
         whisperKit = try await WhisperKit(config)
         isModelLoaded = true
         currentModelId = modelName
+        dlog("[STT] model loaded successfully")
     }
 
     func transcribe(audioSamples: [Float]) async throws -> String {

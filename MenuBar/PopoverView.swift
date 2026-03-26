@@ -1,10 +1,33 @@
 import SwiftUI
+import AVFoundation
 
 struct PopoverView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var pipeline: DictationPipeline
+    @StateObject private var permissions = PermissionsManager.shared
+
+    private var isSetupComplete: Bool {
+        permissions.allGranted && pipeline.whisperModelManager.downloadedModelIds.contains(settings.sttModelId)
+    }
 
     var body: some View {
+        Group {
+            if isSetupComplete {
+                mainContent
+            } else {
+                SetupView(permissions: permissions, whisperManager: pipeline.whisperModelManager)
+            }
+        }
+        .frame(width: 360)
+        .onAppear {
+            permissions.refresh()
+            if !permissions.allGranted {
+                permissions.startPolling()
+            }
+        }
+    }
+
+    private var mainContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HeaderSection()
@@ -22,7 +45,440 @@ struct PopoverView: View {
                 FooterSection()
             }
         }
-        .frame(width: 360)
+    }
+}
+
+// MARK: - Setup / Onboarding
+
+private struct LLMModelOption: Identifiable {
+    let id: String
+    let displayName: String
+    let sizeGB: String
+    let descriptionKey: String
+    let recommended: Bool
+
+    var description: String {
+        String(localized: String.LocalizationValue(descriptionKey))
+    }
+}
+
+private let llmModelOptions: [LLMModelOption] = [
+    LLMModelOption(
+        id: "mlx-community/Qwen3-1.7B-4bit",
+        displayName: "Qwen3 1.7B",
+        sizeGB: "~1.2 GB",
+        descriptionKey: "llm.qwen3_1.7b.desc",
+        recommended: false
+    ),
+    LLMModelOption(
+        id: "mlx-community/Qwen3-4B-Instruct-4bit",
+        displayName: "Qwen3 4B",
+        sizeGB: "~2.5 GB",
+        descriptionKey: "llm.qwen3_4b.desc",
+        recommended: true
+    ),
+    LLMModelOption(
+        id: "mlx-community/Qwen3-8B-4bit",
+        displayName: "Qwen3 8B",
+        sizeGB: "~5 GB",
+        descriptionKey: "llm.qwen3_8b.desc",
+        recommended: false
+    ),
+]
+
+private struct SetupView: View {
+    @ObservedObject var permissions: PermissionsManager
+    @ObservedObject var whisperManager: WhisperModelManager
+    @EnvironmentObject var settings: AppSettings
+
+    @State private var isDownloadingLLM = false
+    @State private var downloadingLLMId: String?
+    @State private var downloadedLLMId: String? = UserDefaults.standard.string(forKey: "llmDownloadedModelId")
+
+    private var permissionsDone: Bool { permissions.allGranted }
+    private var sttDone: Bool { whisperManager.downloadedModelIds.contains(settings.sttModelId) }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(.tint)
+                    Text("Dictum")
+                        .font(.title.bold())
+                    Text(String(localized: "setup.title", defaultValue: "Setup"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 20)
+
+                // MARK: Step 1 — Permissions
+                SetupStepHeader(
+                    number: 1,
+                    title: String(localized: "setup.step1.title", defaultValue: "Permissions"),
+                    isDone: permissionsDone
+                )
+
+                VStack(spacing: 10) {
+                    PermissionRow(
+                        icon: "mic.fill",
+                        title: String(localized: "setup.step1.mic.title", defaultValue: "Microphone"),
+                        description: String(localized: "setup.step1.mic.desc", defaultValue: "Record voice for transcription"),
+                        isGranted: permissions.microphoneGranted,
+                        action: {
+                            if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+                                permissions.requestMicrophone()
+                            } else {
+                                permissions.openMicrophoneSettings()
+                            }
+                        }
+                    )
+                    PermissionRow(
+                        icon: "hand.raised.fill",
+                        title: String(localized: "setup.step1.acc.title", defaultValue: "Accessibility"),
+                        description: String(localized: "setup.step1.acc.desc", defaultValue: "Global hotkey and auto-paste (Cmd+V)"),
+                        isGranted: permissions.accessibilityGranted,
+                        action: {
+                            permissions.openAccessibilitySettings()
+                        }
+                    )
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+
+                // MARK: Step 2 — Model STT
+                SetupStepHeader(
+                    number: 2,
+                    title: String(localized: "setup.step2.title", defaultValue: "Speech recognition model"),
+                    isDone: sttDone
+                )
+
+                if permissionsDone {
+                    VStack(spacing: 8) {
+                        ForEach(WhisperModelManager.defaultModels) { model in
+                            SetupModelRow(
+                                model: model,
+                                isSelected: settings.sttModelId == model.id,
+                                isDownloaded: whisperManager.downloadedModelIds.contains(model.id),
+                                isDownloading: whisperManager.downloadingModelId == model.id,
+                                onSelect: {
+                                    settings.sttModelId = model.id
+                                    whisperManager.activeModelId = model.id
+                                },
+                                onDownload: {
+                                    settings.sttModelId = model.id
+                                    Task {
+                                        try? await whisperManager.downloadAndActivate(model.id)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                } else {
+                    Text(String(localized: "setup.step1.locked", defaultValue: "Enable permissions above first."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 16)
+                }
+
+                // MARK: Step 3 — Model LLM (optional)
+                SetupStepHeader(
+                    number: 3,
+                    title: String(localized: "setup.step3.title", defaultValue: "LLM text cleanup (optional)"),
+                    isDone: downloadedLLMId != nil
+                )
+
+                if sttDone {
+                    VStack(spacing: 8) {
+                        ForEach(llmModelOptions) { model in
+                            SetupLLMRow(
+                                model: model,
+                                isSelected: settings.llmModelId == model.id,
+                                isDownloaded: downloadedLLMId == model.id,
+                                isDownloading: downloadingLLMId == model.id,
+                                onSelect: {
+                                    settings.llmModelId = model.id
+                                },
+                                onDownload: {
+                                    settings.llmModelId = model.id
+                                    downloadingLLMId = model.id
+                                    isDownloadingLLM = true
+                                    Task {
+                                        do {
+                                            try await LLMProcessor.shared.loadModel(model.id)
+                                            downloadedLLMId = model.id
+                                            settings.llmCleanupEnabled = true
+                                            UserDefaults.standard.set(model.id, forKey: "llmDownloadedModelId")
+                                        } catch {
+                                            dlog("[Setup] LLM download failed: \(error)")
+                                        }
+                                        isDownloadingLLM = false
+                                        downloadingLLMId = nil
+                                    }
+                                }
+                            )
+                        }
+
+                        Button(String(localized: "setup.step3.skip", defaultValue: "Skip \u{2014} use transcription only")) {
+                            settings.llmCleanupEnabled = false
+                        }
+                        .buttonStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                } else {
+                    Text(String(localized: "setup.step2.locked", defaultValue: "Download STT model first."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 16)
+                }
+
+                Spacer(minLength: 12)
+
+                Button("Quit") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .font(.caption)
+                .padding(.bottom, 16)
+            }
+        }
+    }
+}
+
+private struct SetupLLMRow: View {
+    let model: LLMModelOption
+    let isSelected: Bool
+    let isDownloaded: Bool
+    let isDownloading: Bool
+    let onSelect: () -> Void
+    let onDownload: () -> Void
+
+    var body: some View {
+        Button(action: {
+            if isDownloaded {
+                onSelect()
+            } else if !isDownloading {
+                onDownload()
+            }
+        }) {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected && isDownloaded ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected && isDownloaded ? .green : .secondary)
+                    .font(.body)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(model.displayName)
+                            .font(.subheadline)
+                            .fontWeight(isSelected ? .semibold : .regular)
+                        if model.recommended {
+                            Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(.blue, in: Capsule())
+                        }
+                    }
+                    Text(model.description)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Text(model.sizeGB)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+
+                if isDownloading {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .frame(width: 16)
+                } else if isDownloaded {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                } else {
+                    Image(systemName: "arrow.down.circle")
+                        .foregroundStyle(Color.accentColor)
+                        .font(.caption)
+                }
+            }
+            .padding(10)
+            .background(
+                isSelected ? Color.accentColor.opacity(0.08) : Color(nsColor: .quaternarySystemFill),
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.3) : .clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Setup Helpers
+
+private struct SetupStepHeader: View {
+    let number: Int
+    let title: String
+    let isDone: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(isDone ? Color.green : Color.accentColor)
+                    .frame(width: 22, height: 22)
+                if isDone {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                } else {
+                    Text("\(number)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            Text(title)
+                .font(.subheadline.bold())
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+}
+
+private struct SetupModelRow: View {
+    let model: WhisperModelInfo
+    let isSelected: Bool
+    let isDownloaded: Bool
+    let isDownloading: Bool
+    let onSelect: () -> Void
+    let onDownload: () -> Void
+
+    private var isRecommended: Bool {
+        model.id == "openai_whisper-large-v3_turbo"
+    }
+
+    var body: some View {
+        Button(action: {
+            if isDownloaded {
+                onSelect()
+            } else if !isDownloading {
+                onDownload()
+            }
+        }) {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? .green : .secondary)
+                    .font(.body)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(model.displayName)
+                            .font(.subheadline)
+                            .fontWeight(isSelected ? .semibold : .regular)
+                        if isRecommended {
+                            Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(.blue, in: Capsule())
+                        }
+                    }
+                    Text(model.description)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Text(model.formattedSize)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+
+                if isDownloading {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .frame(width: 16)
+                } else if isDownloaded {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                } else {
+                    Image(systemName: "arrow.down.circle")
+                        .foregroundStyle(Color.accentColor)
+                        .font(.caption)
+                }
+            }
+            .padding(10)
+            .background(
+                isSelected ? Color.accentColor.opacity(0.08) : Color(nsColor: .quaternarySystemFill),
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.3) : .clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct PermissionRow: View {
+    let icon: String
+    let title: String
+    let description: String
+    let isGranted: Bool
+    let action: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .frame(width: 28)
+                .foregroundStyle(isGranted ? .green : .secondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.bold())
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if isGranted {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.title3)
+            } else {
+                Button(String(localized: "setup.step1.enable", defaultValue: "Enable")) {
+                    action()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
+        .padding(12)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -32,16 +488,62 @@ private struct HeaderSection: View {
     @EnvironmentObject var settings: AppSettings
 
     var body: some View {
-        HStack {
-            Image(systemName: "mic.fill")
-                .font(.title2)
-                .foregroundColor(.secondary)
-            Text("Dictum")
-                .font(.title2.bold())
-            Spacer()
-            StatusDot(state: settings.appState)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "mic.fill")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                Text("Dictum")
+                    .font(.title2.bold())
+                Spacer()
+                StatusDot(state: settings.appState)
+            }
+
+            if let statusText = stateDescription {
+                HStack(spacing: 6) {
+                    if isProcessing {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                            .frame(width: 12, height: 12)
+                    }
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(stateColor)
+                }
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: settings.appState)
+            }
         }
         .padding()
+    }
+
+    private var stateDescription: String? {
+        switch settings.appState {
+        case .idle: return nil
+        case .recording: return String(localized: "header.recording", defaultValue: "Recording...")
+        case .transcribing: return String(localized: "header.transcribing", defaultValue: "Transcribing...")
+        case .processingLLM: return String(localized: "header.processingLLM", defaultValue: "Cleaning text with LLM...")
+        case .done: return String(localized: "header.done", defaultValue: "Done \u{2014} text pasted")
+        case .error(let msg): return msg
+        }
+    }
+
+    private var isProcessing: Bool {
+        switch settings.appState {
+        case .recording, .transcribing, .processingLLM: return true
+        default: return false
+        }
+    }
+
+    private var stateColor: Color {
+        switch settings.appState {
+        case .recording: return .red
+        case .transcribing: return .yellow
+        case .processingLLM: return .orange
+        case .done: return .green
+        case .error: return .red
+        default: return .secondary
+        }
     }
 }
 
@@ -83,7 +585,7 @@ private struct PromptSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Prompt LLM")
+            Text(String(localized: "section.prompt", defaultValue: "LLM Prompt"))
                 .font(.headline)
 
             TextEditor(text: $settings.llmPrompt)
@@ -94,7 +596,7 @@ private struct PromptSection: View {
                 .background(.quaternary)
                 .cornerRadius(8)
 
-            Button("Przywróć domyślny") {
+            Button(String(localized: "section.prompt.reset", defaultValue: "Reset to default")) {
                 settings.resetPrompt()
             }
             .buttonStyle(.link)
@@ -108,12 +610,11 @@ private struct PromptSection: View {
 
 private struct RecordingSettingsSection: View {
     @EnvironmentObject var settings: AppSettings
-    @State private var isRecordingHotkey = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Tryb:")
+                Text(String(localized: "section.mode", defaultValue: "Mode:"))
                     .font(.headline)
                 Spacer()
                 Picker("", selection: $settings.recordingModeRaw) {
@@ -126,13 +627,10 @@ private struct RecordingSettingsSection: View {
             }
 
             HStack {
-                Text("Hotkey:")
+                Text(String(localized: "section.hotkey", defaultValue: "Hotkey:"))
                     .font(.headline)
                 Spacer()
-                HotkeyRecorderButton(
-                    isRecording: $isRecordingHotkey,
-                    hotkeyDescription: hotkeyDescription
-                )
+                HotkeyRecorderButton(hotkeyDescription: hotkeyDescription)
             }
         }
         .padding()
@@ -145,10 +643,10 @@ private struct RecordingSettingsSection: View {
 
         var parts: [String] = []
         let modifiers = settings.hotkeyModifiers
-        if modifiers & 1048576 != 0 { parts.append("⌘") }
-        if modifiers & 524288 != 0 { parts.append("⌥") }
-        if modifiers & 262144 != 0 { parts.append("⌃") }
-        if modifiers & 131072 != 0 { parts.append("⇧") }
+        if modifiers & 1048576 != 0 { parts.append("\u{2318}") }
+        if modifiers & 524288 != 0 { parts.append("\u{2325}") }
+        if modifiers & 262144 != 0 { parts.append("\u{2303}") }
+        if modifiers & 131072 != 0 { parts.append("\u{21E7}") }
 
         let keyName: String
         switch settings.hotkeyKeyCode {
@@ -172,99 +670,60 @@ private struct RecordingSettingsSection: View {
 
 // MARK: - Hotkey Recorder
 
-private struct HotkeyRecorderButton: View {
-    @Binding var isRecording: Bool
-    let hotkeyDescription: String
+@MainActor
+private final class HotkeyRecorderModel: ObservableObject {
+    @Published var isRecording = false
 
-    var body: some View {
-        Button {
-            isRecording.toggle()
-        } label: {
-            Text(isRecording ? "Naciśnij klawisz..." : hotkeyDescription)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(isRecording ? Color.accentColor.opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
-                .cornerRadius(4)
-                .font(.system(.body, design: .monospaced))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(isRecording ? Color.accentColor : .clear, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .background(
-            isRecording ? HotkeyRecorderEventView(isRecording: $isRecording) : nil
-        )
-    }
-}
-
-/// NSView that installs a local event monitor to capture the next key for hotkey assignment.
-private struct HotkeyRecorderEventView: NSViewRepresentable {
-    @Binding var isRecording: Bool
-
-    func makeNSView(context: Context) -> NSView {
-        let view = HotkeyCapturingNSView()
-        view.onCapture = { keyCode, modifiers, isModifierOnly in
-            let settings = AppSettings.shared
-            settings.hotkeyKeyCode = keyCode
-            settings.hotkeyModifiers = modifiers
-            settings.hotkeyIsModifierOnly = isModifierOnly
-
-            // Restart hotkey listener with new settings
-            DictationPipeline.shared.hotkeyManager.stop()
-            DictationPipeline.shared.setupHotkey()
-
-            DispatchQueue.main.async {
-                isRecording = false
-            }
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
-}
-
-private final class HotkeyCapturingNSView: NSView {
-    var onCapture: ((Int, Int, Bool) -> Void)?
     private var keyMonitor: Any?
     private var flagsMonitor: Any?
 
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        guard window != nil else { return }
+    func startRecording() {
+        guard !isRecording else { return }
+        isRecording = true
 
-        // Monitor for regular keys (key + modifiers combo)
+        DictationPipeline.shared.hotkeyManager.stop()
+
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             let keyCode = Int(event.keyCode)
+
+            if keyCode == 53 {
+                self.stopRecording()
+                return nil
+            }
+
             let modifiers = Int(event.modifierFlags.intersection(.deviceIndependentFlagsMask).rawValue)
-            self.onCapture?(keyCode, modifiers, false)
-            self.removeMonitors()
-            return nil // consume
+            self.applyHotkey(keyCode: keyCode, modifiers: modifiers, isModifierOnly: false)
+            return nil
         }
 
-        // Monitor for modifier-only keys (e.g. Right Command)
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self else { return event }
             let keyCode = Int(event.keyCode)
             guard GlobalHotkeyManager.isModifierKeyCode(keyCode) else { return event }
-            // Only capture on press (flag going up), not release
+
             let flag = GlobalHotkeyManager.modifierFlag(forKeyCode: keyCode)
             let flags = CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
             if flags.contains(flag) {
-                self.onCapture?(keyCode, 0, true)
-                self.removeMonitors()
+                self.applyHotkey(keyCode: keyCode, modifiers: 0, isModifierOnly: true)
                 return nil
             }
             return event
         }
     }
 
-    override func viewWillMove(toWindow newWindow: NSWindow?) {
-        if newWindow == nil {
-            removeMonitors()
-        }
-        super.viewWillMove(toWindow: newWindow)
+    func stopRecording() {
+        removeMonitors()
+        isRecording = false
+        DictationPipeline.shared.setupHotkey()
+    }
+
+    private func applyHotkey(keyCode: Int, modifiers: Int, isModifierOnly: Bool) {
+        let settings = AppSettings.shared
+        settings.hotkeyKeyCode = keyCode
+        settings.hotkeyModifiers = modifiers
+        settings.hotkeyIsModifierOnly = isModifierOnly
+        stopRecording()
     }
 
     private func removeMonitors() {
@@ -277,12 +736,44 @@ private final class HotkeyCapturingNSView: NSView {
             self.flagsMonitor = nil
         }
     }
+
+    deinit {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
+    }
 }
 
-/// Maps common key codes to human-readable names.
+private struct HotkeyRecorderButton: View {
+    @StateObject private var recorder = HotkeyRecorderModel()
+    let hotkeyDescription: String
+
+    var body: some View {
+        Button {
+            if recorder.isRecording {
+                recorder.stopRecording()
+            } else {
+                recorder.startRecording()
+            }
+        } label: {
+            Text(recorder.isRecording
+                 ? String(localized: "section.hotkey.press", defaultValue: "Press a key...")
+                 : hotkeyDescription)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(recorder.isRecording ? Color.accentColor.opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
+                .cornerRadius(4)
+                .font(.system(.body, design: .monospaced))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(recorder.isRecording ? Color.accentColor : .clear, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private enum KeyCodeMapping {
     static func keyName(for keyCode: Int) -> String? {
-        // Map of common key codes to display characters
         let mapping: [Int: String] = [
             0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X",
             8: "C", 9: "V", 11: "B", 12: "Q", 13: "W", 14: "E", 15: "R",
@@ -296,7 +787,7 @@ private enum KeyCodeMapping {
             101: "F9", 103: "F11", 105: "F13", 107: "F14",
             109: "F10", 111: "F12", 113: "F15",
             118: "F4", 119: "F2", 120: "F1",
-            121: "Page Down", 122: "F16", 123: "←", 124: "→", 125: "↓", 126: "↑",
+            121: "Page Down", 122: "F16", 123: "\u{2190}", 124: "\u{2192}", 125: "\u{2193}", 126: "\u{2191}",
         ]
         return mapping[keyCode]
     }
@@ -309,7 +800,7 @@ private struct STTModelSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Model STT")
+            Text(String(localized: "section.stt", defaultValue: "STT Model"))
                 .font(.headline)
 
             VStack(spacing: 2) {
@@ -397,14 +888,13 @@ private struct LLMModelSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Model LLM")
+            Text(String(localized: "section.llm", defaultValue: "LLM Model"))
                 .font(.headline)
 
-            // Search field
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
-                TextField("Szukaj modeli (np. qwen, gemma, llama)...", text: $browser.searchQuery)
+                TextField(String(localized: "section.llm.search", defaultValue: "Search models (e.g. qwen, gemma, llama)..."), text: $browser.searchQuery)
                     .textFieldStyle(.plain)
                     .onChange(of: browser.searchQuery) { _, _ in
                         browser.search()
@@ -427,7 +917,6 @@ private struct LLMModelSection: View {
             .background(.quaternary)
             .cornerRadius(8)
 
-            // Search results
             if !browser.searchResults.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
@@ -452,9 +941,8 @@ private struct LLMModelSection: View {
                 .shadow(radius: 4)
             }
 
-            // Active model + LLM toggle
             HStack {
-                Text("Aktywny:")
+                Text(String(localized: "section.llm.active", defaultValue: "Active:"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Text(settings.llmModelId.replacingOccurrences(of: "mlx-community/", with: ""))
@@ -462,7 +950,7 @@ private struct LLMModelSection: View {
                     .lineLimit(1)
             }
 
-            Toggle("LLM cleanup", isOn: $settings.llmCleanupEnabled)
+            Toggle(String(localized: "section.llm.cleanup", defaultValue: "LLM cleanup"), isOn: $settings.llmCleanupEnabled)
                 .toggleStyle(.switch)
                 .font(.subheadline)
         }
@@ -522,11 +1010,10 @@ private struct DownloadedModelsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // LLM models
             let llmModels = pipeline.downloadedModelsManager.downloadedModels
             if !llmModels.isEmpty {
                 HStack {
-                    Text("Pobrane modele LLM:")
+                    Text(String(localized: "section.downloaded.llm", defaultValue: "Downloaded LLM models:"))
                         .font(.subheadline.bold())
                     Spacer()
                     Text(pipeline.downloadedModelsManager.formattedTotalSize)
@@ -558,11 +1045,10 @@ private struct DownloadedModelsSection: View {
                 }
             }
 
-            // Whisper models
             let whisperDownloaded = pipeline.whisperModelManager.downloadedModelIds
             if !whisperDownloaded.isEmpty {
                 HStack {
-                    Text("Pobrane modele Whisper:")
+                    Text(String(localized: "section.downloaded.whisper", defaultValue: "Downloaded Whisper models:"))
                         .font(.subheadline.bold())
                     Spacer()
                     Text(ByteCountFormatter.string(
@@ -596,14 +1082,13 @@ private struct DownloadedModelsSection: View {
                 }
             }
 
-            // Total disk usage
             let totalDisk = pipeline.downloadedModelsManager.totalSizeOnDisk + pipeline.whisperModelManager.totalSizeOnDisk()
             if totalDisk > 0 {
                 Divider()
                 HStack {
                     Image(systemName: "internaldrive")
                         .foregroundColor(.secondary)
-                    Text("Łącznie na dysku:")
+                    Text(String(localized: "section.downloaded.total", defaultValue: "Total on disk:"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
@@ -615,7 +1100,6 @@ private struct DownloadedModelsSection: View {
         .padding()
         .onAppear {
             pipeline.downloadedModelsManager.scanDownloadedModels()
-            pipeline.whisperModelManager.scanDownloaded()
         }
     }
 }
@@ -627,32 +1111,11 @@ private struct FooterSection: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // Status text
             if case .error(let message) = settings.appState {
                 Text(message)
                     .font(.caption)
                     .foregroundColor(.red)
                     .lineLimit(2)
-            }
-
-            // Accessibility warning
-            if !AXIsProcessTrusted() {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.yellow)
-                    Text("Brak uprawnień Accessibility")
-                        .font(.caption)
-                    Spacer()
-                    Button("Otwórz Ustawienia") {
-                        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-                        NSWorkspace.shared.open(url)
-                    }
-                    .font(.caption)
-                    .buttonStyle(.link)
-                }
-                .padding(8)
-                .background(.yellow.opacity(0.1))
-                .cornerRadius(6)
             }
 
             Button("Quit") {

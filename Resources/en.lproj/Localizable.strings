@@ -1,0 +1,55 @@
+/* Floating pill */
+"pill.transcribing" = "Transcribing";
+
+/* Setup */
+"setup.title" = "Setup";
+"setup.step1.title" = "Permissions";
+"setup.step1.mic.title" = "Microphone";
+"setup.step1.mic.desc" = "Record voice for transcription";
+"setup.step1.acc.title" = "Accessibility";
+"setup.step1.acc.desc" = "Global hotkey and auto-paste (Cmd+V)";
+"setup.step1.enable" = "Enable";
+"setup.step1.locked" = "Enable permissions above first.";
+"setup.step2.title" = "Speech recognition model";
+"setup.step2.locked" = "Download STT model first.";
+"setup.step3.title" = "LLM text cleanup (optional)";
+"setup.step3.skip" = "Skip — use transcription only";
+"setup.recommended" = "Recommended";
+
+/* Header */
+"header.recording" = "Recording...";
+"header.transcribing" = "Transcribing...";
+"header.processingLLM" = "Cleaning text with LLM...";
+"header.done" = "Done — text pasted";
+
+/* Sections */
+"section.prompt" = "LLM Prompt";
+"section.prompt.reset" = "Reset to default";
+"section.mode" = "Mode:";
+"section.hotkey" = "Hotkey:";
+"section.hotkey.press" = "Press a key...";
+"section.stt" = "STT Model";
+"section.llm" = "LLM Model";
+"section.llm.search" = "Search models (e.g. qwen, gemma, llama)...";
+"section.llm.active" = "Active:";
+"section.llm.cleanup" = "LLM cleanup";
+"section.downloaded.llm" = "Downloaded LLM models:";
+"section.downloaded.whisper" = "Downloaded Whisper models:";
+"section.downloaded.total" = "Total on disk:";
+
+/* Errors */
+"error.mic" = "Cannot start microphone:";
+"error.download.stt" = "Download STT model in settings";
+
+/* Model descriptions — STT */
+"stt.large_v3_turbo.desc" = "Recommended. Best balance of speed and accuracy.";
+"stt.large_v3.desc" = "Highest accuracy. 2x slower than Turbo.";
+"stt.distil_large_v3_turbo.desc" = "Distilled. Very fast.";
+"stt.medium.desc" = "Good accuracy, moderate size.";
+"stt.small.desc" = "Compromise between size and accuracy.";
+"stt.base.desc" = "Very small and fast. Lower accuracy.";
+
+/* Model descriptions — LLM */
+"llm.qwen3_1.7b.desc" = "Fast, lightweight. Good for simple fixes.";
+"llm.qwen3_4b.desc" = "Recommended. Good quality cleanup.";
+"llm.qwen3_8b.desc" = "Best quality. Requires more RAM.";

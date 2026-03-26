@@ -10,42 +10,58 @@ final class PasteManager {
         let pasteboard = NSPasteboard.general
 
         // 1. Save current clipboard
-        let previousItems = pasteboard.pasteboardItems?.compactMap { item -> (NSPasteboard.PasteboardType, Data)? in
-            guard let types = item.types as? [NSPasteboard.PasteboardType] else { return nil }
-            for type in types {
+        var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
+        for item in pasteboard.pasteboardItems ?? [] {
+            for type in item.types {
                 if let data = item.data(forType: type) {
-                    return (type, data)
+                    savedContents.append((type, data))
                 }
             }
-            return nil
-        } ?? []
+        }
 
         // 2. Set our text
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        // 3. Simulate Cmd+V
-        simulatePaste()
+        // 3. Simulate Cmd+V after short delay (ensure clipboard is ready)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            self.simulatePaste()
 
-        // 4. Restore clipboard after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            pasteboard.clearContents()
-            if let (type, data) = previousItems.first {
-                pasteboard.setData(data, forType: type)
+            // 4. Restore clipboard after paste completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if !savedContents.isEmpty {
+                    pasteboard.clearContents()
+                    for (type, data) in savedContents {
+                        pasteboard.setData(data, forType: type)
+                    }
+                }
             }
         }
     }
 
     private func simulatePaste() {
-        let source = CGEventSource(stateID: CGEventSourceStateID.hidSystemState)
+        guard AXIsProcessTrusted() else {
+            dlog("[Paste] accessibility not trusted, cannot paste")
+            return
+        }
 
-        // Key code 0x09 = V
-        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
-        keyDown?.flags = CGEventFlags.maskCommand
-        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
-        keyUp?.flags = CGEventFlags.maskCommand
+        let source = CGEventSource(stateID: .privateState)
 
-        keyDown?.post(tap: CGEventTapLocation.cghidEventTap)
-        keyUp?.post(tap: CGEventTapLocation.cghidEventTap)
+        // Send all 4 events: Cmd↓, V↓, V↑, Cmd↑
+        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true) // Cmd
+        let vDown   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true) // V
+        let vUp     = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+        let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+
+        cmdDown?.flags = .maskCommand
+        vDown?.flags   = .maskCommand
+        vUp?.flags     = .maskCommand
+
+        cmdDown?.post(tap: .cgAnnotatedSessionEventTap)
+        vDown?.post(tap: .cgAnnotatedSessionEventTap)
+        vUp?.post(tap: .cgAnnotatedSessionEventTap)
+        cmdUp?.post(tap: .cgAnnotatedSessionEventTap)
+
+        dlog("[Paste] Cmd+V posted")
     }
 }
