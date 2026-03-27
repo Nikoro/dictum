@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppKit
 import Combine
 
 func dlog(_ msg: String) {
@@ -28,6 +29,7 @@ final class DictationPipeline: ObservableObject {
     private let permissions = PermissionsManager.shared
     private var isRecording = false
     private var isCancelled = false
+    private var targetBundleId: String?
     private var permissionsCancellable: AnyCancellable?
     private var whisperSink: AnyCancellable?
     private var downloadedModelsSink: AnyCancellable?
@@ -143,7 +145,8 @@ final class DictationPipeline: ObservableObject {
             try audioRecorder.startRecording()
             isRecording = true
             settings.appState = .recording
-            dlog("[Dictum] recording started, showing floating indicator")
+            targetBundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            dlog("[Dictum] recording started, target app: \(targetBundleId ?? "nil"), showing floating indicator")
             FloatingIndicatorManager.shared.captureTargetApp()
             FloatingIndicatorManager.shared.show(audioRecorder: audioRecorder)
         } catch {
@@ -202,11 +205,12 @@ final class DictationPipeline: ObservableObject {
                         try await LLMProcessor.shared.loadModel(settings.llmModelId)
                     }
 
-                    dlog("[Dictum] LLM prompt: '\(settings.llmPrompt)'")
+                    let resolvedPrompt = settings.resolvePrompt(for: targetBundleId)
+                    dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(resolvedPrompt)'")
                     dlog("[Dictum] LLM input: '\(rawText)'")
                     finalText = try await LLMProcessor.shared.cleanText(
                         rawText: rawText,
-                        systemPrompt: settings.llmPrompt
+                        prompt: resolvedPrompt
                     )
                     dlog("[Dictum] LLM raw output: '\(finalText)'")
                 } catch {

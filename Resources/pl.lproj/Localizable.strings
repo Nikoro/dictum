@@ -58,3 +58,12 @@
 "llm.qwen3_1.7b.desc" = "Szybki, lekki. Dobry do prostych poprawek.";
 "llm.qwen3_4b.desc" = "Rekomendowany. Dobra jakość poprawek.";
 "llm.qwen3_8b.desc" = "Najlepsza jakość. Wymaga więcej RAM.";
+
+
+/* Per-app prompts */
+"section.prompt.general" = "Ogólny";
+"section.prompt.placeholder.hint" = "Wstaw {{text}} aby określić miejsce wklejenia tekstu";
+"section.prompt.perapp" = "Prompty per aplikacja";
+"section.prompt.perapp.empty" = "Brak — używany będzie prompt ogólny";
+"section.prompt.picker.title" = "Wybierz aplikację";
+"section.prompt.picker.search" = "Szukaj aplikacji...";

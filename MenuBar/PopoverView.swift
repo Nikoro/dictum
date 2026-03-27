@@ -1100,19 +1100,33 @@ private struct LLMModelSection: View {
             }
 
             if settings.llmCleanupEnabled && isLLMModelDownloaded {
-                TextEditor(text: $settings.llmPrompt)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 100, maxHeight: 140)
-                    .scrollContentBackground(.hidden)
-                    .padding(8)
-                    .background(.quaternary)
-                    .cornerRadius(8)
-
-                Button(String(localized: "section.prompt.reset", defaultValue: "Reset to default")) {
-                    settings.resetPrompt()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "section.prompt.general", defaultValue: "Ogólny"))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    TextEditor(text: $settings.llmPrompt)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 100, maxHeight: 140)
+                        .scrollContentBackground(.hidden)
+                        .padding(8)
+                        .background(.quaternary)
+                        .cornerRadius(8)
+                    HStack {
+                        Button(String(localized: "section.prompt.reset", defaultValue: "Reset to default")) {
+                            settings.resetPrompt()
+                        }
+                        .buttonStyle(.link)
+                        .font(.caption)
+                        Spacer()
+                        Text("{{text}}")
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .help(String(localized: "section.prompt.placeholder.hint", defaultValue: "Wstaw {{text}} aby określić miejsce wklejenia tekstu"))
+                    }
                 }
-                .buttonStyle(.link)
-                .font(.caption)
+
+                // Per-app prompts
+                AppPromptsSection()
             }
         }
         .padding()
@@ -1148,6 +1162,387 @@ private struct LLMModelSection: View {
                     isDownloading = false
                     downloadingModelId = nil
                 }
+            }
+        }
+    }
+}
+
+// MARK: - Per-App Prompts
+
+private struct AppPromptsSection: View {
+    @EnvironmentObject var settings: AppSettings
+    @State private var showingAppPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(String(localized: "section.prompt.perapp", defaultValue: "Prompty per aplikacja"))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button {
+                    showingAppPicker = true
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if settings.appPrompts.isEmpty {
+                Text(String(localized: "section.prompt.perapp.empty", defaultValue: "Brak — używany będzie prompt ogólny"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            ForEach(settings.appPrompts) { appPrompt in
+                AppPromptRow(appPrompt: appPrompt)
+            }
+        }
+        .sheet(isPresented: $showingAppPicker) {
+            AppPickerSheet()
+                .environmentObject(settings)
+        }
+    }
+}
+
+private struct AppPromptRow: View {
+    let appPrompt: AppPrompt
+    @EnvironmentObject var settings: AppSettings
+    @State private var localPrompt: String = ""
+
+    /// Ghost text suggestion — shows greyed-out completion after `{{`
+    private var ghostSuffix: String? {
+        if localPrompt.hasSuffix("{{") { return "text}}" }
+        return nil
+    }
+
+    private var cleanAppName: String {
+        appPrompt.appName.replacingOccurrences(of: ".app", with: "")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Toggle("", isOn: Binding(
+                    get: { appPrompt.enabled },
+                    set: { _ in settings.toggleAppPrompt(bundleId: appPrompt.bundleId) }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .controlSize(.mini)
+
+                if let icon = appIcon(for: appPrompt.bundleId) {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 18, height: 18)
+                } else {
+                    Image(systemName: "app.fill")
+                        .frame(width: 18, height: 18)
+                        .foregroundColor(.secondary)
+                }
+                Text(cleanAppName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(appPrompt.enabled ? .primary : .secondary)
+                Spacer()
+                Button {
+                    settings.removeAppPrompt(bundleId: appPrompt.bundleId)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if appPrompt.enabled {
+                PromptTextEditor(
+                    text: $localPrompt,
+                    ghostSuffix: ghostSuffix,
+                    placeholder: "Napisz prompt dla \(cleanAppName)...",
+                    onTab: { acceptGhost() }
+                )
+                .frame(minHeight: 60, maxHeight: 100)
+                .background(.quaternary)
+                .cornerRadius(6)
+                .onChange(of: localPrompt) { _, newValue in
+                    settings.updateAppPrompt(bundleId: appPrompt.bundleId, prompt: newValue)
+                }
+            }
+        }
+        .padding(8)
+        .background(.quaternary.opacity(0.5))
+        .cornerRadius(8)
+        .onAppear { localPrompt = appPrompt.prompt }
+    }
+
+    private func acceptGhost() {
+        guard let ghost = ghostSuffix else { return }
+        // Append ghost completion (e.g. "text}}" after "{{")
+        localPrompt += ghost
+    }
+
+    private func appIcon(for bundleId: String) -> NSImage? {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return nil }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+}
+
+// MARK: - GhostTextView (NSTextView subclass)
+
+/// NSTextView that draws placeholder when empty and ghost completion after `{{`
+private class GhostTextView: NSTextView {
+    var placeholder: String = ""
+    var ghostSuffix: String? {
+        didSet { needsDisplay = true }
+    }
+
+    private let ghostColor = NSColor.secondaryLabelColor.withAlphaComponent(0.4)
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        // Draw placeholder when empty — aligned with insertion point
+        if string.isEmpty {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: ghostColor
+            ]
+            let origin = textContainerOrigin
+            let inset = textContainer?.lineFragmentPadding ?? 0
+            let point = NSPoint(x: origin.x + inset, y: origin.y)
+            (placeholder as NSString).draw(at: point, withAttributes: attrs)
+        }
+
+        // Draw ghost suffix inline after last character
+        if let ghost = ghostSuffix, !string.isEmpty, let lm = layoutManager, let tc = textContainer {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: ghostColor
+            ]
+            let glyphIndex = lm.glyphIndexForCharacter(at: (string as NSString).length - 1)
+            var lineRect = lm.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            let locInLine = lm.location(forGlyphAt: glyphIndex)
+            let charSize = (String(string.last!) as NSString).size(withAttributes: [
+                .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+            ])
+            let x = lineRect.origin.x + locInLine.x + charSize.width + textContainerInset.width
+            let y = lineRect.origin.y + textContainerInset.height
+            (ghost as NSString).draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
+        }
+    }
+}
+
+/// SwiftUI wrapper for GhostTextView
+private struct PromptTextEditor: NSViewRepresentable {
+    @Binding var text: String
+    let ghostSuffix: String?
+    let placeholder: String
+    let onTab: () -> Void
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+
+        let textView = GhostTextView()
+        textView.delegate = context.coordinator
+        textView.font = .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+        textView.backgroundColor = .clear
+        textView.isRichText = false
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.textContainerInset = NSSize(width: 6, height: 6)
+        textView.allowsUndo = true
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+        textView.textContainer?.widthTracksTextView = true
+        textView.placeholder = placeholder
+        textView.ghostSuffix = ghostSuffix
+        textView.string = text
+
+        scrollView.documentView = textView
+        context.coordinator.textView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? GhostTextView else { return }
+        let coord = context.coordinator
+
+        textView.placeholder = placeholder
+        textView.ghostSuffix = ghostSuffix
+        coord.ghostSuffix = ghostSuffix
+        coord.onTab = onTab
+
+        if coord.didAcceptGhost {
+            coord.didAcceptGhost = false
+            textView.string = text
+            textView.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
+            textView.needsDisplay = true
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onTab: onTab, ghostSuffix: ghostSuffix)
+    }
+
+    class Coordinator: NSObject, NSTextViewDelegate {
+        var text: Binding<String>
+        var onTab: () -> Void
+        var ghostSuffix: String?
+        var didAcceptGhost = false
+        weak var textView: GhostTextView?
+
+        init(text: Binding<String>, onTab: @escaping () -> Void, ghostSuffix: String?) {
+            self.text = text
+            self.onTab = onTab
+            self.ghostSuffix = ghostSuffix
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            text.wrappedValue = textView.string
+            textView.needsDisplay = true
+        }
+
+        func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertTab(_:)), ghostSuffix != nil {
+                didAcceptGhost = true
+                onTab()
+                return true
+            }
+            return false
+        }
+    }
+}
+
+private struct AppPickerSheet: View {
+    @EnvironmentObject var settings: AppSettings
+    @Environment(\.dismiss) var dismiss
+    @State private var searchText = ""
+    @State private var apps: [(name: String, bundleId: String, icon: NSImage)] = []
+
+    var filteredApps: [(name: String, bundleId: String, icon: NSImage)] {
+        let existing = Set(settings.appPrompts.map(\.bundleId))
+        let available = apps.filter { !existing.contains($0.bundleId) }
+        if searchText.isEmpty { return available }
+        return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(String(localized: "section.prompt.picker.title", defaultValue: "Wybierz aplikację"))
+                    .font(.headline)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField(String(localized: "section.prompt.picker.search", defaultValue: "Szukaj aplikacji..."), text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(8)
+            .background(.quaternary)
+            .cornerRadius(8)
+            .padding(.horizontal)
+
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(filteredApps, id: \.bundleId) { app in
+                        Button {
+                            settings.addAppPrompt(AppPrompt(
+                                bundleId: app.bundleId,
+                                appName: app.name.replacingOccurrences(of: ".app", with: ""),
+                                prompt: ""
+                            ))
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(nsImage: app.icon)
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 24, height: 24)
+                                Text(app.name)
+                                    .font(.body)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .frame(maxHeight: 300)
+        }
+        .frame(width: 320, height: 400)
+        .onAppear { loadInstalledApps() }
+    }
+
+    private func loadInstalledApps() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let workspace = NSWorkspace.shared
+            let appURLs = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
+                + FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
+
+            var found: [(name: String, bundleId: String, icon: NSImage)] = []
+            var seen = Set<String>()
+
+            for dir in appURLs {
+                guard let contents = try? FileManager.default.contentsOfDirectory(
+                    at: dir, includingPropertiesForKeys: nil
+                ) else { continue }
+                for url in contents where url.pathExtension == "app" {
+                    guard let bundle = Bundle(url: url),
+                          let bundleId = bundle.bundleIdentifier,
+                          !seen.contains(bundleId) else { continue }
+                    seen.insert(bundleId)
+                    let name = FileManager.default.displayName(atPath: url.path)
+                    let icon = workspace.icon(forFile: url.path)
+                    icon.size = NSSize(width: 32, height: 32)
+                    found.append((name: name, bundleId: bundleId, icon: icon))
+                }
+            }
+
+            // Also scan user Applications
+            let userApps = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
+            if let contents = try? FileManager.default.contentsOfDirectory(at: userApps, includingPropertiesForKeys: nil) {
+                for url in contents where url.pathExtension == "app" {
+                    guard let bundle = Bundle(url: url),
+                          let bundleId = bundle.bundleIdentifier,
+                          !seen.contains(bundleId) else { continue }
+                    seen.insert(bundleId)
+                    let name = FileManager.default.displayName(atPath: url.path)
+                    let icon = workspace.icon(forFile: url.path)
+                    icon.size = NSSize(width: 32, height: 32)
+                    found.append((name: name, bundleId: bundleId, icon: icon))
+                }
+            }
+
+            found.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+
+            DispatchQueue.main.async {
+                self.apps = found
             }
         }
     }

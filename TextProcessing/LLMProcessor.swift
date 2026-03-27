@@ -41,12 +41,19 @@ actor LLMProcessor {
         currentModelId = modelId
     }
 
-    func cleanText(rawText: String, systemPrompt: String) async throws -> String {
+    func cleanText(rawText: String, prompt: String) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
+
+        // If prompt contains {{text}}, inject transcribed text into the prompt
+        // and send as user message (no system instructions).
+        // Otherwise, use prompt as system instructions and text as user message.
+        let hasPlaceholder = prompt.contains("{{text}}")
+        let systemPrompt = hasPlaceholder ? nil : prompt
+        let userMessage = hasPlaceholder ? prompt.replacingOccurrences(of: "{{text}}", with: rawText) : rawText
 
         let session = ChatSession(
             modelContainer,
-            instructions: systemPrompt,
+            instructions: systemPrompt ?? "",
             generateParameters: GenerateParameters(
                 maxTokens: 2048,
                 temperature: 0.7,
@@ -54,7 +61,7 @@ actor LLMProcessor {
             )
         )
 
-        var result = try await session.respond(to: rawText)
+        var result = try await session.respond(to: userMessage)
 
         // Qwen3 generuje <think>...</think> — usuwamy blok thinking
         if let thinkEnd = result.range(of: "</think>") {

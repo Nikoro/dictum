@@ -58,3 +58,12 @@
 "llm.qwen3_1.7b.desc" = "Fast, lightweight. Good for simple fixes.";
 "llm.qwen3_4b.desc" = "Recommended. Good quality cleanup.";
 "llm.qwen3_8b.desc" = "Best quality. Requires more RAM.";
+
+
+/* Per-app prompts */
+"section.prompt.general" = "General";
+"section.prompt.placeholder.hint" = "Insert {{text}} to specify where transcribed text goes";
+"section.prompt.perapp" = "Per-app prompts";
+"section.prompt.perapp.empty" = "None — general prompt will be used";
+"section.prompt.picker.title" = "Choose application";
+"section.prompt.picker.search" = "Search apps...";

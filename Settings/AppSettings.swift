@@ -1,4 +1,24 @@
 import SwiftUI
+import AppKit
+
+// MARK: - App Prompt (per-app LLM prompt)
+
+struct AppPrompt: Identifiable, Codable, Equatable {
+    var id: String { bundleId }
+    let bundleId: String
+    var appName: String
+    var prompt: String
+    var enabled: Bool = true
+
+    /// Resolve the final prompt: if it contains {{text}}, replace placeholder; otherwise use as system prompt.
+    func resolve(with text: String) -> (systemPrompt: String?, userMessage: String) {
+        if prompt.contains("{{text}}") {
+            return (nil, prompt.replacingOccurrences(of: "{{text}}", with: text))
+        } else {
+            return (prompt, text)
+        }
+    }
+}
 
 enum RecordingMode: String, CaseIterable {
     case hold = "hold"
@@ -43,6 +63,10 @@ final class AppSettings: ObservableObject {
     @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
     @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true
 
+    @Published var appPrompts: [AppPrompt] = [] {
+        didSet { saveAppPrompts() }
+    }
+
     var recordingMode: RecordingMode {
         get { RecordingMode(rawValue: recordingModeRaw) ?? .hold }
         set { recordingModeRaw = newValue.rawValue }
@@ -52,9 +76,54 @@ final class AppSettings: ObservableObject {
     @Published var lastTranscription: String = ""
     @Published var lastCleanedText: String = ""
 
-    private init() {}
+    private init() {
+        loadAppPrompts()
+    }
 
     func resetPrompt() {
         llmPrompt = Self.defaultPrompt
+    }
+
+    // MARK: - Per-app prompts
+
+    /// Resolve which prompt to use for a given frontmost app.
+    func resolvePrompt(for bundleId: String?) -> String {
+        if let bundleId,
+           let appPrompt = appPrompts.first(where: { $0.bundleId == bundleId && $0.enabled }) {
+            return appPrompt.prompt
+        }
+        return llmPrompt
+    }
+
+    func addAppPrompt(_ prompt: AppPrompt) {
+        guard !appPrompts.contains(where: { $0.bundleId == prompt.bundleId }) else { return }
+        appPrompts.append(prompt)
+    }
+
+    func removeAppPrompt(bundleId: String) {
+        appPrompts.removeAll { $0.bundleId == bundleId }
+    }
+
+    func updateAppPrompt(bundleId: String, prompt: String) {
+        guard let idx = appPrompts.firstIndex(where: { $0.bundleId == bundleId }) else { return }
+        appPrompts[idx].prompt = prompt
+    }
+
+    func toggleAppPrompt(bundleId: String) {
+        guard let idx = appPrompts.firstIndex(where: { $0.bundleId == bundleId }) else { return }
+        appPrompts[idx].enabled.toggle()
+    }
+
+    private func saveAppPrompts() {
+        if let data = try? JSONEncoder().encode(appPrompts) {
+            UserDefaults.standard.set(data, forKey: "appPrompts")
+        }
+    }
+
+    private func loadAppPrompts() {
+        if let data = UserDefaults.standard.data(forKey: "appPrompts"),
+           let prompts = try? JSONDecoder().decode([AppPrompt].self, from: data) {
+            appPrompts = prompts
+        }
     }
 }
