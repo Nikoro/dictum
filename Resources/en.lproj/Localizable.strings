@@ -29,10 +29,15 @@
 "section.hotkey" = "Hotkey:";
 "section.hotkey.press" = "Press a key...";
 "section.stt" = "STT Model";
+"section.stt.more" = "More models (%lld)";
 "section.llm" = "LLM Model";
 "section.llm.search" = "Search models (e.g. qwen, gemma, llama)...";
+"section.llm.downloading" = "Downloading %@...";
+"section.llm.prompt" = "LLM Prompt";
+"section.llm.nomodel" = "Download a model first";
 "section.llm.active" = "Active:";
 "section.llm.cleanup" = "LLM cleanup";
+"section.downloaded" = "Downloaded models";
 "section.downloaded.llm" = "Downloaded LLM models:";
 "section.downloaded.whisper" = "Downloaded Whisper models:";
 "section.downloaded.total" = "Total on disk:";

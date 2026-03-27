@@ -29,8 +29,16 @@ final class DictationPipeline: ObservableObject {
     private var isRecording = false
     private var isCancelled = false
     private var permissionsCancellable: AnyCancellable?
+    private var whisperSink: AnyCancellable?
+    private var downloadedModelsSink: AnyCancellable?
 
     private init() {
+        whisperSink = whisperModelManager.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        downloadedModelsSink = downloadedModelsManager.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
         setupHotkey()
         observePermissions()
         preloadSTTModel()

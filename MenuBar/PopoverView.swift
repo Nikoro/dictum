@@ -794,28 +794,85 @@ private enum KeyCodeMapping {
 
 private struct STTModelSection: View {
     @EnvironmentObject var pipeline: DictationPipeline
+    @State private var isExpanded = false
+
+    private var downloadedModels: [WhisperModelInfo] {
+        WhisperModelManager.defaultModels.filter {
+            pipeline.whisperModelManager.downloadedModelIds.contains($0.id)
+        }
+    }
+
+    private var availableModels: [WhisperModelInfo] {
+        WhisperModelManager.defaultModels.filter {
+            !pipeline.whisperModelManager.downloadedModelIds.contains($0.id)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "section.stt", defaultValue: "STT Model"))
                 .font(.headline)
 
-            VStack(spacing: 2) {
-                ForEach(WhisperModelManager.defaultModels) { model in
-                    WhisperModelRow(
-                        model: model,
-                        isDownloaded: pipeline.whisperModelManager.downloadedModelIds.contains(model.id),
-                        isActive: pipeline.whisperModelManager.activeModelId == model.id,
-                        isDownloading: pipeline.whisperModelManager.downloadingModelId == model.id
-                    ) {
-                        Task {
-                            try? await pipeline.whisperModelManager.downloadAndActivate(model.id)
+            // Downloaded models
+            if !downloadedModels.isEmpty {
+                VStack(spacing: 2) {
+                    ForEach(downloadedModels) { model in
+                        WhisperModelRow(
+                            model: model,
+                            isDownloaded: true,
+                            isActive: pipeline.whisperModelManager.activeModelId == model.id,
+                            isDownloading: false
+                        ) {
+                            pipeline.whisperModelManager.activeModelId = model.id
+                            AppSettings.shared.sttModelId = model.id
                         }
                     }
                 }
+                .background(.quaternary)
+                .cornerRadius(8)
             }
-            .background(.quaternary)
-            .cornerRadius(8)
+
+            // Expandable list of available models
+            if !availableModels.isEmpty {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundColor(.accentColor)
+                        Text(String(localized: "section.stt.more", defaultValue: "More models (\(availableModels.count))"))
+                            .font(.subheadline)
+                            .foregroundColor(.accentColor)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(8)
+                }
+                .buttonStyle(.plain)
+
+                if isExpanded {
+                    VStack(spacing: 2) {
+                        ForEach(availableModels) { model in
+                            WhisperModelRow(
+                                model: model,
+                                isDownloaded: false,
+                                isActive: false,
+                                isDownloading: pipeline.whisperModelManager.downloadingModelId == model.id
+                            ) {
+                                Task {
+                                    try? await pipeline.whisperModelManager.downloadAndActivate(model.id)
+                                }
+                            }
+                        }
+                    }
+                    .background(.quaternary)
+                    .cornerRadius(8)
+                }
+            }
         }
         .padding()
     }
@@ -854,14 +911,14 @@ private struct WhisperModelRow: View {
 
                 Text(model.formattedSize)
                     .font(.caption)
-                    .foregroundColor(.orange)
+                    .foregroundColor(.secondary)
 
                 if isDownloading {
                     ProgressView()
                         .scaleEffect(0.6)
-                } else if isDownloaded {
-                    Image(systemName: "checkmark")
-                        .foregroundColor(.green)
+                } else if !isDownloaded {
+                    Image(systemName: "arrow.down.circle")
+                        .foregroundColor(.accentColor)
                         .font(.caption)
                 }
             }
@@ -912,24 +969,17 @@ private struct LLMModelSection: View {
                                 Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
                                     .foregroundColor(model.id == settings.llmModelId ? .accentColor : .secondary)
                                     .font(.caption2)
-                                Text(model.shortName)
-                                    .font(.system(.body, design: .monospaced))
-                                    .fontWeight(model.id == settings.llmModelId ? .semibold : .regular)
-                                Spacer()
-                                Text(model.formattedSize)
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                                Button {
-                                    if model.id == settings.llmModelId {
-                                        Task { await LLMProcessor.shared.unloadModel() }
-                                    }
-                                    try? pipeline.downloadedModelsManager.deleteModel(model.id)
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                        .font(.caption)
+
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(model.shortName)
+                                        .fontWeight(model.id == settings.llmModelId ? .semibold : .regular)
+                                    Text(model.formattedSize)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
                                 }
-                                .buttonStyle(.plain)
+
+                                Spacer()
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)
@@ -1110,62 +1160,113 @@ private struct DownloadedModelsSection: View {
     @EnvironmentObject var pipeline: DictationPipeline
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            let whisperDownloaded = pipeline.whisperModelManager.downloadedModelIds
-            if !whisperDownloaded.isEmpty {
-                HStack {
-                    Text(String(localized: "section.downloaded.whisper", defaultValue: "Downloaded Whisper models:"))
-                        .font(.subheadline.bold())
-                    Spacer()
-                    Text(ByteCountFormatter.string(
-                        fromByteCount: pipeline.whisperModelManager.totalSizeOnDisk(),
-                        countStyle: .file
-                    ))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
+        let whisperDownloaded = WhisperModelManager.defaultModels.filter {
+            pipeline.whisperModelManager.downloadedModelIds.contains($0.id)
+        }
+        let llmDownloaded = pipeline.downloadedModelsManager.downloadedModels
+        let hasAny = !whisperDownloaded.isEmpty || !llmDownloaded.isEmpty
 
-                ForEach(WhisperModelManager.defaultModels.filter { whisperDownloaded.contains($0.id) }) { model in
-                    HStack {
-                        Image(systemName: model.id == pipeline.whisperModelManager.activeModelId ? "circle.fill" : "circle")
-                            .foregroundColor(model.id == pipeline.whisperModelManager.activeModelId ? .accentColor : .secondary)
-                            .font(.caption)
-                        Text(model.displayName)
-                            .font(.caption)
-                        Spacer()
-                        Text(model.formattedSize)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+        if hasAny {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(String(localized: "section.downloaded", defaultValue: "Downloaded models"))
+                    .font(.headline)
+
+                VStack(spacing: 2) {
+                    // Whisper models
+                    ForEach(whisperDownloaded) { model in
                         Button {
-                            pipeline.whisperModelManager.deleteModel(model.id)
+                            pipeline.whisperModelManager.activeModelId = model.id
+                            AppSettings.shared.sttModelId = model.id
                         } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                                .font(.caption)
+                            HStack {
+                                Image(systemName: model.id == pipeline.whisperModelManager.activeModelId ? "circle.fill" : "circle")
+                                    .foregroundColor(model.id == pipeline.whisperModelManager.activeModelId ? .accentColor : .secondary)
+                                    .font(.caption)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(model.displayName)
+                                        .font(.caption)
+                                    Text("STT")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text(model.formattedSize)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Button {
+                                    pipeline.whisperModelManager.deleteModel(model.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // LLM models
+                    ForEach(llmDownloaded) { model in
+                        Button {
+                            settings.llmModelId = model.id
+                        } label: {
+                            HStack {
+                                Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
+                                    .foregroundColor(model.id == settings.llmModelId ? .accentColor : .secondary)
+                                    .font(.caption)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(model.shortName)
+                                        .font(.caption)
+                                    Text("LLM")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text(model.formattedSize)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Button {
+                                    if model.id == settings.llmModelId {
+                                        Task { await LLMProcessor.shared.unloadModel() }
+                                    }
+                                    try? pipeline.downloadedModelsManager.deleteModel(model.id)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-            }
+                .background(.quaternary)
+                .cornerRadius(8)
 
-            let totalDisk = pipeline.downloadedModelsManager.totalSizeOnDisk + pipeline.whisperModelManager.totalSizeOnDisk()
-            if totalDisk > 0 {
-                Divider()
-                HStack {
-                    Image(systemName: "internaldrive")
-                        .foregroundColor(.secondary)
-                    Text(String(localized: "section.downloaded.total", defaultValue: "Total on disk:"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(ByteCountFormatter.string(fromByteCount: totalDisk, countStyle: .file))
-                        .font(.caption.bold())
+                let totalDisk = pipeline.downloadedModelsManager.totalSizeOnDisk + pipeline.whisperModelManager.totalSizeOnDisk()
+                if totalDisk > 0 {
+                    HStack {
+                        Image(systemName: "internaldrive")
+                            .foregroundColor(.secondary)
+                        Text(String(localized: "section.downloaded.total", defaultValue: "Total on disk:"))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(ByteCountFormatter.string(fromByteCount: totalDisk, countStyle: .file))
+                            .font(.caption.bold())
+                    }
                 }
             }
-        }
-        .padding()
-        .onAppear {
-            pipeline.downloadedModelsManager.scanDownloadedModels()
+            .padding()
+            .onAppear {
+                pipeline.downloadedModelsManager.scanDownloadedModels()
+            }
         }
     }
 }
