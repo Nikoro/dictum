@@ -11,6 +11,7 @@ Crucial discoveries and "aha moments" captured during development sessions.
 **Symptom:** After every app rebuild, setup screen asks to download the STT model again even though it was already downloaded.
 **Root cause:** WhisperKit doesn't store models in a scannable disk location. The original `scanDownloaded()` checked HuggingFace cache dirs (`~/Library/Caches/huggingface/`, `~/.cache/huggingface/`) but found nothing — WhisperKit manages its own cache internally.
 **Workaround:** Persist downloaded model IDs in `UserDefaults` (`whisperDownloadedModelIds` key) after successful `loadModel()`. Don't rely on filesystem scanning.
+**Note:** This applies only to STT (WhisperKit) models. LLM models (MLX) *are* disk-scanned via `DownloadedModelsManager` at `~/Library/Caches/models/mlx-community/`.
 
 ### [GOTCHA] [CRITICAL] Whisper hallucinates on short audio when model loads lazily
 **Area:** `DictationPipeline.swift`
@@ -45,6 +46,16 @@ Crucial discoveries and "aha moments" captured during development sessions.
 **Symptom:** Audio level bars in floating pill don't move despite `audioLevel` being updated in `AudioRecorder`.
 **Root cause:** `@Published` property changes from `ObservableObject` in the main app don't reliably trigger `@ObservedObject` updates in a SwiftUI view hosted in a separate `NSPanel` window.
 **Workaround:** Use `TimelineView(.animation(minimumInterval: 0.016))` to poll `audioRecorder.audioLevel` directly at 60Hz instead of relying on Combine observation.
+
+## LLM Processing
+
+### [GOTCHA] [NOTE] Qwen3 emits `<think>...</think>` blocks that must be stripped
+**Area:** `TextProcessing/LLMProcessor.swift`
+**Tags:** `#gotcha` `#integration`
+**Verified:** 2026-03-27
+**Symptom:** LLM output contains chain-of-thought reasoning text before the actual cleaned transcription.
+**Root cause:** Qwen3 models (including Qwen3.5-4B-4bit) emit `<think>...</think>` blocks as part of their generation. `LLMProcessor.cleanText()` strips everything up to and including `</think>`.
+**Scope:** Model-specific — if switching to a non-Qwen model that doesn't emit `<think>`, the strip is a safe no-op. If switching to a model that uses different delimiters, output will be corrupted.
 
 ## Paste & Hotkey
 
