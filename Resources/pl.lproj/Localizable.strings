@@ -12,14 +12,14 @@
 "setup.step1.locked" = "Najpierw włącz uprawnienia powyżej.";
 "setup.step2.title" = "Model rozpoznawania mowy";
 "setup.step2.locked" = "Najpierw pobierz model STT.";
-"setup.step3.title" = "Czyszczenie tekstu LLM (opcjonalne)";
+"setup.step3.title" = "Przetwarzanie tekstu LLM (opcjonalne)";
 "setup.step3.skip" = "Pomiń — używaj tylko transkrypcji";
 "setup.recommended" = "Rekomendowany";
 
 /* Header */
 "header.recording" = "Nagrywanie...";
 "header.transcribing" = "Transkrypcja...";
-"header.processingLLM" = "Czyszczenie tekstu przez LLM...";
+"header.processingLLM" = "Przetwarzanie tekstu przez LLM...";
 "header.done" = "Gotowe — tekst wklejony";
 
 /* Sections */
@@ -36,7 +36,7 @@
 "section.llm.prompt" = "Prompt LLM";
 "section.llm.nomodel" = "Najpierw pobierz model";
 "section.llm.active" = "Aktywny:";
-"section.llm.cleanup" = "Czyszczenie LLM";
+"section.llm.cleanup" = "Przetwarzanie LLM";
 "section.downloaded" = "Pobrane modele";
 "section.downloaded.llm" = "Pobrane modele LLM:";
 "section.downloaded.whisper" = "Pobrane modele Whisper:";

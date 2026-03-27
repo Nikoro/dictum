@@ -187,7 +187,7 @@ private struct SetupView: View {
                 // MARK: Step 3 — Model LLM (optional)
                 SetupStepHeader(
                     number: 3,
-                    title: String(localized: "setup.step3.title", defaultValue: "LLM text cleanup (optional)"),
+                    title: String(localized: "setup.step3.title", defaultValue: "LLM text processing (optional)"),
                     isDone: downloadedLLMId != nil
                 )
 

@@ -12,14 +12,14 @@
 "setup.step1.locked" = "Enable permissions above first.";
 "setup.step2.title" = "Speech recognition model";
 "setup.step2.locked" = "Download STT model first.";
-"setup.step3.title" = "LLM text cleanup (optional)";
+"setup.step3.title" = "LLM text processing (optional)";
 "setup.step3.skip" = "Skip — use transcription only";
 "setup.recommended" = "Recommended";
 
 /* Header */
 "header.recording" = "Recording...";
 "header.transcribing" = "Transcribing...";
-"header.processingLLM" = "Cleaning text with LLM...";
+"header.processingLLM" = "Processing text with LLM...";
 "header.done" = "Done — text pasted";
 
 /* Sections */
@@ -36,7 +36,7 @@
 "section.llm.prompt" = "LLM Prompt";
 "section.llm.nomodel" = "Download a model first";
 "section.llm.active" = "Active:";
-"section.llm.cleanup" = "LLM cleanup";
+"section.llm.cleanup" = "LLM processing";
 "section.downloaded" = "Downloaded models";
 "section.downloaded.llm" = "Downloaded LLM models:";
 "section.downloaded.whisper" = "Downloaded Whisper models:";
