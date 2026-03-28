@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-03-28
+## [0.1.0] - 2026-03-28
 
 ### Added
 
@@ -25,5 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zlokalizowany UI (polski)
 - 100% on-device — żadne dane nie opuszczają urządzenia
 
-[Unreleased]: https://github.com/dominikkrajcer/dictum/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/dominikkrajcer/dictum/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Nikoro/dictum/releases/tag/v0.1.0
