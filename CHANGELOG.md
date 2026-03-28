@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-28
+
+### Added
+
+- App version display in menu bar footer
+- STT and LLM model warm-up after load for faster first use
+- App icon with proper asset registration
+- Progress tracking and cancel support for model downloads
+
+### Fixed
+
+- App icon PNG pixel dimensions
+
 ## [0.1.1] - 2026-03-28
 
 ### Added
@@ -36,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Nikoro/dictum/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Nikoro/dictum/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Nikoro/dictum/releases/tag/v0.1.0
