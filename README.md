@@ -50,8 +50,8 @@ On first launch:
 1. Click the microphone icon in the menu bar to open the settings popover
 2. Press the hotkey (default: hold `Right ⌘`) to start recording
 3. Speak (language: Polish by default)
-4. Release the key (hold mode) or press again (toggle mode)
-5. Text is automatically pasted into the active window
+4. Release the key (hold mode) or press again (toggle mode) — press `Escape` to cancel
+5. Text is automatically pasted into the active window (or copied to clipboard in context mode)
 
 ### Menu bar icon states
 
@@ -64,7 +64,8 @@ On first launch:
 
 - **On-device pipeline** — WhisperKit STT + MLX LLM, no network required
 - **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
-- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
+- **Context-aware dictation** — select text before dictating to use it as LLM context; result is copied to clipboard instead of auto-pasted
+- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` and `{{context}}` placeholders
 - **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
 - **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
 - **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
@@ -73,37 +74,9 @@ On first launch:
 
 ## Architecture
 
-```
-├── DictumApp.swift                     # @main, app lifecycle
-├── DictationPipeline.swift             # Orchestrator: hotkey → record → STT → LLM → paste
-├── Audio/
-│   └── AudioRecorder.swift             # AVAudioEngine, PCM 16kHz mono
-├── Transcription/
-│   ├── TranscriptionEngine.swift       # WhisperKit actor
-│   └── WhisperModelManager.swift       # Model list, download, switch
-├── TextProcessing/
-│   └── LLMProcessor.swift             # MLX Swift LLM actor
-├── ModelBrowser/
-│   ├── ModelBrowser.swift              # HuggingFace API search (debounced)
-│   └── DownloadedModelsManager.swift   # Scan ~/Library/Caches/models/mlx-community/
-├── FloatingIndicator/
-│   └── FloatingIndicatorManager.swift  # NSPanel floating pill at cursor
-├── MenuBar/
-│   ├── MenuBarManager.swift            # NSStatusItem + NSPopover
-│   ├── MenuBarIcon.swift               # NSImage factory per AppState
-│   └── PopoverView.swift               # Full settings UI + SetupView (onboarding)
-├── HotkeyAndPaste/
-│   ├── GlobalHotkeyManager.swift       # CGEvent tap, modifier-only / key+modifier
-│   └── PasteManager.swift             # NSPasteboard + CGEvent Cmd+V, clipboard save/restore
-├── Settings/
-│   ├── AppSettings.swift               # @AppStorage + per-app prompts
-│   └── PermissionsManager.swift        # AX + Microphone permission polling
-└── Resources/
-    ├── Info.plist
-    ├── Dictum.entitlements
-    ├── en.lproj/                        # English strings
-    └── pl.lproj/                        # Polish strings
-```
+`DictationPipeline` is the singleton orchestrator connecting all layers: hotkey detection (`GlobalHotkeyManager` — CGEvent tap) → optional selected text capture (`SelectedTextReader` — Cmd+C simulation) → audio recording (`AudioRecorder` — AVAudioEngine, PCM 16kHz mono) → speech-to-text (`TranscriptionEngine` — WhisperKit actor) → optional LLM cleanup (`LLMProcessor` — MLX Swift actor) → auto-paste (`PasteManager` — CGEvent Cmd+V) or clipboard copy (context mode). The UI lives in `PopoverView` (settings + onboarding) hosted in an `NSStatusItem` popover, with a floating `NSPanel` pill at the cursor showing recording state.
+
+See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer architecture reference.
 
 ## Known limitations
 
