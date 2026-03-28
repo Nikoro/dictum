@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import ServiceManagement
 
 struct PopoverView: View {
     @EnvironmentObject var settings: AppSettings
@@ -241,7 +242,7 @@ private struct SetupView: View {
 
                 Spacer(minLength: 12)
 
-                Button("Quit") {
+                Button(String(localized: "footer.quit", defaultValue: "Quit")) {
                     NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.plain)
@@ -603,6 +604,33 @@ private struct PromptSection: View {
     }
 }
 
+// MARK: - Launch at Login
+
+private struct LaunchAtLoginToggle: View {
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+
+    var body: some View {
+        HStack {
+            Text(String(localized: "section.launchAtLogin", defaultValue: "Launch at login"))
+            Spacer()
+            Toggle("", isOn: $launchAtLogin)
+                .toggleStyle(.switch)
+                .labelsHidden()
+        }
+        .onChange(of: launchAtLogin) { _, newValue in
+                do {
+                    if newValue {
+                        try SMAppService.mainApp.register()
+                    } else {
+                        try SMAppService.mainApp.unregister()
+                    }
+                } catch {
+                    launchAtLogin = SMAppService.mainApp.status == .enabled
+                }
+            }
+    }
+}
+
 // MARK: - Recording Settings
 
 private struct RecordingSettingsSection: View {
@@ -629,6 +657,8 @@ private struct RecordingSettingsSection: View {
                 Spacer()
                 HotkeyRecorderButton(hotkeyDescription: hotkeyDescription)
             }
+
+            LaunchAtLoginToggle()
         }
         .padding()
     }
@@ -647,12 +677,12 @@ private struct RecordingSettingsSection: View {
 
         let keyName: String
         switch settings.hotkeyKeyCode {
-        case 49: keyName = "Space"
-        case 36: keyName = "Return"
-        case 48: keyName = "Tab"
-        case 53: keyName = "Esc"
-        case 51: keyName = "Delete"
-        case 76: keyName = "Enter"
+        case 49: keyName = String(localized: "hotkey.space", defaultValue: "Space")
+        case 36: keyName = String(localized: "hotkey.return", defaultValue: "Return")
+        case 48: keyName = String(localized: "hotkey.tab", defaultValue: "Tab")
+        case 53: keyName = String(localized: "hotkey.esc", defaultValue: "Esc")
+        case 51: keyName = String(localized: "hotkey.delete", defaultValue: "Delete")
+        case 76: keyName = String(localized: "hotkey.enter", defaultValue: "Enter")
         default:
             if let scalar = KeyCodeMapping.keyName(for: settings.hotkeyKeyCode) {
                 keyName = scalar
@@ -1262,7 +1292,7 @@ private struct AppPromptRow: View {
                 PromptTextEditor(
                     text: $localPrompt,
                     ghostSuffix: ghostSuffix,
-                    placeholder: "Napisz prompt dla \(cleanAppName)...",
+                    placeholder: String(localized: String.LocalizationValue("section.prompt.perapp.placeholder \(cleanAppName)")),
                     onTab: { acceptGhost() }
                 )
                 .frame(minHeight: 60, maxHeight: 100)
@@ -1680,7 +1710,7 @@ private struct FooterSection: View {
                     .lineLimit(2)
             }
 
-            Button("Quit") {
+            Button(String(localized: "footer.quit", defaultValue: "Quit")) {
                 NSApplication.shared.terminate(nil)
             }
             .buttonStyle(.plain)

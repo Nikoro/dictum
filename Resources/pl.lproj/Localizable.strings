@@ -60,6 +60,26 @@
 "llm.qwen3_8b.desc" = "Najlepsza jakość. Wymaga więcej RAM.";
 
 
+/* Recording modes */
+"mode.hold" = "Przytrzymaj";
+"mode.toggle" = "Przełącz";
+
+/* Footer */
+"footer.quit" = "Zakończ";
+
+/* Launch at login */
+"section.launchAtLogin" = "Uruchom przy logowaniu";
+
+/* Hotkey directions */
+"hotkey.right" = "Prawy";
+"hotkey.left" = "Lewy";
+"hotkey.space" = "Spacja";
+"hotkey.return" = "Return";
+"hotkey.tab" = "Tab";
+"hotkey.esc" = "Esc";
+"hotkey.delete" = "Delete";
+"hotkey.enter" = "Enter";
+
 /* Per-app prompts */
 "section.prompt.general" = "Ogólny";
 "section.prompt.placeholder.hint" = "Wstaw {{text}} aby określić miejsce wklejenia tekstu";
@@ -67,3 +87,4 @@
 "section.prompt.perapp.empty" = "Brak — używany będzie prompt ogólny";
 "section.prompt.picker.title" = "Wybierz aplikację";
 "section.prompt.picker.search" = "Szukaj aplikacji...";
+"section.prompt.perapp.placeholder %@" = "Napisz prompt dla %@...";

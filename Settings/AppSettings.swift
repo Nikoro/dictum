@@ -26,8 +26,8 @@ enum RecordingMode: String, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .hold: return "Hold-to-talk"
-        case .toggle: return "Toggle"
+        case .hold: return String(localized: "mode.hold", defaultValue: "Hold-to-talk")
+        case .toggle: return String(localized: "mode.toggle", defaultValue: "Toggle")
         }
     }
 }

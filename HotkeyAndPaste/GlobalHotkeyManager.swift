@@ -184,15 +184,17 @@ final class GlobalHotkeyManager: ObservableObject {
 
     /// Human-readable name for a modifier keyCode.
     nonisolated static func modifierKeyName(_ keyCode: Int) -> String? {
+        let right = String(localized: "hotkey.right", defaultValue: "Right")
+        let left = String(localized: "hotkey.left", defaultValue: "Left")
         switch keyCode {
-        case 54: return "Right ⌘"
-        case 55: return "Left ⌘"
-        case 56: return "Left ⇧"
-        case 60: return "Right ⇧"
-        case 58: return "Left ⌥"
-        case 61: return "Right ⌥"
-        case 59: return "Left ⌃"
-        case 62: return "Right ⌃"
+        case 54: return "\(right) ⌘"
+        case 55: return "\(left) ⌘"
+        case 56: return "\(left) ⇧"
+        case 60: return "\(right) ⇧"
+        case 58: return "\(left) ⌥"
+        case 61: return "\(right) ⌥"
+        case 59: return "\(left) ⌃"
+        case 62: return "\(right) ⌃"
         default: return nil
         }
     }
