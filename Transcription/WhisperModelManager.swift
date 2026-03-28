@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import WhisperKit
 
 struct WhisperModelInfo: Identifiable {
     let id: String
@@ -25,7 +26,9 @@ final class WhisperModelManager: ObservableObject {
     @Published var activeModelId: String = "openai_whisper-large-v3_turbo"
     @Published var isDownloading = false
     @Published var downloadingModelId: String?
+    @Published var downloadProgress: Double = 0
 
+    private var downloadTask: Task<Void, Never>?
     private static let downloadedKey = "whisperDownloadedModelIds"
 
     static let defaultModels: [WhisperModelInfo] = [
@@ -80,19 +83,44 @@ final class WhisperModelManager: ObservableObject {
         UserDefaults.standard.set(Array(downloadedModelIds), forKey: Self.downloadedKey)
     }
 
-    func downloadAndActivate(_ modelId: String) async throws {
+    func downloadAndActivate(_ modelId: String) {
         isDownloading = true
         downloadingModelId = modelId
-        defer {
+        downloadProgress = 0
+
+        downloadTask = Task {
+            do {
+                let modelFolder = try await WhisperKit.download(variant: modelId) { [weak self] progress in
+                    Task { @MainActor in
+                        self?.downloadProgress = progress.fractionCompleted
+                    }
+                }
+
+                try Task.checkCancellation()
+
+                try await TranscriptionEngine.shared.loadModel(fromFolder: modelFolder.path)
+                downloadedModelIds.insert(modelId)
+                activeModelId = modelId
+                AppSettings.shared.sttModelId = modelId
+                persistIds()
+            } catch is CancellationError {
+                dlog("[STT] download cancelled")
+            } catch {
+                dlog("[STT] download failed: \(error)")
+            }
             isDownloading = false
             downloadingModelId = nil
+            downloadProgress = 0
+            downloadTask = nil
         }
+    }
 
-        try await TranscriptionEngine.shared.loadModel(modelId)
-        downloadedModelIds.insert(modelId)
-        activeModelId = modelId
-        AppSettings.shared.sttModelId = modelId
-        persistIds()
+    func cancelDownload() {
+        downloadTask?.cancel()
+        downloadTask = nil
+        isDownloading = false
+        downloadingModelId = nil
+        downloadProgress = 0
     }
 
     func deleteModel(_ modelId: String) {

@@ -94,6 +94,8 @@ private struct SetupView: View {
 
     @State private var isDownloadingLLM = false
     @State private var downloadingLLMId: String?
+    @State private var llmDownloadProgress: Double = 0
+    @State private var llmDownloadTask: Task<Void, Never>?
     @State private var downloadedLLMId: String? = UserDefaults.standard.string(forKey: "llmDownloadedModelId")
 
     private var permissionsDone: Bool { permissions.allGranted }
@@ -166,15 +168,17 @@ private struct SetupView: View {
                                 isSelected: settings.sttModelId == model.id,
                                 isDownloaded: whisperManager.downloadedModelIds.contains(model.id),
                                 isDownloading: whisperManager.downloadingModelId == model.id,
+                                downloadProgress: whisperManager.downloadingModelId == model.id ? whisperManager.downloadProgress : 0,
                                 onSelect: {
                                     settings.sttModelId = model.id
                                     whisperManager.activeModelId = model.id
                                 },
                                 onDownload: {
                                     settings.sttModelId = model.id
-                                    Task {
-                                        try? await whisperManager.downloadAndActivate(model.id)
-                                    }
+                                    whisperManager.downloadAndActivate(model.id)
+                                },
+                                onCancel: {
+                                    whisperManager.cancelDownload()
                                 }
                             )
                         }
@@ -203,6 +207,7 @@ private struct SetupView: View {
                                 isSelected: settings.llmModelId == model.id,
                                 isDownloaded: downloadedLLMId == model.id,
                                 isDownloading: downloadingLLMId == model.id,
+                                downloadProgress: downloadingLLMId == model.id ? llmDownloadProgress : 0,
                                 onSelect: {
                                     settings.llmModelId = model.id
                                 },
@@ -210,18 +215,34 @@ private struct SetupView: View {
                                     settings.llmModelId = model.id
                                     downloadingLLMId = model.id
                                     isDownloadingLLM = true
-                                    Task {
+                                    llmDownloadProgress = 0
+                                    llmDownloadTask = Task {
                                         do {
-                                            try await LLMProcessor.shared.loadModel(model.id)
+                                            try await LLMProcessor.shared.loadModel(model.id) { progress in
+                                                Task { @MainActor in
+                                                    llmDownloadProgress = progress.fractionCompleted
+                                                }
+                                            }
                                             downloadedLLMId = model.id
                                             settings.llmCleanupEnabled = true
                                             UserDefaults.standard.set(model.id, forKey: "llmDownloadedModelId")
                                         } catch {
-                                            dlog("[Setup] LLM download failed: \(error)")
+                                            if !Task.isCancelled {
+                                                dlog("[Setup] LLM download failed: \(error)")
+                                            }
                                         }
                                         isDownloadingLLM = false
                                         downloadingLLMId = nil
+                                        llmDownloadProgress = 0
+                                        llmDownloadTask = nil
                                     }
+                                },
+                                onCancel: {
+                                    llmDownloadTask?.cancel()
+                                    llmDownloadTask = nil
+                                    isDownloadingLLM = false
+                                    downloadingLLMId = nil
+                                    llmDownloadProgress = 0
                                 }
                             )
                         }
@@ -262,8 +283,10 @@ private struct SetupLLMRow: View {
     let isSelected: Bool
     let isDownloaded: Bool
     let isDownloading: Bool
+    let downloadProgress: Double
     let onSelect: () -> Void
     let onDownload: () -> Void
+    var onCancel: (() -> Void)?
 
     var body: some View {
         Button(action: {
@@ -273,52 +296,69 @@ private struct SetupLLMRow: View {
                 onDownload()
             }
         }) {
-            HStack(spacing: 10) {
-                Image(systemName: isSelected && isDownloaded ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected && isDownloaded ? .green : .secondary)
-                    .font(.body)
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    Image(systemName: isSelected && isDownloaded ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isSelected && isDownloaded ? .green : .secondary)
+                        .font(.body)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(model.displayName)
-                            .font(.subheadline)
-                            .fontWeight(isSelected ? .semibold : .regular)
-                        if model.recommended {
-                            Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Color("AccentColor"), in: Capsule())
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(model.displayName)
+                                .font(.subheadline)
+                                .fontWeight(isSelected ? .semibold : .regular)
+                            if model.recommended {
+                                Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(Color("AccentColor"), in: Capsule())
+                            }
                         }
+                        Text(model.description)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    Text(model.description)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text(model.sizeGB)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+
+                    if isDownloading {
+                        Text("\(Int(downloadProgress * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 36, alignment: .trailing)
+                        Button {
+                            onCancel?()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else if isDownloaded {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    } else {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundStyle(.white)
+                            .font(.body)
+                    }
                 }
-
-                Spacer()
-
-                Text(model.sizeGB)
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                .padding(10)
 
                 if isDownloading {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 16)
-                } else if isDownloaded {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                } else {
-                    Image(systemName: "arrow.down.circle")
-                        .foregroundStyle(.white)
-                        .font(.body)
+                    ProgressView(value: downloadProgress)
+                        .tint(Color("AccentColor"))
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 8)
                 }
             }
-            .padding(10)
             .background(
                 isSelected ? Color("AccentColor").opacity(0.08) : Color(nsColor: .quaternarySystemFill),
                 in: RoundedRectangle(cornerRadius: 8)
@@ -369,8 +409,10 @@ private struct SetupModelRow: View {
     let isSelected: Bool
     let isDownloaded: Bool
     let isDownloading: Bool
+    let downloadProgress: Double
     let onSelect: () -> Void
     let onDownload: () -> Void
+    var onCancel: (() -> Void)?
 
     private var isRecommended: Bool {
         model.id == "openai_whisper-large-v3_turbo"
@@ -384,52 +426,62 @@ private struct SetupModelRow: View {
                 onDownload()
             }
         }) {
-            HStack(spacing: 10) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? .green : .secondary)
-                    .font(.body)
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isSelected ? .green : .secondary)
+                        .font(.body)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(model.displayName)
-                            .font(.subheadline)
-                            .fontWeight(isSelected ? .semibold : .regular)
-                        if isRecommended {
-                            Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Color("AccentColor"), in: Capsule())
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(model.displayName)
+                                .font(.subheadline)
+                                .fontWeight(isSelected ? .semibold : .regular)
+                            if isRecommended {
+                                Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(Color("AccentColor"), in: Capsule())
+                            }
                         }
+                        Text(model.description)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    Text(model.description)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text(model.formattedSize)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+
+                    if isDownloading {
+                        Text("\(Int(downloadProgress * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 36, alignment: .trailing)
+                    } else if isDownloaded {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    } else {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundStyle(.white)
+                            .font(.body)
+                    }
                 }
-
-                Spacer()
-
-                Text(model.formattedSize)
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                .padding(10)
 
                 if isDownloading {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 16)
-                } else if isDownloaded {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                } else {
-                    Image(systemName: "arrow.down.circle")
-                        .foregroundStyle(.white)
-                        .font(.body)
+                    ProgressView(value: downloadProgress)
+                        .tint(Color("AccentColor"))
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 8)
                 }
             }
-            .padding(10)
             .background(
                 isSelected ? Color("AccentColor").opacity(0.08) : Color(nsColor: .quaternarySystemFill),
                 in: RoundedRectangle(cornerRadius: 8)
@@ -865,7 +917,8 @@ private struct STTModelSection: View {
                             model: model,
                             isDownloaded: true,
                             isActive: pipeline.whisperModelManager.activeModelId == model.id,
-                            isDownloading: false
+                            isDownloading: false,
+                            downloadProgress: 0
                         ) {
                             pipeline.whisperModelManager.activeModelId = model.id
                             AppSettings.shared.sttModelId = model.id
@@ -905,11 +958,12 @@ private struct STTModelSection: View {
                                 model: model,
                                 isDownloaded: false,
                                 isActive: false,
-                                isDownloading: pipeline.whisperModelManager.downloadingModelId == model.id
+                                isDownloading: pipeline.whisperModelManager.downloadingModelId == model.id,
+                                downloadProgress: pipeline.whisperModelManager.downloadingModelId == model.id ? pipeline.whisperModelManager.downloadProgress : 0
                             ) {
-                                Task {
-                                    try? await pipeline.whisperModelManager.downloadAndActivate(model.id)
-                                }
+                                pipeline.whisperModelManager.downloadAndActivate(model.id)
+                            } onCancel: {
+                                pipeline.whisperModelManager.cancelDownload()
                             }
                         }
                     }
@@ -927,47 +981,67 @@ private struct WhisperModelRow: View {
     let isDownloaded: Bool
     let isActive: Bool
     let isDownloading: Bool
+    let downloadProgress: Double
     let onSelect: () -> Void
+    var onCancel: (() -> Void)?
 
     var body: some View {
         Button(action: onSelect) {
-            HStack {
-                if isActive {
-                    Image(systemName: "circle.fill")
-                        .foregroundColor(Color("AccentColor"))
-                        .font(.caption2)
-                } else {
-                    Image(systemName: "circle")
+            VStack(spacing: 0) {
+                HStack {
+                    if isActive {
+                        Image(systemName: "circle.fill")
+                            .foregroundColor(Color("AccentColor"))
+                            .font(.caption2)
+                    } else {
+                        Image(systemName: "circle")
+                            .foregroundColor(.secondary)
+                            .font(.caption2)
+                    }
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(model.displayName)
+                            .fontWeight(isActive ? .semibold : .regular)
+                        Text(model.description)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Text(model.formattedSize)
+                        .font(.caption)
                         .foregroundColor(.secondary)
-                        .font(.caption2)
+
+                    if isDownloading {
+                        Text("\(Int(downloadProgress * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                            .frame(width: 36, alignment: .trailing)
+                        Button {
+                            onCancel?()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else if !isDownloaded {
+                        Image(systemName: "arrow.down.circle")
+                            .foregroundColor(.white)
+                            .font(.body)
+                    }
                 }
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(model.displayName)
-                        .fontWeight(isActive ? .semibold : .regular)
-                    Text(model.description)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-
-                Spacer()
-
-                Text(model.formattedSize)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
 
                 if isDownloading {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                } else if !isDownloaded {
-                    Image(systemName: "arrow.down.circle")
-                        .foregroundColor(.white)
-                        .font(.body)
+                    ProgressView(value: downloadProgress)
+                        .tint(Color("AccentColor"))
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
     }
@@ -982,7 +1056,9 @@ private struct LLMModelSection: View {
 
     @State private var isDownloading = false
     @State private var downloadingModelId: String?
+    @State private var downloadProgress: Double = 0
     @State private var downloadError: String?
+    @State private var downloadTask: Task<Void, Never>?
 
     init() {
         _browser = ObservedObject(wrappedValue: DictationPipeline.shared.modelBrowser)
@@ -1106,13 +1182,25 @@ private struct LLMModelSection: View {
 
             // Download progress
             if isDownloading, let modelId = downloadingModelId {
-                HStack(spacing: 6) {
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 12, height: 12)
-                    Text(String(localized: "section.llm.downloading", defaultValue: "Downloading \(modelId.replacingOccurrences(of: "mlx-community/", with: ""))..."))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(String(localized: "section.llm.downloading", defaultValue: "Downloading \(modelId.replacingOccurrences(of: "mlx-community/", with: ""))..."))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(downloadProgress * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                        Button {
+                            cancelDownload()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    ProgressView(value: downloadProgress)
+                        .tint(Color("AccentColor"))
                 }
             }
 
@@ -1132,25 +1220,44 @@ private struct LLMModelSection: View {
     private func downloadModel(_ modelId: String) {
         isDownloading = true
         downloadingModelId = modelId
+        downloadProgress = 0
         downloadError = nil
-        Task {
+        browser.clearSearch()
+        downloadTask = Task {
             do {
-                try await LLMProcessor.shared.loadModel(modelId)
+                try await LLMProcessor.shared.loadModel(modelId) { progress in
+                    Task { @MainActor in
+                        downloadProgress = progress.fractionCompleted
+                    }
+                }
                 await MainActor.run {
                     settings.llmModelId = modelId
                     pipeline.downloadedModelsManager.scanDownloadedModels()
                     isDownloading = false
                     downloadingModelId = nil
-                    browser.clearSearch()
+                    downloadProgress = 0
+                    downloadTask = nil
                 }
             } catch {
                 await MainActor.run {
-                    downloadError = error.localizedDescription
+                    if !Task.isCancelled {
+                        downloadError = error.localizedDescription
+                    }
                     isDownloading = false
                     downloadingModelId = nil
+                    downloadProgress = 0
+                    downloadTask = nil
                 }
             }
         }
+    }
+
+    private func cancelDownload() {
+        downloadTask?.cancel()
+        downloadTask = nil
+        isDownloading = false
+        downloadingModelId = nil
+        downloadProgress = 0
     }
 }
 

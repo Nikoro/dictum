@@ -44,6 +44,26 @@ actor TranscriptionEngine {
         dlog("[STT] model loaded successfully")
     }
 
+    func loadModel(fromFolder folder: String) async throws {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        whisperKit = nil
+        isModelLoaded = false
+
+        dlog("[STT] loading model from folder: \(folder)")
+        let config = WhisperKitConfig(
+            modelFolder: folder,
+            verbose: true,
+            logLevel: .debug
+        )
+        whisperKit = try await WhisperKit(config)
+        isModelLoaded = true
+        currentModelId = URL(fileURLWithPath: folder).lastPathComponent
+        dlog("[STT] model loaded successfully")
+    }
+
     func transcribe(audioSamples: [Float]) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
 

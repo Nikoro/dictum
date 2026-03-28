@@ -25,7 +25,7 @@ actor LLMProcessor {
     private(set) var isLoading = false
     private(set) var currentModelId: String?
 
-    func loadModel(_ modelId: String = "mlx-community/Qwen3.5-4B-4bit") async throws {
+    func loadModel(_ modelId: String = "mlx-community/Qwen3.5-4B-4bit", progressHandler: (@Sendable (Progress) -> Void)? = nil) async throws {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
@@ -35,7 +35,8 @@ actor LLMProcessor {
 
         let config = ModelConfiguration(id: modelId)
         modelContainer = try await LLMModelFactory.shared.loadContainer(
-            configuration: config
+            configuration: config,
+            progressHandler: progressHandler ?? { _ in }
         )
         isModelLoaded = true
         currentModelId = modelId
