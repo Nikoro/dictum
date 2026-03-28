@@ -1,5 +1,10 @@
 # Dictum
 
+[![Release](https://img.shields.io/github/v/release/Nikoro/dictum?style=flat-square)](https://github.com/Nikoro/dictum/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-26.0+-black?style=flat-square&logo=apple)](https://github.com/Nikoro/dictum)
+[![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)](https://github.com/Nikoro/dictum)
+[![License](https://img.shields.io/github/license/Nikoro/dictum?style=flat-square)](LICENSE)
+
 > *Dictum* (Latin) — "something spoken", "a uttered word"
 
 Native macOS menu bar app for voice dictation. Converts speech to text and auto-pastes it into the active window. Fully on-device — no cloud, no network.
