@@ -447,10 +447,12 @@ private struct SetupModelRow: View {
                                     .background(Color("AccentColor"), in: Capsule())
                             }
                         }
-                        Text(model.description)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                        if !isDownloading {
+                            Text(model.description)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
 
                     Spacer()
@@ -1837,6 +1839,7 @@ private struct DownloadedModelsSection: View {
 
 private struct FooterSection: View {
     @EnvironmentObject var settings: AppSettings
+    @State private var showUninstallAlert = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -1862,8 +1865,55 @@ private struct FooterSection: View {
                     .foregroundColor(.secondary)
 
                 Spacer()
+
+                Button(action: { showUninstallAlert = true }) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .font(.caption)
             }
         }
         .padding()
+        .alert(
+            String(localized: "uninstall.title", defaultValue: "Uninstall Dictum?"),
+            isPresented: $showUninstallAlert
+        ) {
+            Button(String(localized: "uninstall.cancel", defaultValue: "Cancel"), role: .cancel) {}
+            Button(String(localized: "uninstall.confirm", defaultValue: "Uninstall"), role: .destructive) {
+                performUninstall()
+            }
+        } message: {
+            Text(String(localized: "uninstall.message", defaultValue: "This will delete all downloaded models, settings, and move Dictum to Trash. This cannot be undone."))
+        }
+    }
+
+    private func performUninstall() {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
+
+        // 1. Delete LLM models (~/Library/Caches/models/)
+        let mlxCacheDir = home.appendingPathComponent("Library/Caches/models")
+        try? fm.removeItem(at: mlxCacheDir)
+
+        // 2. Delete app cache (~/Library/Caches/com.dominikkrajcer.dictum/)
+        let appCacheDir = home.appendingPathComponent("Library/Caches/com.dominikkrajcer.dictum")
+        try? fm.removeItem(at: appCacheDir)
+
+        // 3. Delete log file
+        try? fm.removeItem(atPath: "/tmp/dictum.log")
+
+        // 4. Clear UserDefaults
+        if let bundleId = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleId)
+        }
+
+        // 5. Move app to Trash
+        if let appURL = Bundle.main.bundleURL as URL? {
+            try? fm.trashItem(at: appURL, resultingItemURL: nil)
+        }
+
+        // 6. Quit
+        NSApplication.shared.terminate(nil)
     }
 }

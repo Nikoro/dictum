@@ -15,7 +15,7 @@
 "setup.step2.locked" = "Najpierw pobierz model STT.";
 "setup.step3.title" = "Przetwarzanie tekstu LLM (opcjonalne)";
 "setup.step3.skip" = "Pomiń — używaj tylko transkrypcji";
-"setup.recommended" = "Rekomendowany";
+"setup.recommended" = "Zalecany";
 
 /* Header */
 "header.warmingUp" = "Przygotowywanie...";
@@ -49,7 +49,7 @@
 "error.download.stt" = "Pobierz model STT w ustawieniach";
 
 /* Model descriptions — STT */
-"stt.large_v3_turbo.desc" = "Rekomendowany. Najlepszy balans szybkości i dokładności.";
+"stt.large_v3_turbo.desc" = "Najlepszy balans szybkości i dokładności.";
 "stt.large_v3.desc" = "Najwyższa dokładność. 2x wolniejszy niż Turbo.";
 "stt.distil_large_v3_turbo.desc" = "Dystylowany. Bardzo szybki.";
 "stt.medium.desc" = "Dobra dokładność, umiarkowany rozmiar.";
@@ -58,7 +58,7 @@
 
 /* Model descriptions — LLM */
 "llm.qwen3_1.7b.desc" = "Szybki, lekki. Dobry do prostych poprawek.";
-"llm.qwen3_4b.desc" = "Rekomendowany. Dobra jakość poprawek.";
+"llm.qwen3_4b.desc" = "Dobra jakość poprawek.";
 "llm.qwen3_8b.desc" = "Najlepsza jakość. Wymaga więcej RAM.";
 
 
@@ -92,3 +92,9 @@
 "section.prompt.general.placeholder" = "Wpisz prompt ogólny...";
 "section.prompt.example" = "Przykładowy prompt";
 "section.prompt.perapp.placeholder %@" = "Napisz prompt dla %@...";
+
+/* Uninstall */
+"uninstall.title" = "Odinstalować Dictum?";
+"uninstall.message" = "Usunie modele LLM, ustawienia i przeniesie Dictum do Kosza. Modele Whisper w ~/.cache/huggingface/ trzeba usunąć ręcznie. Tej operacji nie można cofnąć.";
+"uninstall.confirm" = "Odinstaluj";
+"uninstall.cancel" = "Anuluj";

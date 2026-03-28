@@ -92,13 +92,27 @@ final class WhisperModelManager: ObservableObject {
             do {
                 let modelFolder = try await WhisperKit.download(variant: modelId) { [weak self] progress in
                     Task { @MainActor in
-                        self?.downloadProgress = progress.fractionCompleted
+                        // Download = 0% to 50%
+                        self?.downloadProgress = progress.fractionCompleted * 0.5
                     }
                 }
 
                 try Task.checkCancellation()
 
+                // Simulate loading progress from 50% to 99% over ~120s
+                downloadProgress = 0.5
+                let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
+                    guard let self else { timer.invalidate(); return }
+                    if self.downloadProgress < 0.99 {
+                        // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
+                        self.downloadProgress += 0.002
+                    }
+                }
+
                 try await TranscriptionEngine.shared.loadModel(fromFolder: modelFolder.path)
+                loadingTimer.invalidate()
+                downloadProgress = 1.0
+
                 downloadedModelIds.insert(modelId)
                 activeModelId = modelId
                 AppSettings.shared.sttModelId = modelId

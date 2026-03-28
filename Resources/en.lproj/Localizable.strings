@@ -49,7 +49,7 @@
 "error.download.stt" = "Download STT model in settings";
 
 /* Model descriptions — STT */
-"stt.large_v3_turbo.desc" = "Recommended. Best balance of speed and accuracy.";
+"stt.large_v3_turbo.desc" = "Best balance of speed and accuracy.";
 "stt.large_v3.desc" = "Highest accuracy. 2x slower than Turbo.";
 "stt.distil_large_v3_turbo.desc" = "Distilled. Very fast.";
 "stt.medium.desc" = "Good accuracy, moderate size.";
@@ -58,7 +58,7 @@
 
 /* Model descriptions — LLM */
 "llm.qwen3_1.7b.desc" = "Fast, lightweight. Good for simple fixes.";
-"llm.qwen3_4b.desc" = "Recommended. Good quality cleanup.";
+"llm.qwen3_4b.desc" = "Good quality cleanup.";
 "llm.qwen3_8b.desc" = "Best quality. Requires more RAM.";
 
 
@@ -92,3 +92,9 @@
 "section.prompt.general.placeholder" = "Enter general prompt...";
 "section.prompt.example" = "Example prompt";
 "section.prompt.perapp.placeholder %@" = "Write prompt for %@...";
+
+/* Uninstall */
+"uninstall.title" = "Uninstall Dictum?";
+"uninstall.message" = "This will delete LLM models, settings, and move Dictum to Trash. Whisper models in ~/.cache/huggingface/ must be removed manually. This cannot be undone.";
+"uninstall.confirm" = "Uninstall";
+"uninstall.cancel" = "Cancel";

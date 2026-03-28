@@ -52,6 +52,7 @@ actor TranscriptionEngine {
         whisperKit = nil
         isModelLoaded = false
 
+        let startTime = CFAbsoluteTimeGetCurrent()
         dlog("[STT] loading model from folder: \(folder)")
         let config = WhisperKitConfig(
             modelFolder: folder,
@@ -59,9 +60,10 @@ actor TranscriptionEngine {
             logLevel: .debug
         )
         whisperKit = try await WhisperKit(config)
+        let loadTime = CFAbsoluteTimeGetCurrent() - startTime
         isModelLoaded = true
         currentModelId = URL(fileURLWithPath: folder).lastPathComponent
-        dlog("[STT] model loaded successfully")
+        dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
     }
 
     func transcribe(audioSamples: [Float]) async throws -> String {
@@ -84,6 +86,7 @@ actor TranscriptionEngine {
 
     func warmup() async {
         guard let whisperKit else { return }
+        let startTime = CFAbsoluteTimeGetCurrent()
         dlog("[STT] warmup: transcribing 1s silent buffer")
         let silentSamples = [Float](repeating: 0, count: 16000) // 1s at 16kHz
         let options = DecodingOptions(
@@ -95,7 +98,8 @@ actor TranscriptionEngine {
             audioArray: silentSamples,
             decodeOptions: options
         )
-        dlog("[STT] warmup complete")
+        let warmupTime = CFAbsoluteTimeGetCurrent() - startTime
+        dlog("[STT] warmup complete in \(String(format: "%.2f", warmupTime))s")
     }
 
     func unloadModel() {
