@@ -85,6 +85,17 @@ Crucial discoveries and "aha moments" captured during development sessions.
 **Root cause:** The method sends Cmd+C via `.cghidEventTap` then `Thread.sleep(0.05)` to wait for clipboard. If called on the same run loop thread that processes CGEvents, the sleep blocks delivery of the very event it just posted → deadlock (clipboard never updates).
 **Workaround:** `GlobalHotkeyManager` correctly dispatches to `DispatchQueue.global` before calling. If the call site ever moves, the bug is silent (no crash, just `nil` return).
 
+## App Icon & Asset Catalog
+
+### [BUG] [CRITICAL] AppIcon silently dropped when PNGs have wrong pixel dimensions
+**Area:** `Resources/Assets.xcassets/AppIcon.appiconset/`
+**Tags:** `#gotcha` `#tooling`
+**Verified:** 2026-03-28
+**Trigger:** Built app shows generic macOS icon instead of custom purple mic icon.
+**Root cause:** Every PNG in `AppIcon.appiconset` was exactly 2x its expected dimensions (e.g., `icon_16x16.png` was 32x32px, `icon_512x512@2x.png` was 2048x2048 instead of 1024x1024). `actool` classifies these as "Ambiguous Content" and **silently skips the entire AppIcon set** — no build error, no warning in default output, just a missing icon. The `Assets.car` compiles successfully but without any icon renditions. Only visible with `actool --warnings`.
+**Fix applied:** Resized all PNGs to their correct dimensions using `sips`. Also added `CFBundleIconName: AppIcon` to `Info.plist` (was missing, required for asset catalog icon lookup).
+**Note:** If generating icon sets from a single source image, verify each output file's pixel dimensions match the `size × scale` declared in `Contents.json` (e.g., `128x128` at `2x` = 256x256px actual).
+
 ## CI & Build
 
 ### [GOTCHA] [CRITICAL] GitHub Actions macos-15 runner defaults to Xcode 16 — mlx-swift-lm fails to compile
