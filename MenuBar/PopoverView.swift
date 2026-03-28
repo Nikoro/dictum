@@ -267,12 +267,27 @@ private struct SetupView: View {
 
                 Spacer(minLength: 12)
 
-                Button(String(localized: "footer.quit", defaultValue: "Quit")) {
-                    NSApplication.shared.terminate(nil)
+                HStack {
+                    Button(action: { NSApplication.shared.terminate(nil) }) {
+                        Image(systemName: "power")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+
+                    Spacer()
+
+                    Text("Wersja: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    // Balance spacer for power button width
+                    Color.clear
+                        .frame(width: 16, height: 16)
                 }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
-                .font(.caption)
+                .padding(.horizontal, 20)
                 .padding(.bottom, 16)
             }
         }
@@ -1839,6 +1854,7 @@ private struct DownloadedModelsSection: View {
 
 private struct FooterSection: View {
     @EnvironmentObject var settings: AppSettings
+    @EnvironmentObject var updaterManager: UpdaterManager
     @State private var showUninstallAlert = false
 
     var body: some View {
@@ -1860,9 +1876,14 @@ private struct FooterSection: View {
 
                 Spacer()
 
-                Text("Wersja: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Button(action: { updaterManager.checkForUpdates() }) {
+                    Text("Wersja: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .disabled(!updaterManager.canCheckForUpdates)
+                .help("Sprawdź aktualizacje")
 
                 Spacer()
 

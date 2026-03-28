@@ -13,6 +13,9 @@ packages:
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm.git
     exactVersion: 2.29.3
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle.git
+    from: "2.7.0"
 
 targets:
   Dictum:
@@ -50,5 +53,6 @@ targets:
         product: MLXLLM
       - package: mlx-swift-lm
         product: MLXLMCommon
+      - package: Sparkle
     entitlements:
       path: Resources/Dictum.entitlements

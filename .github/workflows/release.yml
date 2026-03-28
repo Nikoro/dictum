@@ -39,6 +39,51 @@ jobs:
           cd build/Build/Products/Release
           zip -r Dictum.zip Dictum.app
 
+      - name: Download Sparkle tools
+        run: |
+          SPARKLE_VERSION="2.7.0"
+          curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz" | tar xJ -C /tmp
+          chmod +x /tmp/bin/sign_update
+
+      - name: Sign update and generate appcast
+        env:
+          SPARKLE_EDDSA_KEY: ${{ secrets.SPARKLE_EDDSA_KEY }}
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          ZIP_PATH="build/Build/Products/Release/Dictum.zip"
+          ZIP_SIZE=$(stat -f%z "$ZIP_PATH")
+          DOWNLOAD_URL="https://github.com/Nikoro/dictum/releases/download/${TAG}/Dictum.zip"
+
+          # Generate EdDSA signature
+          SIGNATURE_OUTPUT=$(echo "$SPARKLE_EDDSA_KEY" | /tmp/bin/sign_update --ed-key-file - "$ZIP_PATH")
+          ED_SIGNATURE=$(echo "$SIGNATURE_OUTPUT" | sed -n 's/.*edSignature="\([^"]*\)".*/\1/p')
+
+          # Generate appcast.xml
+          cat > appcast.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>Dictum Updates</title>
+              <link>https://github.com/Nikoro/dictum/releases</link>
+              <language>en</language>
+              <item>
+                <title>Version ${VERSION}</title>
+                <pubDate>$(date -R)</pubDate>
+                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+                <enclosure
+                  url="${DOWNLOAD_URL}"
+                  length="${ZIP_SIZE}"
+                  type="application/octet-stream"
+                  sparkle:edSignature="${ED_SIGNATURE}"
+                />
+              </item>
+            </channel>
+          </rss>
+          EOF
+
       - name: Extract changelog for tag
         id: changelog
         run: |
@@ -53,6 +98,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body_path: release_notes.txt
-          files: build/Build/Products/Release/Dictum.zip
+          files: |
+            build/Build/Products/Release/Dictum.zip
+            appcast.xml
           draft: false
           prerelease: false

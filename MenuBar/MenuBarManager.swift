@@ -41,6 +41,7 @@ final class MenuBarManager: ObservableObject {
                 .tint(Color("AccentColor"))
                 .environmentObject(settings)
                 .environmentObject(pipeline)
+                .environmentObject(UpdaterManager.shared)
         )
         self.popover = popover
     }

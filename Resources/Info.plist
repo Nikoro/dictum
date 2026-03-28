@@ -28,5 +28,13 @@
     <!-- Microphone permission -->
     <key>NSMicrophoneUsageDescription</key>
     <string>Dictum potrzebuje mikrofonu do transkrypcji mowy na tekst.</string>
+
+    <!-- Sparkle auto-update -->
+    <key>SUFeedURL</key>
+    <string>https://github.com/Nikoro/dictum/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>5OiZyIiN36OkNqZQbeEWzI7fbi3fUgBArOGj7/3wgdE=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
 </dict>
 </plist>

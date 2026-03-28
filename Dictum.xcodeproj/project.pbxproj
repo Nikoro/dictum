@@ -20,7 +20,9 @@
 		53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 24108E4098C7D8A965EFAEEA /* MLXLMCommon */; };
 		660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */; };
 		772A5FCF1513B833B3BD2B8A /* SKILL.md in Resources */ = {isa = PBXBuildFile; fileRef = 2667217AF914454E4F76CBB5 /* SKILL.md */; };
+		84B95C35E2815FA980949B42 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */; };
 		8A19028D5A4F72649B94A26B /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */; };
+		A305031B741D92C9703D1E75 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 161F1C9307FD19DA4C83CB5D /* Sparkle */; };
 		A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2490B7196B6C0D292B9AF54C /* PasteManager.swift */; };
 		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
 		B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */; };
@@ -57,6 +59,7 @@
 		BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
 		C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelManager.swift; sourceTree = "<group>"; };
+		D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelBrowser.swift; sourceTree = "<group>"; };
 		EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
@@ -72,6 +75,7 @@
 				D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */,
 				B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */,
 				53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */,
+				A305031B741D92C9703D1E75 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +145,7 @@
 			children = (
 				B8783DFB2FE338D342D231BF /* AppSettings.swift */,
 				EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */,
+				D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -270,6 +275,7 @@
 				A231C686F6E1BB95E9757D00 /* WhisperKit */,
 				266F3D418D9459D6424F7AE7 /* MLXLLM */,
 				24108E4098C7D8A965EFAEEA /* MLXLMCommon */,
+				161F1C9307FD19DA4C83CB5D /* Sparkle */,
 			);
 			productName = Dictum;
 			productReference = A52C02DC25B522AB15CF93A1 /* Dictum.app */;
@@ -301,6 +307,7 @@
 			mainGroup = 9559F4F0E1F239A398D6EB04;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */,
 				125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */,
 				C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
@@ -350,6 +357,7 @@
 				4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */,
 				CB73C3E9D2CFA71B03379999 /* SelectedTextReader.swift in Sources */,
 				0390EE84DDCA46ADEE516A70 /* TranscriptionEngine.swift in Sources */,
+				84B95C35E2815FA980949B42 /* UpdaterManager.swift in Sources */,
 				25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -443,7 +451,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
@@ -532,7 +540,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.1.1;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
@@ -572,6 +580,14 @@
 				kind = branch;
 			};
 		};
+		AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.0;
+			};
+		};
 		C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
@@ -583,6 +599,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		161F1C9307FD19DA4C83CB5D /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		24108E4098C7D8A965EFAEEA /* MLXLMCommon */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
