@@ -29,6 +29,8 @@ final class DictationPipeline: ObservableObject {
     private let permissions = PermissionsManager.shared
     private var isRecording = false
     private var isCancelled = false
+    private(set) var isWarmedUp = false
+    private var warmupTask: Task<Void, Never>?
     private var targetBundleId: String?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     var pendingSelectedContext: String?
@@ -58,6 +60,35 @@ final class DictationPipeline: ObservableObject {
                 try? await TranscriptionEngine.shared.loadModel(settings.sttModelId)
                 dlog("[Dictum] STT model preloaded")
             }
+            // Also preload LLM if enabled and downloaded
+            if settings.llmCleanupEnabled {
+                let llmLoaded = await LLMProcessor.shared.isModelLoaded
+                if !llmLoaded {
+                    dlog("[Dictum] preloading LLM model: \(settings.llmModelId)")
+                    try? await LLMProcessor.shared.loadModel(settings.llmModelId)
+                    dlog("[Dictum] LLM model preloaded")
+                }
+            }
+            warmUpModels()
+        }
+    }
+
+    func warmUpModels() {
+        warmupTask?.cancel()
+        isWarmedUp = false
+        warmupTask = Task {
+            dlog("[Dictum] warmup started")
+            await withTaskGroup(of: Void.self) { group in
+                if await TranscriptionEngine.shared.isModelLoaded {
+                    group.addTask { await TranscriptionEngine.shared.warmup() }
+                }
+                if await LLMProcessor.shared.isModelLoaded {
+                    group.addTask { await LLMProcessor.shared.warmup() }
+                }
+            }
+            guard !Task.isCancelled else { return }
+            isWarmedUp = true
+            dlog("[Dictum] warmup complete")
         }
     }
 
@@ -174,6 +205,15 @@ final class DictationPipeline: ObservableObject {
         isRecording = false
         // Don't hide pill — it stays visible showing pipeline status
         dlog("[Dictum] stopRecording, samples=\(samples.count)")
+
+        // Wait for warmup to finish if still running
+        if !isWarmedUp, let task = warmupTask {
+            dlog("[Dictum] waiting for warmup to finish...")
+            settings.appState = .warmingUp
+            FloatingIndicatorManager.shared.captureTargetApp()
+            FloatingIndicatorManager.shared.show(audioRecorder: audioRecorder)
+            await task.value
+        }
 
         guard !samples.isEmpty else {
             dlog("[Dictum] no samples, going idle")

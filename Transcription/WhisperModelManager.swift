@@ -103,6 +103,7 @@ final class WhisperModelManager: ObservableObject {
                 activeModelId = modelId
                 AppSettings.shared.sttModelId = modelId
                 persistIds()
+                DictationPipeline.shared.warmUpModels()
             } catch is CancellationError {
                 dlog("[STT] download cancelled")
             } catch {

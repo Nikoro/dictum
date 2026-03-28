@@ -1,5 +1,6 @@
 /* Floating pill */
 "pill.transcribing" = "Transkrybuję";
+"pill.warmingUp" = "Przygotowywanie";
 
 /* Setup */
 "setup.title" = "Konfiguracja";
@@ -17,6 +18,7 @@
 "setup.recommended" = "Rekomendowany";
 
 /* Header */
+"header.warmingUp" = "Przygotowywanie...";
 "header.recording" = "Nagrywanie...";
 "header.transcribing" = "Transkrypcja...";
 "header.processingLLM" = "Przetwarzanie tekstu przez LLM...";

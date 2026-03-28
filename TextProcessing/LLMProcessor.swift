@@ -89,6 +89,22 @@ actor LLMProcessor {
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    func warmup() async {
+        guard let modelContainer else { return }
+        dlog("[LLM] warmup: generating dummy completion")
+        let session = ChatSession(
+            modelContainer,
+            instructions: "",
+            generateParameters: GenerateParameters(
+                maxTokens: 2,
+                temperature: 0.0,
+                topP: 1.0
+            )
+        )
+        _ = try? await session.respond(to: "Hi")
+        dlog("[LLM] warmup complete")
+    }
+
     func unloadModel() {
         modelContainer = nil
         isModelLoaded = false

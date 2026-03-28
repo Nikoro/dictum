@@ -25,8 +25,10 @@ struct FloatingIndicatorView: View {
                 switch settings.appState {
                 case .recording:
                     recordingContent(time: context.date.timeIntervalSince1970)
+                case .warmingUp:
+                    animatedTextContent(key: "pill.warmingUp")
                 case .transcribing, .processingLLM:
-                    transcribingContent
+                    animatedTextContent(key: "pill.transcribing")
                 default:
                     EmptyView()
                 }
@@ -53,8 +55,8 @@ struct FloatingIndicatorView: View {
         .frame(height: 24)
     }
 
-    private var transcribingContent: some View {
-        let base = String(localized: "pill.transcribing", defaultValue: "Transcribing")
+    private func animatedTextContent(key: String.LocalizationValue) -> some View {
+        let base = String(localized: key)
         let dots = String(repeating: ".", count: dotCount + 1)
         let pad = String(repeating: " ", count: 3 - (dotCount + 1))
         return Text(base + dots + pad)

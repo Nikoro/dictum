@@ -82,6 +82,22 @@ actor TranscriptionEngine {
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    func warmup() async {
+        guard let whisperKit else { return }
+        dlog("[STT] warmup: transcribing 1s silent buffer")
+        let silentSamples = [Float](repeating: 0, count: 16000) // 1s at 16kHz
+        let options = DecodingOptions(
+            language: "pl",
+            skipSpecialTokens: true,
+            withoutTimestamps: true
+        )
+        _ = try? await whisperKit.transcribe(
+            audioArray: silentSamples,
+            decodeOptions: options
+        )
+        dlog("[STT] warmup complete")
+    }
+
     func unloadModel() {
         whisperKit = nil
         isModelLoaded = false

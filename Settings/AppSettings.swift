@@ -34,6 +34,7 @@ enum RecordingMode: String, CaseIterable {
 
 enum AppState: Equatable {
     case idle
+    case warmingUp
     case recording
     case transcribing
     case processingLLM

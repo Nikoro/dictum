@@ -226,6 +226,7 @@ private struct SetupView: View {
                                             downloadedLLMId = model.id
                                             settings.llmCleanupEnabled = true
                                             UserDefaults.standard.set(model.id, forKey: "llmDownloadedModelId")
+                                            DictationPipeline.shared.warmUpModels()
                                         } catch {
                                             if !Task.isCancelled {
                                                 dlog("[Setup] LLM download failed: \(error)")
@@ -576,6 +577,7 @@ private struct HeaderSection: View {
     private var stateDescription: String? {
         switch settings.appState {
         case .idle: return nil
+        case .warmingUp: return String(localized: "header.warmingUp", defaultValue: "Warming up...")
         case .recording: return String(localized: "header.recording", defaultValue: "Recording...")
         case .transcribing: return String(localized: "header.transcribing", defaultValue: "Transcribing...")
         case .processingLLM: return String(localized: "header.processingLLM", defaultValue: "Cleaning text with LLM...")
@@ -586,13 +588,14 @@ private struct HeaderSection: View {
 
     private var isProcessing: Bool {
         switch settings.appState {
-        case .recording, .transcribing, .processingLLM: return true
+        case .warmingUp, .recording, .transcribing, .processingLLM: return true
         default: return false
         }
     }
 
     private var stateColor: Color {
         switch settings.appState {
+        case .warmingUp: return .blue
         case .recording: return .red
         case .transcribing: return .yellow
         case .processingLLM: return .orange
@@ -621,6 +624,7 @@ private struct StatusDot: View {
     private var color: Color {
         switch state {
         case .idle: return .gray
+        case .warmingUp: return .blue
         case .recording: return .red
         case .transcribing: return .yellow
         case .processingLLM: return .orange
