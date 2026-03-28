@@ -41,15 +41,32 @@ actor LLMProcessor {
         currentModelId = modelId
     }
 
-    func cleanText(rawText: String, prompt: String) async throws -> String {
+    func cleanText(rawText: String, prompt: String, context: String? = nil) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
 
-        // If prompt contains {{text}}, inject transcribed text into the prompt
-        // and send as user message (no system instructions).
-        // Otherwise, use prompt as system instructions and text as user message.
-        let hasPlaceholder = prompt.contains("{{text}}")
-        let systemPrompt = hasPlaceholder ? nil : prompt
-        let userMessage = hasPlaceholder ? prompt.replacingOccurrences(of: "{{text}}", with: rawText) : rawText
+        let systemPrompt: String?
+        let userMessage: String
+
+        if let context {
+            // Context mode: user selected text and dictated an instruction.
+            // Ignore the default cleanup prompt — use a dedicated context prompt.
+            if prompt.contains("{{context}}") {
+                // Custom prompt with {{context}} and {{text}} placeholders
+                let resolved = prompt
+                    .replacingOccurrences(of: "{{context}}", with: context)
+                    .replacingOccurrences(of: "{{text}}", with: rawText)
+                systemPrompt = nil
+                userMessage = resolved
+            } else {
+                systemPrompt = "Execute the user's instruction based on the provided context. Return ONLY the result, no commentary."
+                userMessage = "Context:\n\(context)\n\nInstruction: \(rawText)"
+            }
+        } else {
+            // Normal mode: standard cleanup/prompt
+            let hasPlaceholder = prompt.contains("{{text}}")
+            systemPrompt = hasPlaceholder ? nil : prompt
+            userMessage = hasPlaceholder ? prompt.replacingOccurrences(of: "{{text}}", with: rawText) : rawText
+        }
 
         let session = ChatSession(
             modelContainer,

@@ -23,6 +23,7 @@
 		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
 		B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */; };
 		CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A45404D11A8845C3F109251 /* Assets.xcassets */; };
+		CB73C3E9D2CFA71B03379999 /* SelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D60DD32B8442E4A16C521F4 /* SelectedTextReader.swift */; };
 		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
 		DD50DB580798C88C6A1357C5 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8783DFB2FE338D342D231BF /* AppSettings.swift */; };
 		DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F49B35EF21214DF3B51CC21B /* Localizable.strings */; };
@@ -41,6 +42,7 @@
 		894B0245FC883E24EDFB48BB /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		8F0883B8EE127B0560E01584 /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		8F2276C69754697A5C25F690 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
+		9D60DD32B8442E4A16C521F4 /* SelectedTextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectedTextReader.swift; sourceTree = "<group>"; };
 		A218D3C8C6E7E4EE3E45D009 /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		A52C02DC25B522AB15CF93A1 /* Dictum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dictum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A860B5A4689C4D0EE913A43F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 			children = (
 				BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */,
 				2490B7196B6C0D292B9AF54C /* PasteManager.swift */,
+				9D60DD32B8442E4A16C521F4 /* SelectedTextReader.swift */,
 			);
 			path = HotkeyAndPaste;
 			sourceTree = "<group>";
@@ -289,6 +292,7 @@
 				A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */,
 				03E225740534B98B26F65606 /* PermissionsManager.swift in Sources */,
 				4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */,
+				CB73C3E9D2CFA71B03379999 /* SelectedTextReader.swift in Sources */,
 				0390EE84DDCA46ADEE516A70 /* TranscriptionEngine.swift in Sources */,
 				25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */,
 			);

@@ -30,6 +30,9 @@ final class DictationPipeline: ObservableObject {
     private var isRecording = false
     private var isCancelled = false
     private var targetBundleId: String?
+    /// Selected text captured synchronously from the event tap callback, before any async dispatch.
+    var pendingSelectedContext: String?
+    private var selectedContext: String?
     private var permissionsCancellable: AnyCancellable?
     private var whisperSink: AnyCancellable?
     private var downloadedModelsSink: AnyCancellable?
@@ -124,6 +127,7 @@ final class DictationPipeline: ObservableObject {
             isRecording = false
         }
         isCancelled = true
+        selectedContext = nil
         settings.appState = .idle
         FloatingIndicatorManager.shared.hide()
     }
@@ -141,6 +145,14 @@ final class DictationPipeline: ObservableObject {
         }
 
         dlog("[Dictum] startRecording called")
+
+        // Use selected text captured synchronously from the event tap
+        selectedContext = pendingSelectedContext
+        pendingSelectedContext = nil
+        if let ctx = selectedContext {
+            dlog("[Dictum] using selected context (\(ctx.count) chars): '\(ctx.prefix(100))...'")
+        }
+
         do {
             try audioRecorder.startRecording()
             isRecording = true
@@ -207,10 +219,11 @@ final class DictationPipeline: ObservableObject {
 
                     let resolvedPrompt = settings.resolvePrompt(for: targetBundleId)
                     dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(resolvedPrompt)'")
-                    dlog("[Dictum] LLM input: '\(rawText)'")
+                    dlog("[Dictum] LLM input: '\(rawText)', context: \(selectedContext != nil ? "yes" : "none")")
                     finalText = try await LLMProcessor.shared.cleanText(
                         rawText: rawText,
-                        prompt: resolvedPrompt
+                        prompt: resolvedPrompt,
+                        context: selectedContext
                     )
                     dlog("[Dictum] LLM raw output: '\(finalText)'")
                 } catch {
@@ -223,11 +236,20 @@ final class DictationPipeline: ObservableObject {
 
             guard !isCancelled else { return }
             settings.lastCleanedText = finalText
-            dlog("[Dictum] final text: '\(finalText)', pasting...")
 
-            // Auto-paste and hide immediately
-            PasteManager.shared.pasteText(finalText)
+            if selectedContext != nil {
+                // Context mode: put result in clipboard, user pastes manually
+                dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(finalText, forType: .string)
+            } else {
+                // Normal mode: auto-paste
+                dlog("[Dictum] final text: '\(finalText)', pasting...")
+                PasteManager.shared.pasteText(finalText)
+            }
+
             FloatingIndicatorManager.shared.hide()
+            selectedContext = nil
             settings.appState = .idle
             dlog("[Dictum] done!")
         } catch {

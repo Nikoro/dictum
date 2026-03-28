@@ -121,10 +121,17 @@ final class GlobalHotkeyManager: ObservableObject {
             dlog("[Hotkey] modifier match! isPressed=\(isPressed)")
 
             if isPressed {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
-                    self.modifierKeyDown = true
-                    self.keyDownHandler?()
+                // Capture selected text on a background thread —
+                // can't do it here because Thread.sleep blocks the event tap run loop,
+                // preventing the synthetic Cmd+C from being delivered.
+                DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+                    let selectedText = SelectedTextReader.readSelectedText()
+                    DispatchQueue.main.async {
+                        guard let self else { return }
+                        DictationPipeline.shared.pendingSelectedContext = selectedText
+                        self.modifierKeyDown = true
+                        self.keyDownHandler?()
+                    }
                 }
                 return nil
             } else {
@@ -149,8 +156,12 @@ final class GlobalHotkeyManager: ObservableObject {
             }
 
             if type == .keyDown {
-                DispatchQueue.main.async { [weak self] in
-                    self?.keyDownHandler?()
+                DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+                    let selectedText = SelectedTextReader.readSelectedText()
+                    DispatchQueue.main.async {
+                        DictationPipeline.shared.pendingSelectedContext = selectedText
+                        self?.keyDownHandler?()
+                    }
                 }
                 return nil
             } else if type == .keyUp {
