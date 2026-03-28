@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-28
+
+### Added
+
+- Redesigned menu bar icon — rounded rectangle with mic cutout, matching app logo
+- Custom accent color (purple) and app logo in UI header
+
+### Fixed
+
+- Use macOS 26 runner with Xcode 26 for release builds
+
 ## [0.1.0] - 2026-03-28
 
 ### Added
@@ -25,5 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Nikoro/dictum/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Nikoro/dictum/releases/tag/v0.1.0
