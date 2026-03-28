@@ -1,107 +1,127 @@
 # Dictum
 
-> *Dictum* (łac.) — "powiedziane", "wypowiedziane słowo"
+> *Dictum* (Latin) — "something spoken", "a uttered word"
 
-Natywna macOS menu bar app do dyktowania tekstu. Zamienia mowę (polski) na tekst i automatycznie wkleja go w aktywne okno. Wszystko 100% on-device, zero chmury.
+Native macOS menu bar app for voice dictation. Converts speech to text and auto-pastes it into the active window. Fully on-device — no cloud, no network.
 
-**Pipeline:** mikrofon → WhisperKit (CoreML, Neural Engine) → surowy tekst → lokalny LLM (MLX Swift) → czysty tekst → auto-paste
+**Pipeline:** microphone → WhisperKit (CoreML, Neural Engine) → raw text → local LLM (MLX Swift) → cleaned text → auto-paste
 
-## Wymagania
+## Requirements
 
 | | Minimum |
 |---|---|
 | macOS | 26.0 (Tahoe) |
 | Chip | Apple Silicon (M1+) |
-| RAM | 16 GB (32 GB rekomendowane) |
-| Dysk | ~5 GB na modele |
+| RAM | 16 GB (32 GB recommended) |
+| Disk | ~5 GB for models |
 | Xcode | 16.0+ |
 
 ## Stack
 
-- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) — large-v3-turbo, CoreML na Neural Engine
-- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) — Qwen3.5 4B 4-bit (domyślnie)
+- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) — large-v3-turbo, CoreML on Neural Engine
+- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) — Qwen3.5 4B 4-bit (default)
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
-- **Auto-paste:** CGEvent Cmd+V przez Accessibility API
+- **Auto-paste:** CGEvent Cmd+V via Accessibility API
 
 ## Build
 
 ```bash
-# Wymagany XcodeGen
+# Requires XcodeGen
 brew install xcodegen
 
-# Generuj projekt Xcode
+# Generate Xcode project
 xcodegen generate
 
-# Otwórz w Xcode i zbuduj (Cmd+R)
+# Open in Xcode and build (Cmd+R)
 open Dictum.xcodeproj
 ```
 
-> **Uwaga:** Projekt wymaga budowania przez Xcode (`xcodebuild`), nie `swift build` — MLX Swift kompiluje Metal shaders.
+> **Note:** Must be built with Xcode (`xcodebuild`), not `swift build` — MLX Swift compiles Metal shaders.
 
-## Uprawnienia
+## Permissions
 
-Po pierwszym uruchomieniu:
+On first launch:
 
-1. **Mikrofon** — system zapyta automatycznie
-2. **Accessibility** — ręcznie: System Settings → Privacy & Security → Accessibility → dodaj Dictum
+1. **Microphone** — system prompts automatically
+2. **Accessibility** — manual: System Settings → Privacy & Security → Accessibility → add Dictum
 
-## Użycie
+## Usage
 
-1. Kliknij ikonę mikrofonu w menu bar — otwiera popover z ustawieniami
-2. Naciśnij hotkey (domyślnie `Right ⌘` przytrzymaj) — rozpoczyna nagrywanie
-3. Mów po polsku
-4. Puść klawisz (hold mode) lub naciśnij ponownie (toggle mode)
-5. Tekst zostanie automatycznie wklejony w aktywne okno
+1. Click the microphone icon in the menu bar to open the settings popover
+2. Press the hotkey (default: hold `Right ⌘`) to start recording
+3. Speak (language: Polish by default)
+4. Release the key (hold mode) or press again (toggle mode)
+5. Text is automatically pasted into the active window
 
-### Stany ikony
+### Menu bar icon states
 
-| Ikona | Stan |
-|-------|------|
-| Template mic.fill | Gotowy / Transkrypcja / LLM / Gotowe |
-| Custom (mic + czerwona kropka) | Nagrywanie |
+| Icon | State |
+|------|-------|
+| Template mic.fill | Idle / Transcribing / Processing / Done |
+| Custom (mic + red dot) | Recording |
 
-## Architektura
+## Features
+
+- **On-device pipeline** — WhisperKit STT + MLX LLM, no network required
+- **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
+- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
+- **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
+- **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
+- **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
+- **Hold / Toggle modes** — hold-to-record or press-to-start/press-to-stop
+- **Onboarding** — guided setup: permissions → STT model download → optional LLM download
+
+## Architecture
 
 ```
-├── DictumApp.swift              # @main, App lifecycle
-├── DictationPipeline.swift      # Orkiestrator: hotkey → record → STT → LLM → paste
+├── DictumApp.swift                     # @main, app lifecycle
+├── DictationPipeline.swift             # Orchestrator: hotkey → record → STT → LLM → paste
 ├── Audio/
-│   └── AudioRecorder.swift      # AVAudioEngine, PCM 16kHz mono
+│   └── AudioRecorder.swift             # AVAudioEngine, PCM 16kHz mono
 ├── Transcription/
-│   ├── TranscriptionEngine.swift    # WhisperKit actor
-│   └── WhisperModelManager.swift    # Lista modeli Whisper, download, switch
+│   ├── TranscriptionEngine.swift       # WhisperKit actor
+│   └── WhisperModelManager.swift       # Model list, download, switch
 ├── TextProcessing/
-│   └── LLMProcessor.swift      # MLX Swift LLM actor
+│   └── LLMProcessor.swift             # MLX Swift LLM actor
 ├── ModelBrowser/
-│   ├── ModelBrowser.swift       # HuggingFace API search (debounced)
-│   └── DownloadedModelsManager.swift  # Skan ~/Library/Caches/models/mlx-community/
+│   ├── ModelBrowser.swift              # HuggingFace API search (debounced)
+│   └── DownloadedModelsManager.swift   # Scan ~/Library/Caches/models/mlx-community/
 ├── FloatingIndicator/
-│   └── FloatingIndicatorManager.swift # NSPanel floating pill przy kursorze
+│   └── FloatingIndicatorManager.swift  # NSPanel floating pill at cursor
 ├── MenuBar/
-│   ├── MenuBarManager.swift     # NSStatusItem + NSPopover
-│   ├── MenuBarIcon.swift        # NSImage factory per AppState
-│   └── PopoverView.swift        # Pełny UI popovera + SetupView (onboarding)
+│   ├── MenuBarManager.swift            # NSStatusItem + NSPopover
+│   ├── MenuBarIcon.swift               # NSImage factory per AppState
+│   └── PopoverView.swift               # Full settings UI + SetupView (onboarding)
 ├── HotkeyAndPaste/
-│   ├── GlobalHotkeyManager.swift    # CGEvent tap, modifier-only / key+modifier
-│   └── PasteManager.swift      # NSPasteboard + CGEvent Cmd+V, clipboard save/restore
+│   ├── GlobalHotkeyManager.swift       # CGEvent tap, modifier-only / key+modifier
+│   └── PasteManager.swift             # NSPasteboard + CGEvent Cmd+V, clipboard save/restore
 ├── Settings/
-│   ├── AppSettings.swift        # @AppStorage, stany app
-│   └── PermissionsManager.swift # AX + Microphone permission polling
+│   ├── AppSettings.swift               # @AppStorage + per-app prompts
+│   └── PermissionsManager.swift        # AX + Microphone permission polling
 └── Resources/
     ├── Info.plist
-    └── Dictum.entitlements
+    ├── Dictum.entitlements
+    ├── en.lproj/                        # English strings
+    └── pl.lproj/                        # Polish strings
 ```
 
-## Konfiguracja modeli
+## Known limitations
 
-### STT (Whisper)
-Wbudowana lista modeli WhisperKit — wybierz w popoverze. Modele pobierają się automatycznie przy pierwszym wyborze.
+- WhisperKit API is unstable (pre-1.0) — pinned to `branch: main`, may break between pulls
+- First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
+- RAM usage: WhisperKit ~3 GB + LLM ~2.5 GB ≈ 5.5 GB unified memory
+- Whisper language hardcoded to Polish (`"pl"`) — no UI to change
+- Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
 
-### LLM
-Wyszukiwarka HuggingFace z live search — filtruje `mlx-community`, sortuje po popularności. Kliknięcie pobiera i aktywuje model. Można wyłączyć LLM cleanup togglem.
+## Debugging
 
-## Znane problemy
+```bash
+tail -f /tmp/dictum.log
+```
 
-Zobacz [FINDINGS.md](FINDINGS.md) — krytyczne odkrycia i workaroundy z sesji dev.
+All pipeline stages log via `dlog()` (~40 call sites).
 
-Szczegóły architektury i konwencje: [CLAUDE.md](CLAUDE.md).
+## Links
+
+- [FINDINGS.md](FINDINGS.md) — critical discoveries and workarounds from dev sessions
+- [CLAUDE.md](CLAUDE.md) — detailed architecture reference and conventions
