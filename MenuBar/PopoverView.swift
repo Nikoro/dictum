@@ -1847,12 +1847,22 @@ private struct FooterSection: View {
                     .lineLimit(2)
             }
 
-            Button(String(localized: "footer.quit", defaultValue: "Quit")) {
-                NSApplication.shared.terminate(nil)
+            HStack {
+                Button(action: { NSApplication.shared.terminate(nil) }) {
+                    Image(systemName: "power")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .font(.caption)
+
+                Spacer()
+
+                Text("Wersja: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Spacer()
             }
-            .buttonStyle(.plain)
-            .foregroundColor(.secondary)
-            .font(.caption)
         }
         .padding()
     }
