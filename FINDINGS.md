@@ -57,6 +57,16 @@ Crucial discoveries and "aha moments" captured during development sessions.
 **Root cause:** Qwen3 models (including Qwen3.5-4B-4bit) emit `<think>...</think>` blocks as part of their generation. `LLMProcessor.cleanText()` strips everything up to and including `</think>`.
 **Scope:** Model-specific — if switching to a non-Qwen model that doesn't emit `<think>`, the strip is a safe no-op. If switching to a model that uses different delimiters, output will be corrupted.
 
+## Settings & Persistence
+
+### [NOTE] [NOTE] llmDownloadedModelId is a one-way write — never cleared on model deletion
+**Area:** `MenuBar/PopoverView.swift`, `Settings/AppSettings.swift`
+**Tags:** `#architecture` `#gotcha`
+**Verified:** 2026-03-28
+**Symptom:** After deleting an LLM model, onboarding does not re-trigger.
+**Root cause:** `llmDownloadedModelId` is set during onboarding when the user downloads an LLM model, but is never cleared when the model is deleted via `DownloadedModelsManager`. This is intentional — only the STT model gate (`whisperDownloadedModelIds`) is authoritative for `isSetupComplete`. The LLM download step in onboarding is optional.
+**Note:** If debugging "why doesn't setup re-show after LLM model deletion" — this is by design.
+
 ## Paste & Hotkey
 
 ### [BUG] [GOTCHA] CGEvent paste requires `.cgAnnotatedSessionEventTap`
@@ -74,6 +84,16 @@ Crucial discoveries and "aha moments" captured during development sessions.
 **Symptom:** `readSelectedText()` returns `nil` (clipboard unchanged) even when text is selected.
 **Root cause:** The method sends Cmd+C via `.cghidEventTap` then `Thread.sleep(0.05)` to wait for clipboard. If called on the same run loop thread that processes CGEvents, the sleep blocks delivery of the very event it just posted → deadlock (clipboard never updates).
 **Workaround:** `GlobalHotkeyManager` correctly dispatches to `DispatchQueue.global` before calling. If the call site ever moves, the bug is silent (no crash, just `nil` return).
+
+## CI & Build
+
+### [GOTCHA] [CRITICAL] GitHub Actions macos-15 runner defaults to Xcode 16 — mlx-swift-lm fails to compile
+**Area:** `.github/workflows/release.yml`
+**Tags:** `#integration` `#tooling`
+**Verified:** 2026-03-28
+**Symptom:** Release workflow fails with `Jamba.swift:226: error: unexpected ',' separator` and warning `MACOSX_DEPLOYMENT_TARGET 26.0 not in supported range 10.13–15.0.99`.
+**Root cause:** `macos-15` runner defaults to Xcode 16.4 (SDK macOS 15.0). `mlx-swift-lm` 2.29.3 requires Swift features only available in Xcode 26+. Additionally, the project's macOS 26.0 deployment target is unsupported by Xcode 16.
+**Workaround:** Use `macos-26` runner which defaults to Xcode 26.2. No `xcode-select` needed. Untested alternative: `macos-15` may have Xcode 26.x at `/Applications/Xcode_26.x.app` — requires explicit `xcode-select`.
 
 ## Tooling
 

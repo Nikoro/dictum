@@ -11,19 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Menu bar app z dyktowaniem głosowym (WhisperKit STT)
-- Opcjonalne czyszczenie tekstu przez LLM (MLX Swift, Qwen3.5-4B)
-- Auto-paste transkrypcji do aktywnej aplikacji
-- Context-aware dictation — zaznaczony tekst jako kontekst dla LLM
-- Per-app prompts z placeholderem `{{text}}`
-- Globalny prompt toggle (włącz/wyłącz ogólny prompt)
-- Floating pill indicator przy kursorze tekstu z poziomem audio
-- Konfigurowalny hotkey (domyślnie Right ⌘, modifier-only lub combo)
-- Escape anuluje nagrywanie
-- Onboarding: permissions → STT model → opcjonalny LLM model
+- Menu bar voice dictation app (WhisperKit STT)
+- Optional LLM text cleanup (MLX Swift, Qwen3.5-4B)
+- Auto-paste transcription into the active window
+- Context-aware dictation — selected text as LLM context
+- Per-app prompts with `{{text}}` placeholder
+- General prompt toggle (enable/disable default prompt)
+- Floating pill indicator at text cursor with audio level
+- Configurable hotkey (default: Right ⌘, modifier-only or combo)
+- Escape cancels recording
+- Onboarding flow: permissions → STT model → optional LLM model
 - Launch at login (SMAppService)
-- Zlokalizowany UI (polski)
-- 100% on-device — żadne dane nie opuszczają urządzenia
+- Localized UI (Polish)
+- 100% on-device — no data leaves the device
 
 [Unreleased]: https://github.com/Nikoro/dictum/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Nikoro/dictum/releases/tag/v0.1.0

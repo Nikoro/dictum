@@ -2,6 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/Nikoro/dictum?style=flat-square)](https://github.com/Nikoro/dictum/releases/latest)
 [![macOS](https://img.shields.io/badge/macOS-26.0+-black?style=flat-square&logo=apple)](https://github.com/Nikoro/dictum)
+<!-- Keep Swift version in sync with SWIFT_VERSION in project.yml -->
 [![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)](https://github.com/Nikoro/dictum)
 [![License](https://img.shields.io/github/license/Nikoro/dictum?style=flat-square)](LICENSE)
 
@@ -19,7 +20,7 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 | Chip | Apple Silicon (M1+) |
 | RAM | 16 GB (32 GB recommended) |
 | Disk | ~5 GB for models |
-| Xcode | 16.0+ |
+| Xcode | 26.0+ |
 
 ## Stack
 
@@ -70,7 +71,7 @@ On first launch:
 - **On-device pipeline** — WhisperKit STT + MLX LLM, no network required
 - **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
 - **Context-aware dictation** — select text before dictating to use it as LLM context; result is copied to clipboard instead of auto-pasted
-- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` and `{{context}}` placeholders
+- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
 - **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
 - **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
 - **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
@@ -79,9 +80,17 @@ On first launch:
 
 ## Architecture
 
-`DictationPipeline` is the singleton orchestrator connecting all layers: hotkey detection (`GlobalHotkeyManager` — CGEvent tap) → optional selected text capture (`SelectedTextReader` — Cmd+C simulation) → audio recording (`AudioRecorder` — AVAudioEngine, PCM 16kHz mono) → speech-to-text (`TranscriptionEngine` — WhisperKit actor) → optional LLM cleanup (`LLMProcessor` — MLX Swift actor) → auto-paste (`PasteManager` — CGEvent Cmd+V) or clipboard copy (context mode). The UI lives in `PopoverView` (settings + onboarding) hosted in an `NSStatusItem` popover, with a floating `NSPanel` pill at the cursor showing recording state.
+Hotkey → optional selected text capture → audio recording → WhisperKit STT → optional LLM cleanup → auto-paste (or clipboard in context mode). Settings and onboarding live in a menu bar popover, with a floating pill at the cursor during recording.
 
 See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer architecture reference.
+
+## Download
+
+Grab `Dictum.zip` from the [latest release](https://github.com/Nikoro/dictum/releases/latest). The app is ad-hoc signed (not notarized) — on first launch run:
+
+```bash
+xattr -dr com.apple.quarantine Dictum.app
+```
 
 ## Known limitations
 
@@ -90,14 +99,6 @@ See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer architecture reference.
 - RAM usage: WhisperKit ~3 GB + LLM ~2.5 GB ≈ 5.5 GB unified memory
 - Whisper language hardcoded to Polish (`"pl"`) — no UI to change
 - Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
-
-## Debugging
-
-```bash
-tail -f /tmp/dictum.log
-```
-
-All pipeline stages log via `dlog()` (~40 call sites).
 
 ## Links
 
