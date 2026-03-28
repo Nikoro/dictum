@@ -104,9 +104,10 @@ private struct SetupView: View {
             VStack(spacing: 0) {
                 // Header
                 VStack(spacing: 8) {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.tint)
+                    Image("AppLogo")
+                        .resizable()
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     Text("Dictum")
                         .font(.title.bold())
                     Text(String(localized: "setup.title", defaultValue: "Setup"))
@@ -288,7 +289,7 @@ private struct SetupLLMRow: View {
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
-                                .background(.blue, in: Capsule())
+                                .background(Color("AccentColor"), in: Capsule())
                         }
                     }
                     Text(model.description)
@@ -313,18 +314,18 @@ private struct SetupLLMRow: View {
                         .font(.caption)
                 } else {
                     Image(systemName: "arrow.down.circle")
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(Color("AccentColor"))
                         .font(.caption)
                 }
             }
             .padding(10)
             .background(
-                isSelected ? Color.accentColor.opacity(0.08) : Color(nsColor: .quaternarySystemFill),
+                isSelected ? Color("AccentColor").opacity(0.08) : Color(nsColor: .quaternarySystemFill),
                 in: RoundedRectangle(cornerRadius: 8)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.accentColor.opacity(0.3) : .clear, lineWidth: 1)
+                    .stroke(isSelected ? Color("AccentColor").opacity(0.3) : .clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -342,7 +343,7 @@ private struct SetupStepHeader: View {
         HStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .fill(isDone ? Color.green : Color.accentColor)
+                    .fill(isDone ? Color.green : Color("AccentColor"))
                     .frame(width: 22, height: 22)
                 if isDone {
                     Image(systemName: "checkmark")
@@ -399,7 +400,7 @@ private struct SetupModelRow: View {
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1)
-                                .background(.blue, in: Capsule())
+                                .background(Color("AccentColor"), in: Capsule())
                         }
                     }
                     Text(model.description)
@@ -424,18 +425,18 @@ private struct SetupModelRow: View {
                         .font(.caption)
                 } else {
                     Image(systemName: "arrow.down.circle")
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(Color("AccentColor"))
                         .font(.caption)
                 }
             }
             .padding(10)
             .background(
-                isSelected ? Color.accentColor.opacity(0.08) : Color(nsColor: .quaternarySystemFill),
+                isSelected ? Color("AccentColor").opacity(0.08) : Color(nsColor: .quaternarySystemFill),
                 in: RoundedRectangle(cornerRadius: 8)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.accentColor.opacity(0.3) : .clear, lineWidth: 1)
+                    .stroke(isSelected ? Color("AccentColor").opacity(0.3) : .clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -797,12 +798,12 @@ private struct HotkeyRecorderButton: View {
                  : hotkeyDescription)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(recorder.isRecording ? Color.accentColor.opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
+                .background(recorder.isRecording ? Color("AccentColor").opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
                 .cornerRadius(4)
                 .font(.system(.body, design: .monospaced))
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
-                        .stroke(recorder.isRecording ? Color.accentColor : .clear, lineWidth: 1)
+                        .stroke(recorder.isRecording ? Color("AccentColor") : .clear, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -881,10 +882,10 @@ private struct STTModelSection: View {
                 } label: {
                     HStack {
                         Image(systemName: "arrow.down.circle")
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(Color("AccentColor"))
                         Text(String(localized: "section.stt.more", defaultValue: "More models (\(availableModels.count))"))
                             .font(.subheadline)
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(Color("AccentColor"))
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption)
@@ -930,7 +931,7 @@ private struct WhisperModelRow: View {
             HStack {
                 if isActive {
                     Image(systemName: "circle.fill")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(Color("AccentColor"))
                         .font(.caption2)
                 } else {
                     Image(systemName: "circle")
@@ -958,7 +959,7 @@ private struct WhisperModelRow: View {
                         .scaleEffect(0.6)
                 } else if !isDownloaded {
                     Image(systemName: "arrow.down.circle")
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(Color("AccentColor"))
                         .font(.caption)
                 }
             }
@@ -1003,7 +1004,7 @@ private struct LLMModelSection: View {
                         } label: {
                             HStack {
                                 Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
-                                    .foregroundColor(model.id == settings.llmModelId ? .accentColor : .secondary)
+                                    .foregroundColor(model.id == settings.llmModelId ? Color("AccentColor") : .secondary)
                                     .font(.caption2)
 
                                 VStack(alignment: .leading, spacing: 1) {
@@ -1626,7 +1627,7 @@ private struct DownloadedModelsSection: View {
                         } label: {
                             HStack {
                                 Image(systemName: model.id == pipeline.whisperModelManager.activeModelId ? "circle.fill" : "circle")
-                                    .foregroundColor(model.id == pipeline.whisperModelManager.activeModelId ? .accentColor : .secondary)
+                                    .foregroundColor(model.id == pipeline.whisperModelManager.activeModelId ? Color("AccentColor") : .secondary)
                                     .font(.caption)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(model.displayName)
@@ -1661,7 +1662,7 @@ private struct DownloadedModelsSection: View {
                         } label: {
                             HStack {
                                 Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
-                                    .foregroundColor(model.id == settings.llmModelId ? .accentColor : .secondary)
+                                    .foregroundColor(model.id == settings.llmModelId ? Color("AccentColor") : .secondary)
                                     .font(.caption)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(model.shortName)

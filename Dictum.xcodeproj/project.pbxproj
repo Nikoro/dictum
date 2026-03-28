@@ -31,6 +31,7 @@
 		DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F49B35EF21214DF3B51CC21B /* Localizable.strings */; };
 		E5715E5682888026CE990F8E /* DictumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */; };
 		E779256781738096534067BF /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */; };
+		ED975761095DB8C2BA27101E /* settings.json in Resources */ = {isa = PBXBuildFile; fileRef = 6C39F23B4D21EF80F1EDD819 /* settings.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 		4E644803A63262DC05581073 /* release.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = release.yml; sourceTree = "<group>"; };
 		505E991D55A534262FCDF113 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
 		64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dictum.entitlements; sourceTree = "<group>"; };
+		6C39F23B4D21EF80F1EDD819 /* settings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = settings.json; sourceTree = "<group>"; };
 		894B0245FC883E24EDFB48BB /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		8F0883B8EE127B0560E01584 /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		8F2276C69754697A5C25F690 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
@@ -98,6 +100,7 @@
 		3C3426E0F177A7D26E45BE25 /* .claude */ = {
 			isa = PBXGroup;
 			children = (
+				6C39F23B4D21EF80F1EDD819 /* settings.json */,
 				59C6E053C15CBCDCED169E5E /* skills */,
 			);
 			path = .claude;
@@ -320,6 +323,7 @@
 				DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */,
 				772A5FCF1513B833B3BD2B8A /* SKILL.md in Resources */,
 				410967F226A7B1938A4A9684 /* release.yml in Resources */,
+				ED975761095DB8C2BA27101E /* settings.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -438,7 +442,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
@@ -526,7 +530,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;

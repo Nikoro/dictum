@@ -38,6 +38,7 @@ final class MenuBarManager: ObservableObject {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
             rootView: PopoverView()
+                .tint(Color("AccentColor"))
                 .environmentObject(settings)
                 .environmentObject(pipeline)
         )
