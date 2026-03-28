@@ -66,7 +66,8 @@ Hotkey (GlobalHotkeyManager)
 
 ## Dev cycle
 
-- `pkill -x Dictum` przed relaunching — app jest `LSUIElement`, nie ma ikony w Dock
+- **Po każdej zmianie kodu**: `pkill -x Dictum` → `xcodebuild` → uruchom nową wersję. Zawsze ubij → zbuduj → odpal.
+- App jest `LSUIElement` — nie ma ikony w Dock, `pkill -x Dictum` to jedyny sposób na ubicie
 - Launch-at-login (`SMAppService.mainApp`) silently fails z DerivedData — wymaga zainstalowanej kopii w `/Applications`
 
 ## Debugging
@@ -82,6 +83,7 @@ Hotkey (GlobalHotkeyManager)
 | `llmModelId` | String | `mlx-community/Qwen3.5-4B-4bit` | `AppSettings` |
 | `recordingMode` | String | `hold` | `AppSettings` |
 | `llmCleanupEnabled` | Bool | `false` | `AppSettings` |
+| `llmGeneralPromptEnabled` | Bool | `true` | `AppSettings` |
 | `hotkeyKeyCode` | Int | `54` (Right ⌘) | `AppSettings` |
 | `hotkeyModifiers` | Int | `0` | `AppSettings` |
 | `hotkeyIsModifierOnly` | Bool | `true` | `AppSettings` |

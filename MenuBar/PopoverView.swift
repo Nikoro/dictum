@@ -36,8 +36,10 @@ struct PopoverView: View {
                 RecordingSettingsSection()
                 Divider()
                 STTModelSection()
-                Divider()
-                LLMModelSection()
+                if settings.llmCleanupEnabled {
+                    Divider()
+                    LLMModelSection()
+                }
                 Divider()
                 DownloadedModelsSection()
                 Divider()
@@ -659,6 +661,14 @@ private struct RecordingSettingsSection: View {
             }
 
             LaunchAtLoginToggle()
+
+            HStack {
+                Text(String(localized: "section.llm.cleanup", defaultValue: "LLM processing"))
+                Spacer()
+                Toggle("", isOn: $settings.llmCleanupEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
         }
         .padding()
     }
@@ -974,10 +984,6 @@ private struct LLMModelSection: View {
         _browser = ObservedObject(wrappedValue: DictationPipeline.shared.modelBrowser)
     }
 
-    private var isLLMModelDownloaded: Bool {
-        pipeline.downloadedModelsManager.downloadedModels.contains { $0.id == settings.llmModelId }
-    }
-
     private var downloadedModels: [DownloadedModel] {
         pipeline.downloadedModelsManager.downloadedModels
     }
@@ -1112,64 +1118,11 @@ private struct LLMModelSection: View {
                     .foregroundColor(.red)
             }
 
-            // LLM Prompt toggle + editor
-            HStack {
-                Toggle("", isOn: $settings.llmCleanupEnabled)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .disabled(!isLLMModelDownloaded)
-                Text(String(localized: "section.llm.prompt", defaultValue: "LLM Prompt"))
-                    .font(.headline)
-                    .foregroundColor(isLLMModelDownloaded ? .primary : .secondary)
-            }
-
-            if !isLLMModelDownloaded && !isDownloading {
-                Text(String(localized: "section.llm.nomodel", defaultValue: "Download a model first"))
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            }
-
-            if settings.llmCleanupEnabled && isLLMModelDownloaded {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "section.prompt.general", defaultValue: "Ogólny"))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    TextEditor(text: $settings.llmPrompt)
-                        .font(.system(.body, design: .monospaced))
-                        .frame(minHeight: 100, maxHeight: 140)
-                        .scrollContentBackground(.hidden)
-                        .padding(8)
-                        .background(.quaternary)
-                        .cornerRadius(8)
-                    HStack {
-                        Button(String(localized: "section.prompt.reset", defaultValue: "Reset to default")) {
-                            settings.resetPrompt()
-                        }
-                        .buttonStyle(.link)
-                        .font(.caption)
-                        Spacer()
-                        Text("{{text}}")
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundColor(.secondary)
-                            .help(String(localized: "section.prompt.placeholder.hint", defaultValue: "Wstaw {{text}} aby określić miejsce wklejenia tekstu"))
-                    }
-                }
-
-                // Per-app prompts
-                AppPromptsSection()
-            }
+            // Prompts
+            GeneralPromptSection()
+            AppPromptsSection()
         }
         .padding()
-        .onAppear {
-            if !isLLMModelDownloaded {
-                settings.llmCleanupEnabled = false
-            }
-        }
-        .onChange(of: isLLMModelDownloaded) { _, downloaded in
-            if !downloaded {
-                settings.llmCleanupEnabled = false
-            }
-        }
     }
 
     private func downloadModel(_ modelId: String) {
@@ -1198,6 +1151,70 @@ private struct LLMModelSection: View {
 }
 
 // MARK: - Per-App Prompts
+
+// MARK: - General Prompt
+
+private struct GeneralPromptSection: View {
+    @EnvironmentObject var settings: AppSettings
+    @State private var localPrompt: String = ""
+
+    private var ghostSuffix: String? {
+        if localPrompt.hasSuffix("{{") { return "text}}" }
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Toggle("", isOn: $settings.llmGeneralPromptEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .controlSize(.mini)
+
+                Image(systemName: "text.bubble")
+                    .frame(width: 18, height: 18)
+                    .foregroundColor(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+
+                Text(String(localized: "section.prompt.general", defaultValue: "Prompt ogólny"))
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+            }
+
+            if settings.llmGeneralPromptEnabled {
+                PromptTextEditor(
+                    text: $localPrompt,
+                    ghostSuffix: ghostSuffix,
+                    placeholder: String(localized: "section.prompt.general.placeholder", defaultValue: "Wpisz prompt ogólny..."),
+                    onTab: { acceptGhost() }
+                )
+                .frame(minHeight: 80, maxHeight: 120)
+                .background(.quaternary)
+                .cornerRadius(6)
+                .onChange(of: localPrompt) { _, newValue in
+                    settings.llmPrompt = newValue
+                }
+
+                Button(String(localized: "section.prompt.example", defaultValue: "Przykładowy prompt")) {
+                    let example = "Usuń wypełniacze (yyy, eee, hmm). Popraw interpunkcję i literówki. Popraw zdania, które nie mają sensu. Nie zmieniaj stylu. Zwróć tylko poprawiony tekst."
+                    localPrompt = example
+                    settings.llmPrompt = example
+                }
+                .buttonStyle(.link)
+                .font(.caption)
+            }
+        }
+        .padding(8)
+        .background(.quaternary.opacity(0.5))
+        .cornerRadius(8)
+        .onAppear { localPrompt = settings.llmPrompt }
+    }
+
+    private func acceptGhost() {
+        guard let ghost = ghostSuffix else { return }
+        localPrompt += ghost
+    }
+}
 
 private struct AppPromptsSection: View {
     @EnvironmentObject var settings: AppSettings
@@ -1411,11 +1428,15 @@ private struct PromptTextEditor: NSViewRepresentable {
         coord.ghostSuffix = ghostSuffix
         coord.onTab = onTab
 
-        if coord.didAcceptGhost {
-            coord.didAcceptGhost = false
+        // Sync binding → NSTextView when text changed externally
+        if textView.string != text {
             textView.string = text
             textView.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
             textView.needsDisplay = true
+        }
+
+        if coord.didAcceptGhost {
+            coord.didAcceptGhost = false
         }
     }
 

@@ -54,11 +54,12 @@ final class AppSettings: ObservableObject {
     6. Zwróć TYLKO poprawiony tekst, bez komentarzy
     """
 
-    @AppStorage("llmPrompt") var llmPrompt: String = AppSettings.defaultPrompt
+    @AppStorage("llmPrompt") var llmPrompt: String = ""
     @AppStorage("sttModelId") var sttModelId: String = "openai_whisper-large-v3_turbo"
     @AppStorage("llmModelId") var llmModelId: String = "mlx-community/Qwen3.5-4B-4bit"
     @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
     @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = false
+    @AppStorage("llmGeneralPromptEnabled") var llmGeneralPromptEnabled: Bool = true
     @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 54 // Right Command
     @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
     @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true
@@ -87,12 +88,14 @@ final class AppSettings: ObservableObject {
     // MARK: - Per-app prompts
 
     /// Resolve which prompt to use for a given frontmost app.
-    func resolvePrompt(for bundleId: String?) -> String {
+    /// Returns nil when no prompt applies (general disabled + no per-app match).
+    func resolvePrompt(for bundleId: String?) -> String? {
         if let bundleId,
-           let appPrompt = appPrompts.first(where: { $0.bundleId == bundleId && $0.enabled }) {
+           let appPrompt = appPrompts.first(where: { $0.bundleId == bundleId && $0.enabled }),
+           !appPrompt.prompt.isEmpty {
             return appPrompt.prompt
         }
-        return llmPrompt
+        return llmGeneralPromptEnabled && !llmPrompt.isEmpty ? llmPrompt : nil
     }
 
     func addAppPrompt(_ prompt: AppPrompt) {

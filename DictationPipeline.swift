@@ -206,9 +206,10 @@ final class DictationPipeline: ObservableObject {
                 return
             }
 
-            // LLM cleanup (if enabled)
+            // LLM cleanup (if enabled and a prompt resolves)
             let finalText: String
-            if settings.llmCleanupEnabled {
+            let resolvedPrompt = settings.llmCleanupEnabled ? settings.resolvePrompt(for: targetBundleId) : nil
+            if settings.llmCleanupEnabled, let prompt = resolvedPrompt {
                 settings.appState = .processingLLM
                 do {
                     // Lazy load LLM if needed
@@ -217,12 +218,11 @@ final class DictationPipeline: ObservableObject {
                         try await LLMProcessor.shared.loadModel(settings.llmModelId)
                     }
 
-                    let resolvedPrompt = settings.resolvePrompt(for: targetBundleId)
-                    dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(resolvedPrompt)'")
+                    dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(prompt)'")
                     dlog("[Dictum] LLM input: '\(rawText)', context: \(selectedContext != nil ? "yes" : "none")")
                     finalText = try await LLMProcessor.shared.cleanText(
                         rawText: rawText,
-                        prompt: resolvedPrompt,
+                        prompt: prompt,
                         context: selectedContext
                     )
                     dlog("[Dictum] LLM raw output: '\(finalText)'")

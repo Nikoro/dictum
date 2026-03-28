@@ -81,10 +81,12 @@
 "hotkey.enter" = "Enter";
 
 /* Per-app prompts */
-"section.prompt.general" = "Ogólny";
+"section.prompt.general" = "Prompt ogólny";
 "section.prompt.placeholder.hint" = "Wstaw {{text}} aby określić miejsce wklejenia tekstu";
 "section.prompt.perapp" = "Prompty per aplikacja";
 "section.prompt.perapp.empty" = "Brak — używany będzie prompt ogólny";
 "section.prompt.picker.title" = "Wybierz aplikację";
 "section.prompt.picker.search" = "Szukaj aplikacji...";
+"section.prompt.general.placeholder" = "Wpisz prompt ogólny...";
+"section.prompt.example" = "Przykładowy prompt";
 "section.prompt.perapp.placeholder %@" = "Napisz prompt dla %@...";
