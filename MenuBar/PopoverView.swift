@@ -314,8 +314,8 @@ private struct SetupLLMRow: View {
                         .font(.caption)
                 } else {
                     Image(systemName: "arrow.down.circle")
-                        .foregroundStyle(Color("AccentColor"))
-                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .font(.body)
                 }
             }
             .padding(10)
@@ -425,8 +425,8 @@ private struct SetupModelRow: View {
                         .font(.caption)
                 } else {
                     Image(systemName: "arrow.down.circle")
-                        .foregroundStyle(Color("AccentColor"))
-                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .font(.body)
                 }
             }
             .padding(10)
@@ -491,10 +491,13 @@ private struct HeaderSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: "mic.fill")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
+            HStack(spacing: 8) {
+                Spacer()
+                Image("AppLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 Text("Dictum")
                     .font(.title2.bold())
                 Spacer()
@@ -959,8 +962,8 @@ private struct WhisperModelRow: View {
                         .scaleEffect(0.6)
                 } else if !isDownloaded {
                     Image(systemName: "arrow.down.circle")
-                        .foregroundColor(Color("AccentColor"))
-                        .font(.caption)
+                        .foregroundColor(.white)
+                        .font(.body)
                 }
             }
             .padding(.horizontal, 8)
@@ -1201,8 +1204,9 @@ private struct GeneralPromptSection: View {
                     localPrompt = example
                     settings.llmPrompt = example
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.plain)
                 .font(.caption)
+                .foregroundStyle(Color("AccentColor"))
             }
         }
         .padding(8)
@@ -1645,7 +1649,7 @@ private struct DownloadedModelsSection: View {
                                 } label: {
                                     Image(systemName: "trash")
                                         .foregroundColor(.red)
-                                        .font(.caption)
+                                        .font(.body)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -1683,7 +1687,7 @@ private struct DownloadedModelsSection: View {
                                 } label: {
                                     Image(systemName: "trash")
                                         .foregroundColor(.red)
-                                        .font(.caption)
+                                        .font(.body)
                                 }
                                 .buttonStyle(.plain)
                             }
