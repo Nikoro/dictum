@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Landing page with i18n support (10 languages) and GitHub Pages deployment
-- PKG installer with automatic quarantine removal (no Terminal needed)
 
 ### Fixed
 
