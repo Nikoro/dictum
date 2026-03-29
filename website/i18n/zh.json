@@ -28,9 +28,9 @@
   "install.desc": "下载最新版本，解压并移动到“应用程序”。应用为ad-hoc签名（未经公证），首次启动需要移除隔离标记。",
   "install.step1": "从上方按钮下载<strong>Dictum.zip</strong>并解压",
   "install.step2": "将<strong>Dictum.app</strong>移动到<code>/Applications</code>",
-  "install.step3": "在终端运行<code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code>",
   "install.step4": "启动Dictum并完成设置：授予权限、下载语音模型，可选下载LLM",
   "footer.copy": "Dictum — macOS本地语音听写",
   "hero.source": "查看源码",
-  "hero.opensource": "开源"
+  "hero.opensource": "开源",
+  "install.step3_label": "在终端运行:"
 }

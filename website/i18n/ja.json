@@ -28,9 +28,9 @@
   "install.desc": "最新リリースをダウンロードして解凍し、アプリケーションフォルダに移動してください。アプリはアドホック署名（公証なし）のため、初回起動時に検疫フラグを削除する必要があります。",
   "install.step1": "上のボタンから<strong>Dictum.zip</strong>をダウンロードして解凍",
   "install.step2": "<strong>Dictum.app</strong>を<code>/Applications</code>に移動",
-  "install.step3": "ターミナルで<code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code>を実行",
   "install.step4": "Dictumを起動してセットアップに従う：権限を付与、音声モデルをダウンロード、オプションでLLMも",
   "footer.copy": "Dictum — macOS用ローカル音声ディクテーション",
   "hero.source": "ソースを見る",
-  "hero.opensource": "オープンソース"
+  "hero.opensource": "オープンソース",
+  "install.step3_label": "ターミナルで実行:"
 }

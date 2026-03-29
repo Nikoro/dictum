@@ -28,9 +28,9 @@
   "install.desc": "Pobierz najnowszą wersję, rozpakuj i przenieś do Aplikacji. Aplikacja jest podpisana ad-hoc (bez notaryzacji), więc przy pierwszym uruchomieniu trzeba usunąć flagę kwarantanny.",
   "install.step1": "Pobierz <strong>Dictum.zip</strong> z przycisku powyżej i rozpakuj",
   "install.step2": "Przenieś <strong>Dictum.app</strong> do <code>/Applications</code>",
-  "install.step3": "Uruchom <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> w Terminalu",
   "install.step4": "Uruchom Dictum i przejdź przez konfigurację: nadaj uprawnienia, pobierz model mowy i opcjonalnie LLM",
   "footer.copy": "Dictum — dyktowanie głosowe na macOS, w pełni na urządzeniu",
   "hero.source": "Kod źródłowy",
-  "hero.opensource": "Open Source"
+  "hero.opensource": "Open Source",
+  "install.step3_label": "Uruchom w Terminalu:"
 }

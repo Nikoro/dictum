@@ -28,9 +28,9 @@
   "install.desc": "Téléchargez la dernière version, décompressez et déplacez dans Applications. L'app est signée ad-hoc (non notarisée) — il faut supprimer le drapeau de quarantaine au premier lancement.",
   "install.step1": "Téléchargez <strong>Dictum.zip</strong> depuis le bouton ci-dessus et extrayez-le",
   "install.step2": "Déplacez <strong>Dictum.app</strong> dans <code>/Applications</code>",
-  "install.step3": "Exécutez <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> dans le Terminal",
   "install.step4": "Lancez Dictum et suivez la configuration : accordez les permissions, téléchargez un modèle vocal et optionnellement un LLM",
   "footer.copy": "Dictum — dictée vocale locale pour macOS",
   "hero.source": "Voir le code",
-  "hero.opensource": "Open Source"
+  "hero.opensource": "Open Source",
+  "install.step3_label": "Exécutez dans le Terminal:"
 }

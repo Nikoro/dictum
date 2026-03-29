@@ -28,9 +28,9 @@
   "install.desc": "Baixe a versão mais recente, descompacte e mova para Aplicativos. O app é assinado ad-hoc (sem notarização) — no primeiro uso é necessário remover a flag de quarentena.",
   "install.step1": "Baixe <strong>Dictum.zip</strong> pelo botão acima e extraia",
   "install.step2": "Mova <strong>Dictum.app</strong> para <code>/Applications</code>",
-  "install.step3": "Execute <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> no Terminal",
   "install.step4": "Abra o Dictum e siga a configuração: conceda permissões, baixe um modelo de voz e opcionalmente um LLM",
   "footer.copy": "Dictum — ditado por voz local para macOS",
   "hero.source": "Ver código",
-  "hero.opensource": "Open Source"
+  "hero.opensource": "Open Source",
+  "install.step3_label": "Execute no Terminal:"
 }

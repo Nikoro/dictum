@@ -28,9 +28,9 @@
   "install.desc": "Завантажте останню версію, розпакуйте та перемістіть до Програм. Додаток підписаний ad-hoc (без нотаризації) — при першому запуску потрібно зняти прапор карантину.",
   "install.step1": "Завантажте <strong>Dictum.zip</strong> з кнопки вище та розпакуйте",
   "install.step2": "Перемістіть <strong>Dictum.app</strong> до <code>/Applications</code>",
-  "install.step3": "Виконайте <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> у Терміналі",
   "install.step4": "Запустіть Dictum і пройдіть налаштування: надайте дозволи, завантажте модель мови та опціонально LLM",
   "footer.copy": "Dictum — локальна голосова диктовка для macOS",
   "hero.source": "Переглянути код",
-  "hero.opensource": "Open Source"
+  "hero.opensource": "Open Source",
+  "install.step3_label": "Виконайте в Терміналі:"
 }
