@@ -12,63 +12,35 @@
 		094130D98811BDD02D2A1555 /* LLMProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0883B8EE127B0560E01584 /* LLMProcessor.swift */; };
 		0E254EBBA921F84B3E41ED4E /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2276C69754697A5C25F690 /* AudioRecorder.swift */; };
 		1CCC7DE6233407D1FC35BA35 /* DownloadedModelsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */; };
-		221DC36B722F633F8FFA658E /* pages.yml in Resources */ = {isa = PBXBuildFile; fileRef = 3B109E6537E79EA3262E84F2 /* pages.yml */; };
 		25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */; };
-		26B719E2C77FC8B25AB74DF3 /* pt.json in Resources */ = {isa = PBXBuildFile; fileRef = FB3D032B0FAEE49BE0C3CC02 /* pt.json */; };
 		3B970FB1993D02CE75C23202 /* DictationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894B0245FC883E24EDFB48BB /* DictationPipeline.swift */; };
 		409764D750CA32FF7E320034 /* FloatingIndicatorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D98577BC75D1EED950058D /* FloatingIndicatorManager.swift */; };
-		410967F226A7B1938A4A9684 /* release.yml in Resources */ = {isa = PBXBuildFile; fileRef = 4E644803A63262DC05581073 /* release.yml */; };
 		4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */; };
 		53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 24108E4098C7D8A965EFAEEA /* MLXLMCommon */; };
 		660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */; };
-		6FEBA6FAC0AA5EFF3CA35CE9 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = C86B595178ABEF7BEC55A34F /* index.html */; };
-		7038A6C43482B5C290614683 /* uk.json in Resources */ = {isa = PBXBuildFile; fileRef = 0D9001A369BFB68263949BDF /* uk.json */; };
-		75E47D4DE269CA6FC1D1731F /* ja.json in Resources */ = {isa = PBXBuildFile; fileRef = 2FABA77B401849702635D2E9 /* ja.json */; };
-		772A5FCF1513B833B3BD2B8A /* SKILL.md in Resources */ = {isa = PBXBuildFile; fileRef = 2667217AF914454E4F76CBB5 /* SKILL.md */; };
-		8391B9712FB63EFD4B13777B /* pl.json in Resources */ = {isa = PBXBuildFile; fileRef = 58789A26F977CB500E79A5FC /* pl.json */; };
 		84B95C35E2815FA980949B42 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */; };
 		8A19028D5A4F72649B94A26B /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */; };
-		9E2B7DAC655A56F9E5CB2114 /* fr.json in Resources */ = {isa = PBXBuildFile; fileRef = 260884F5E33C83AD2C47DA2E /* fr.json */; };
 		A305031B741D92C9703D1E75 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 161F1C9307FD19DA4C83CB5D /* Sparkle */; };
-		A36E2589A2A41CA701B1C80F /* es.json in Resources */ = {isa = PBXBuildFile; fileRef = DCF041E92D2B4D280729C359 /* es.json */; };
 		A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2490B7196B6C0D292B9AF54C /* PasteManager.swift */; };
 		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
 		B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */; };
-		BD8AEB26E919AB43BC04FA2D /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 83A00C606FD31ED4FCE8DE47 /* icon.png */; };
-		C045C92EA68962F5730B41E5 /* de.json in Resources */ = {isa = PBXBuildFile; fileRef = 77BFA225B2DB2CCF3C0C8AAC /* de.json */; };
 		CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A45404D11A8845C3F109251 /* Assets.xcassets */; };
 		CB73C3E9D2CFA71B03379999 /* SelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D60DD32B8442E4A16C521F4 /* SelectedTextReader.swift */; };
 		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
-		D1713F38EE6F087BC9983208 /* ko.json in Resources */ = {isa = PBXBuildFile; fileRef = 18CC8F821DAD9ECF29BE7E77 /* ko.json */; };
 		DD50DB580798C88C6A1357C5 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8783DFB2FE338D342D231BF /* AppSettings.swift */; };
 		DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F49B35EF21214DF3B51CC21B /* Localizable.strings */; };
-		E3386A637ECBF53DE3C2E16A /* en.json in Resources */ = {isa = PBXBuildFile; fileRef = 6A7CC24BD208FA678A787D44 /* en.json */; };
 		E5715E5682888026CE990F8E /* DictumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */; };
 		E779256781738096534067BF /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */; };
-		ED975761095DB8C2BA27101E /* settings.json in Resources */ = {isa = PBXBuildFile; fileRef = 6C39F23B4D21EF80F1EDD819 /* settings.json */; };
-		F3D613C8A91690E33171CC37 /* zh.json in Resources */ = {isa = PBXBuildFile; fileRef = B9539B3FBF1DE3ACB7C29F78 /* zh.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0D9001A369BFB68263949BDF /* uk.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = uk.json; sourceTree = "<group>"; };
 		14D98577BC75D1EED950058D /* FloatingIndicatorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIndicatorManager.swift; sourceTree = "<group>"; };
-		18CC8F821DAD9ECF29BE7E77 /* ko.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ko.json; sourceTree = "<group>"; };
 		2490B7196B6C0D292B9AF54C /* PasteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteManager.swift; sourceTree = "<group>"; };
-		260884F5E33C83AD2C47DA2E /* fr.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = fr.json; sourceTree = "<group>"; };
-		2667217AF914454E4F76CBB5 /* SKILL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SKILL.md; sourceTree = "<group>"; };
 		26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
-		2FABA77B401849702635D2E9 /* ja.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ja.json; sourceTree = "<group>"; };
 		3A45404D11A8845C3F109251 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		3B109E6537E79EA3262E84F2 /* pages.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = pages.yml; sourceTree = "<group>"; };
 		3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedModelsManager.swift; sourceTree = "<group>"; };
-		4E644803A63262DC05581073 /* release.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = release.yml; sourceTree = "<group>"; };
 		505E991D55A534262FCDF113 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
-		58789A26F977CB500E79A5FC /* pl.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pl.json; sourceTree = "<group>"; };
 		64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dictum.entitlements; sourceTree = "<group>"; };
-		6A7CC24BD208FA678A787D44 /* en.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = en.json; sourceTree = "<group>"; };
-		6C39F23B4D21EF80F1EDD819 /* settings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = settings.json; sourceTree = "<group>"; };
-		77BFA225B2DB2CCF3C0C8AAC /* de.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = de.json; sourceTree = "<group>"; };
-		83A00C606FD31ED4FCE8DE47 /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = icon.png; sourceTree = "<group>"; };
 		894B0245FC883E24EDFB48BB /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		8F0883B8EE127B0560E01584 /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		8F2276C69754697A5C25F690 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
@@ -78,18 +50,14 @@
 		A860B5A4689C4D0EE913A43F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B5A63125D12472619B955131 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B8783DFB2FE338D342D231BF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		B9539B3FBF1DE3ACB7C29F78 /* zh.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = zh.json; sourceTree = "<group>"; };
 		BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
-		C86B595178ABEF7BEC55A34F /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 		C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelManager.swift; sourceTree = "<group>"; };
 		D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelBrowser.swift; sourceTree = "<group>"; };
-		DCF041E92D2B4D280729C359 /* es.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = es.json; sourceTree = "<group>"; };
 		EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
 		F960A7758421684ACC732615 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
-		FB3D032B0FAEE49BE0C3CC02 /* pt.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pt.json; sourceTree = "<group>"; };
 		FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictumApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -108,15 +76,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1B24CA61882202725753330B /* workflows */ = {
-			isa = PBXGroup;
-			children = (
-				3B109E6537E79EA3262E84F2 /* pages.yml */,
-				4E644803A63262DC05581073 /* release.yml */,
-			);
-			path = workflows;
-			sourceTree = "<group>";
-		};
 		3718B04233CA674E3E8B2920 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -126,15 +85,6 @@
 				F49B35EF21214DF3B51CC21B /* Localizable.strings */,
 			);
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		3C3426E0F177A7D26E45BE25 /* .claude */ = {
-			isa = PBXGroup;
-			children = (
-				6C39F23B4D21EF80F1EDD819 /* settings.json */,
-				59C6E053C15CBCDCED169E5E /* skills */,
-			);
-			path = .claude;
 			sourceTree = "<group>";
 		};
 		4147A054DD14721EF52D30D2 /* Audio */ = {
@@ -151,8 +101,6 @@
 				894B0245FC883E24EDFB48BB /* DictationPipeline.swift */,
 				FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */,
 				F960A7758421684ACC732615 /* LICENSE */,
-				3C3426E0F177A7D26E45BE25 /* .claude */,
-				A7D4E093C2D817AB3B6ABC5E /* .github */,
 				4147A054DD14721EF52D30D2 /* Audio */,
 				CF352ABC2D3E3FA2A01BA47D /* FloatingIndicator */,
 				99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */,
@@ -162,7 +110,6 @@
 				53F2B65AEF98BE04D611E774 /* Settings */,
 				DF821B50D0AA9F4629DEF890 /* TextProcessing */,
 				8D610DEB45D3E7B82C4A1660 /* Transcription */,
-				A339C351604AFDA0565C6FF5 /* website */,
 			);
 			name = dictum;
 			path = .;
@@ -178,14 +125,6 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		59C6E053C15CBCDCED169E5E /* skills */ = {
-			isa = PBXGroup;
-			children = (
-				9819A17A7C9A6BE469A1BE22 /* release */,
-			);
-			path = skills;
-			sourceTree = "<group>";
-		};
 		8D610DEB45D3E7B82C4A1660 /* Transcription */ = {
 			isa = PBXGroup;
 			children = (
@@ -198,8 +137,6 @@
 		9559F4F0E1F239A398D6EB04 = {
 			isa = PBXGroup;
 			children = (
-				3C3426E0F177A7D26E45BE25 /* .claude */,
-				A7D4E093C2D817AB3B6ABC5E /* .github */,
 				4147A054DD14721EF52D30D2 /* Audio */,
 				4FA1514C5C4087CFB5C24C02 /* dictum */,
 				CF352ABC2D3E3FA2A01BA47D /* FloatingIndicator */,
@@ -210,17 +147,8 @@
 				53F2B65AEF98BE04D611E774 /* Settings */,
 				DF821B50D0AA9F4629DEF890 /* TextProcessing */,
 				8D610DEB45D3E7B82C4A1660 /* Transcription */,
-				A339C351604AFDA0565C6FF5 /* website */,
 				C8222A1FA74A22D09DA6898F /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		9819A17A7C9A6BE469A1BE22 /* release */ = {
-			isa = PBXGroup;
-			children = (
-				2667217AF914454E4F76CBB5 /* SKILL.md */,
-			);
-			path = release;
 			sourceTree = "<group>";
 		};
 		99C0B6C41539C677DAD09C76 /* HotkeyAndPaste */ = {
@@ -231,41 +159,6 @@
 				9D60DD32B8442E4A16C521F4 /* SelectedTextReader.swift */,
 			);
 			path = HotkeyAndPaste;
-			sourceTree = "<group>";
-		};
-		A339C351604AFDA0565C6FF5 /* website */ = {
-			isa = PBXGroup;
-			children = (
-				83A00C606FD31ED4FCE8DE47 /* icon.png */,
-				C86B595178ABEF7BEC55A34F /* index.html */,
-				AE8C40BBB9B59FEF5EB01889 /* i18n */,
-			);
-			path = website;
-			sourceTree = "<group>";
-		};
-		A7D4E093C2D817AB3B6ABC5E /* .github */ = {
-			isa = PBXGroup;
-			children = (
-				1B24CA61882202725753330B /* workflows */,
-			);
-			path = .github;
-			sourceTree = "<group>";
-		};
-		AE8C40BBB9B59FEF5EB01889 /* i18n */ = {
-			isa = PBXGroup;
-			children = (
-				77BFA225B2DB2CCF3C0C8AAC /* de.json */,
-				6A7CC24BD208FA678A787D44 /* en.json */,
-				DCF041E92D2B4D280729C359 /* es.json */,
-				260884F5E33C83AD2C47DA2E /* fr.json */,
-				2FABA77B401849702635D2E9 /* ja.json */,
-				18CC8F821DAD9ECF29BE7E77 /* ko.json */,
-				58789A26F977CB500E79A5FC /* pl.json */,
-				FB3D032B0FAEE49BE0C3CC02 /* pt.json */,
-				0D9001A369BFB68263949BDF /* uk.json */,
-				B9539B3FBF1DE3ACB7C29F78 /* zh.json */,
-			);
-			path = i18n;
 			sourceTree = "<group>";
 		};
 		C8222A1FA74A22D09DA6898F /* Products */ = {
@@ -384,22 +277,6 @@
 			files = (
 				CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */,
 				DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */,
-				772A5FCF1513B833B3BD2B8A /* SKILL.md in Resources */,
-				C045C92EA68962F5730B41E5 /* de.json in Resources */,
-				E3386A637ECBF53DE3C2E16A /* en.json in Resources */,
-				A36E2589A2A41CA701B1C80F /* es.json in Resources */,
-				9E2B7DAC655A56F9E5CB2114 /* fr.json in Resources */,
-				BD8AEB26E919AB43BC04FA2D /* icon.png in Resources */,
-				6FEBA6FAC0AA5EFF3CA35CE9 /* index.html in Resources */,
-				75E47D4DE269CA6FC1D1731F /* ja.json in Resources */,
-				D1713F38EE6F087BC9983208 /* ko.json in Resources */,
-				221DC36B722F633F8FFA658E /* pages.yml in Resources */,
-				8391B9712FB63EFD4B13777B /* pl.json in Resources */,
-				26B719E2C77FC8B25AB74DF3 /* pt.json in Resources */,
-				410967F226A7B1938A4A9684 /* release.yml in Resources */,
-				ED975761095DB8C2BA27101E /* settings.json in Resources */,
-				7038A6C43482B5C290614683 /* uk.json in Resources */,
-				F3D613C8A91690E33171CC37 /* zh.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -520,7 +397,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.4.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
@@ -609,7 +486,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.4.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
