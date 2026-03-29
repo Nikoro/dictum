@@ -70,7 +70,7 @@ On first launch, the onboarding flow guides you through:
 
 | Icon | State |
 |------|-------|
-| Template mic.fill | Idle / Transcribing / Processing |
+| Template (rounded rect + mic cutout) | Idle / Warming up / Transcribing / Processing |
 | Custom (mic + red dot) | Recording |
 
 ## Features
@@ -163,10 +163,7 @@ Or visit the [landing page](https://nikoro.github.io/dictum/) for install instru
 
 ## Known limitations
 
-- WhisperKit API is unstable (pre-1.0) — pinned to exact version 0.17.0
 - First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
-- RAM usage: WhisperKit ~3 GB + LLM ~2.5 GB ~ 5.5 GB unified memory
 - Whisper language hardcoded to Polish (`"pl"`) — no UI to change
 - Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
-- LLM output capped at 2048 tokens — long dictations may be silently truncated
-- Launch at login requires app installed in `/Applications` (fails from DerivedData)
+- ~5 GB disk space needed for models, ~5.5 GB unified memory at runtime
