@@ -38,8 +38,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum
-        MARKETING_VERSION: "0.4.2"
-        CURRENT_PROJECT_VERSION: "202603291621"
+        MARKETING_VERSION: "0.5.0"
+        CURRENT_PROJECT_VERSION: "202603300019"
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
         INFOPLIST_FILE: Resources/Info.plist
