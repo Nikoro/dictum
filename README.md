@@ -92,9 +92,11 @@ See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer architecture reference.
 
 ## Download
 
-Grab `Dictum.pkg` from the [latest release](https://github.com/Nikoro/dictum/releases/latest) and run the installer. It places Dictum in `/Applications` and removes the quarantine flag automatically.
+Grab `Dictum.zip` from the [latest release](https://github.com/Nikoro/dictum/releases/latest). The app is ad-hoc signed (not notarized) — on first launch run:
 
-Alternatively, download `Dictum.zip` and move the app manually.
+```bash
+xattr -dr com.apple.quarantine /Applications/Dictum.app
+```
 
 ## Known limitations
 

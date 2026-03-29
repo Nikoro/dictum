@@ -25,11 +25,12 @@
   "req.label": "시스템 요구사항",
   "req.title": "필요한 것.",
   "install.title": "설치",
-  "install.desc": "설치 프로그램을 다운로드하고 실행하면 끝. 설치 프로그램이 Dictum을 응용 프로그램에 자동으로 배치합니다.",
-  "install.step1": "위 버튼에서 <strong>Dictum.pkg</strong>를 다운로드하고 열기",
-  "install.step2": "설치 프로그램을 따르세요 — Dictum이 응용 프로그램에 배치됩니다",
+  "install.desc": "최신 릴리스를 다운로드하고 압축을 풀어 응용 프로그램으로 이동하세요. 앱은 ad-hoc 서명(공증되지 않음)되어 있어 첫 실행 시 격리 플래그를 제거해야 합니다.",
+  "install.step1": "위 버튼에서 <strong>Dictum.zip</strong>을 다운로드하고 압축 해제",
+  "install.step2": "<strong>Dictum.app</strong>을 <code>/Applications</code>로 이동",
   "footer.copy": "Dictum — macOS용 로컬 음성 받아쓰기",
   "hero.source": "소스 보기",
   "hero.opensource": "오픈소스",
-  "install.step3": "Dictum을 실행하고 설정을 따르세요: 권한 부여, 음성 모델 다운로드, 선택적으로 LLM도"
+  "install.step3": "터미널에서 실행:",
+  "install.step4": "Dictum을 실행하고 설정을 따르세요: 권한 부여, 음성 모델 다운로드, 선택적으로 LLM도"
 }
