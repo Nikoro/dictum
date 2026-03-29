@@ -92,15 +92,13 @@ See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer architecture reference.
 
 ## Download
 
-Grab `Dictum.zip` from the [latest release](https://github.com/Nikoro/dictum/releases/latest). The app is ad-hoc signed (not notarized) — on first launch run:
+Grab `Dictum.pkg` from the [latest release](https://github.com/Nikoro/dictum/releases/latest) and run the installer. It places Dictum in `/Applications` and removes the quarantine flag automatically.
 
-```bash
-xattr -dr com.apple.quarantine Dictum.app
-```
+Alternatively, download `Dictum.zip` and move the app manually.
 
 ## Known limitations
 
-- WhisperKit API is unstable (pre-1.0) — pinned to `branch: main`, may break between pulls
+- WhisperKit API is unstable (pre-1.0) — pinned to exact version, may need updates
 - First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
 - RAM usage: WhisperKit ~3 GB + LLM ~2.5 GB ≈ 5.5 GB unified memory
 - Whisper language hardcoded to Polish (`"pl"`) — no UI to change

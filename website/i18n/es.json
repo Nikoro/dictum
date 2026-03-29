@@ -25,12 +25,11 @@
   "req.label": "Requisitos",
   "req.title": "Lo que necesitas.",
   "install.title": "Instalación",
-  "install.desc": "Descarga la última versión, descomprime y mueve a Aplicaciones. La app está firmada ad-hoc (sin notarización), así que hay que quitar la bandera de cuarentena en el primer inicio.",
-  "install.step1": "Descarga <strong>Dictum.zip</strong> desde el botón de arriba y extráelo",
-  "install.step2": "Mueve <strong>Dictum.app</strong> a <code>/Applications</code>",
-  "install.step4": "Abre Dictum y sigue la configuración: otorga permisos, descarga un modelo de voz y opcionalmente un LLM",
+  "install.desc": "Descarga el instalador, ejecútalo y listo. El instalador coloca Dictum en Aplicaciones automáticamente.",
+  "install.step1": "Descarga <strong>Dictum.pkg</strong> desde el botón de arriba y ábrelo",
+  "install.step2": "Sigue el instalador — Dictum se colocará en Aplicaciones",
   "footer.copy": "Dictum — dictado por voz en macOS, todo en el dispositivo",
   "hero.source": "Ver código",
   "hero.opensource": "Open Source",
-  "install.step3_label": "Ejecuta en Terminal:"
+  "install.step3": "Abre Dictum y sigue la configuración: otorga permisos, descarga un modelo de voz y opcionalmente un LLM"
 }

@@ -34,10 +34,66 @@ jobs:
             CODE_SIGN_STYLE="Automatic" \
             DEVELOPMENT_TEAM=""
 
-      - name: Package app
+      - name: Package ZIP (for Sparkle updates)
         run: |
           cd build/Build/Products/Release
           zip -r Dictum.zip Dictum.app
+
+      - name: Package PKG installer
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          APP_PATH="build/Build/Products/Release/Dictum.app"
+
+          # Post-install script to remove quarantine flag
+          mkdir -p pkg-scripts
+          cat > pkg-scripts/postinstall << 'SCRIPT'
+          #!/bin/bash
+          xattr -dr com.apple.quarantine /Applications/Dictum.app 2>/dev/null || true
+          SCRIPT
+          chmod +x pkg-scripts/postinstall
+
+          # Build component pkg
+          pkgbuild \
+            --root "build/Build/Products/Release" \
+            --filter '.zip' \
+            --install-location /Applications \
+            --scripts pkg-scripts \
+            --identifier com.dominikkrajcer.dictum \
+            --version "$VERSION" \
+            Dictum-component.pkg
+
+          # Wrap in product archive for nicer installer UI
+          cat > distribution.xml << DIST
+          <?xml version="1.0" encoding="utf-8"?>
+          <installer-gui-script minSpecVersion="2">
+              <title>Dictum</title>
+              <welcome file="welcome.html" />
+              <options customize="never" require-scripts="false" hostArchitectures="arm64" />
+              <choices-outline>
+                  <line choice="default" />
+              </choices-outline>
+              <choice id="default" title="Dictum">
+                  <pkg-ref id="com.dominikkrajcer.dictum" />
+              </choice>
+              <pkg-ref id="com.dominikkrajcer.dictum" version="$VERSION">Dictum-component.pkg</pkg-ref>
+          </installer-gui-script>
+          DIST
+
+          # Welcome page
+          cat > welcome.html << 'HTML'
+          <html><body style="font-family: -apple-system, sans-serif; padding: 20px;">
+          <h2>Dictum</h2>
+          <p>Voice dictation for macOS — fully on-device.</p>
+          <p>This installer will place <b>Dictum.app</b> in your Applications folder.</p>
+          </body></html>
+          HTML
+
+          productbuild \
+            --distribution distribution.xml \
+            --resources . \
+            --package-path . \
+            Dictum.pkg
 
       - name: Download Sparkle tools
         run: |
@@ -105,6 +161,7 @@ jobs:
         with:
           body_path: release_notes.txt
           files: |
+            Dictum.pkg
             build/Build/Products/Release/Dictum.zip
             appcast.xml
           draft: false
