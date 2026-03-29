@@ -8,11 +8,6 @@ func appIcon(forBundleId bundleId: String) -> NSImage? {
     return NSWorkspace.shared.icon(forFile: url.path)
 }
 
-func ghostCompletionFor(_ text: String) -> String? {
-    if text.hasSuffix("{{") { return "text}}" }
-    return nil
-}
-
 struct PopoverView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var pipeline: DictationPipeline

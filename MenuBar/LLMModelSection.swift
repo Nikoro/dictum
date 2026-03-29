@@ -171,8 +171,8 @@ struct LLMModelSection: View {
             }
 
             // Prompts
-            GeneralPromptSection()
-            AppPromptsSection()
+            GeneralPromptSection(hasDownloadedModels: !downloadedModels.isEmpty)
+            AppPromptsSection(hasDownloadedModels: !downloadedModels.isEmpty)
         }
         .padding()
     }
@@ -192,16 +192,26 @@ struct LLMModelSection: View {
 private struct GeneralPromptSection: View {
     @EnvironmentObject var settings: AppSettings
     @State private var localPrompt: String = ""
-
-    private var ghostSuffix: String? { ghostCompletionFor(localPrompt) }
+    @State private var showNoModelWarning = false
+    let hasDownloadedModels: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Toggle("", isOn: $settings.llmGeneralPromptEnabled)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .controlSize(.mini)
+                Toggle("", isOn: Binding(
+                    get: { settings.llmGeneralPromptEnabled },
+                    set: { newValue in
+                        if newValue && !hasDownloadedModels {
+                            showNoModelWarning = true
+                        } else {
+                            showNoModelWarning = false
+                            settings.llmGeneralPromptEnabled = newValue
+                        }
+                    }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .controlSize(.mini)
 
                 Image(systemName: "text.bubble")
                     .frame(width: 18, height: 18)
@@ -213,12 +223,16 @@ private struct GeneralPromptSection: View {
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
             }
 
+            if showNoModelWarning {
+                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Qwen3.5-4B-4bit"))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+
             if settings.llmGeneralPromptEnabled {
                 PromptTextEditor(
                     text: $localPrompt,
-                    ghostSuffix: ghostSuffix,
-                    placeholder: String(localized: "section.prompt.general.placeholder", defaultValue: "Wpisz prompt ogólny..."),
-                    onTab: { acceptGhost() }
+                    placeholder: String(localized: "section.prompt.general.placeholder", defaultValue: "Wpisz prompt ogólny...")
                 )
                 .frame(minHeight: 80, maxHeight: 120)
                 .background(.quaternary)
@@ -241,11 +255,9 @@ private struct GeneralPromptSection: View {
         .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { localPrompt = settings.llmPrompt }
-    }
-
-    private func acceptGhost() {
-        guard let ghost = ghostSuffix else { return }
-        localPrompt += ghost
+        .onChange(of: hasDownloadedModels) { _, hasModels in
+            if hasModels { showNoModelWarning = false }
+        }
     }
 }
 
@@ -254,6 +266,7 @@ private struct GeneralPromptSection: View {
 private struct AppPromptsSection: View {
     @EnvironmentObject var settings: AppSettings
     @State private var showingAppPicker = false
+    let hasDownloadedModels: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -278,7 +291,7 @@ private struct AppPromptsSection: View {
             }
 
             ForEach(settings.appPrompts) { appPrompt in
-                AppPromptRow(appPrompt: appPrompt)
+                AppPromptRow(appPrompt: appPrompt, hasDownloadedModels: hasDownloadedModels)
             }
         }
         .sheet(isPresented: $showingAppPicker) {
@@ -289,7 +302,8 @@ private struct AppPromptsSection: View {
                 settings.addAppPrompt(AppPrompt(
                     bundleId: bundleId,
                     appName: appName,
-                    prompt: ""
+                    prompt: "",
+                    enabled: hasDownloadedModels
                 ))
             }
         }
@@ -298,10 +312,10 @@ private struct AppPromptsSection: View {
 
 private struct AppPromptRow: View {
     let appPrompt: AppPrompt
+    let hasDownloadedModels: Bool
     @EnvironmentObject var settings: AppSettings
     @State private var localPrompt: String = ""
-
-    private var ghostSuffix: String? { ghostCompletionFor(localPrompt) }
+    @State private var showNoModelWarning = false
 
     private var cleanAppName: String {
         appPrompt.appName.replacingOccurrences(of: ".app", with: "")
@@ -312,7 +326,14 @@ private struct AppPromptRow: View {
             HStack(spacing: 6) {
                 Toggle("", isOn: Binding(
                     get: { appPrompt.enabled },
-                    set: { _ in settings.toggleAppPrompt(bundleId: appPrompt.bundleId) }
+                    set: { newValue in
+                        if newValue && !hasDownloadedModels {
+                            showNoModelWarning = true
+                        } else {
+                            showNoModelWarning = false
+                            settings.toggleAppPrompt(bundleId: appPrompt.bundleId)
+                        }
+                    }
                 ))
                 .toggleStyle(.switch)
                 .labelsHidden()
@@ -344,12 +365,16 @@ private struct AppPromptRow: View {
                 .buttonStyle(.plain)
             }
 
+            if showNoModelWarning {
+                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Qwen3.5-4B-4bit"))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+
             if appPrompt.enabled {
                 PromptTextEditor(
                     text: $localPrompt,
-                    ghostSuffix: ghostSuffix,
-                    placeholder: String(localized: String.LocalizationValue("section.prompt.perapp.placeholder \(cleanAppName)")),
-                    onTab: { acceptGhost() }
+                    placeholder: String(localized: String.LocalizationValue("section.prompt.perapp.placeholder \(cleanAppName)"))
                 )
                 .frame(minHeight: 60, maxHeight: 100)
                 .background(.quaternary)
@@ -363,10 +388,8 @@ private struct AppPromptRow: View {
         .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { localPrompt = appPrompt.prompt }
-    }
-
-    private func acceptGhost() {
-        guard let ghost = ghostSuffix else { return }
-        localPrompt += ghost
+        .onChange(of: hasDownloadedModels) { _, hasModels in
+            if hasModels { showNoModelWarning = false }
+        }
     }
 }

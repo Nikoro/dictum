@@ -91,6 +91,7 @@
 "section.prompt.picker.search" = "Search apps...";
 "section.prompt.general.placeholder" = "Enter general prompt...";
 "section.prompt.example" = "Example prompt";
+"section.prompt.nomodel" = "Download an LLM model first, e.g. Qwen3.5-4B-4bit";
 "section.prompt.perapp.placeholder %@" = "Write prompt for %@...";
 
 /* Uninstall */

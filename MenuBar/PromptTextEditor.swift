@@ -3,11 +3,24 @@ import SwiftUI
 /// NSTextView that draws placeholder when empty and ghost completion after `{{`
 class GhostTextView: NSTextView {
     var placeholder: String = ""
-    var ghostSuffix: String? {
-        didSet { needsDisplay = true }
-    }
 
     private let ghostColor = NSColor.secondaryLabelColor.withAlphaComponent(0.4)
+
+    /// Compute ghost suffix based on text before cursor
+    var computedGhostSuffix: String? {
+        let cursorLocation = selectedRange().location
+        guard cursorLocation > 0 else { return nil }
+        let textBefore = (string as NSString).substring(to: cursorLocation)
+        if textBefore.hasSuffix("{{") { return "text}}" }
+        return nil
+    }
+
+    /// Accept ghost: insert at cursor position
+    func acceptGhost() {
+        guard let ghost = computedGhostSuffix else { return }
+        let range = selectedRange()
+        insertText(ghost, replacementRange: range)
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
@@ -24,16 +37,18 @@ class GhostTextView: NSTextView {
             (placeholder as NSString).draw(at: point, withAttributes: attrs)
         }
 
-        // Draw ghost suffix inline after last character
-        if let ghost = ghostSuffix, !string.isEmpty, let lm = layoutManager, let tc = textContainer {
+        // Draw ghost suffix inline at cursor position
+        if let ghost = computedGhostSuffix, let lm = layoutManager {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .foregroundColor: ghostColor
             ]
-            let glyphIndex = lm.glyphIndexForCharacter(at: (string as NSString).length - 1)
-            var lineRect = lm.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            let cursorLocation = selectedRange().location
+            let glyphIndex = lm.glyphIndexForCharacter(at: max(cursorLocation - 1, 0))
+            let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
             let locInLine = lm.location(forGlyphAt: glyphIndex)
-            let charSize = (String(string.last!) as NSString).size(withAttributes: [
+            let charBeforeCursor = (string as NSString).substring(with: NSRange(location: cursorLocation - 1, length: 1))
+            let charSize = (charBeforeCursor as NSString).size(withAttributes: [
                 .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
             ])
             let x = lineRect.origin.x + locInLine.x + charSize.width + textContainerInset.width
@@ -41,14 +56,17 @@ class GhostTextView: NSTextView {
             (ghost as NSString).draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
         }
     }
+
+    override func setSelectedRange(_ charRange: NSRange, affinity: NSSelectionAffinity, stillSelecting stillSelectingFlag: Bool) {
+        super.setSelectedRange(charRange, affinity: affinity, stillSelecting: stillSelectingFlag)
+        needsDisplay = true
+    }
 }
 
 /// SwiftUI wrapper for GhostTextView
 struct PromptTextEditor: NSViewRepresentable {
     @Binding var text: String
-    let ghostSuffix: String?
     let placeholder: String
-    let onTab: () -> Void
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
@@ -71,7 +89,6 @@ struct PromptTextEditor: NSViewRepresentable {
         textView.autoresizingMask = [.width]
         textView.textContainer?.widthTracksTextView = true
         textView.placeholder = placeholder
-        textView.ghostSuffix = ghostSuffix
         textView.string = text
 
         scrollView.documentView = textView
@@ -81,12 +98,8 @@ struct PromptTextEditor: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? GhostTextView else { return }
-        let coord = context.coordinator
 
         textView.placeholder = placeholder
-        textView.ghostSuffix = ghostSuffix
-        coord.ghostSuffix = ghostSuffix
-        coord.onTab = onTab
 
         // Sync binding → NSTextView when text changed externally
         if textView.string != text {
@@ -94,27 +107,18 @@ struct PromptTextEditor: NSViewRepresentable {
             textView.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))
             textView.needsDisplay = true
         }
-
-        if coord.didAcceptGhost {
-            coord.didAcceptGhost = false
-        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, onTab: onTab, ghostSuffix: ghostSuffix)
+        Coordinator(text: $text)
     }
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var text: Binding<String>
-        var onTab: () -> Void
-        var ghostSuffix: String?
-        var didAcceptGhost = false
         weak var textView: GhostTextView?
 
-        init(text: Binding<String>, onTab: @escaping () -> Void, ghostSuffix: String?) {
+        init(text: Binding<String>) {
             self.text = text
-            self.onTab = onTab
-            self.ghostSuffix = ghostSuffix
         }
 
         func textDidChange(_ notification: Notification) {
@@ -124,9 +128,10 @@ struct PromptTextEditor: NSViewRepresentable {
         }
 
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-            if commandSelector == #selector(NSResponder.insertTab(_:)), ghostSuffix != nil {
-                didAcceptGhost = true
-                onTab()
+            if commandSelector == #selector(NSResponder.insertTab(_:)),
+               let ghostView = textView as? GhostTextView,
+               ghostView.computedGhostSuffix != nil {
+                ghostView.acceptGhost()
                 return true
             }
             return false

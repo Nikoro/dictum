@@ -99,7 +99,7 @@ struct InstalledAppPickerSheet: View {
                           let bundleId = bundle.bundleIdentifier,
                           !seen.contains(bundleId) else { continue }
                     seen.insert(bundleId)
-                    let name = FileManager.default.displayName(atPath: url.path)
+                    let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
                     let icon = workspace.icon(forFile: url.path)
                     icon.size = NSSize(width: 24, height: 24)
                     result.append((name: name, bundleId: bundleId, icon: icon))
@@ -113,7 +113,7 @@ struct InstalledAppPickerSheet: View {
                           let bundleId = bundle.bundleIdentifier,
                           !seen.contains(bundleId) else { continue }
                     seen.insert(bundleId)
-                    let name = FileManager.default.displayName(atPath: url.path)
+                    let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
                     let icon = workspace.icon(forFile: url.path)
                     icon.size = NSSize(width: 24, height: 24)
                     result.append((name: name, bundleId: bundleId, icon: icon))
