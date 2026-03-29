@@ -164,6 +164,5 @@ Or visit the [landing page](https://nikoro.github.io/dictum/) for install instru
 ## Known limitations
 
 - First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
-- Whisper language hardcoded to Polish (`"pl"`) — no UI to change
 - Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
 - ~5 GB disk space needed for models, ~5.5 GB unified memory at runtime

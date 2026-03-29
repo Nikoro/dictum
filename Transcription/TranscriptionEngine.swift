@@ -66,11 +66,11 @@ actor TranscriptionEngine {
         dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
     }
 
-    func transcribe(audioSamples: [Float]) async throws -> String {
+    func transcribe(audioSamples: [Float], language: String? = nil) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
 
         let options = DecodingOptions(
-            language: "pl",
+            language: language,
             skipSpecialTokens: true,
             withoutTimestamps: true
         )
@@ -90,7 +90,6 @@ actor TranscriptionEngine {
         dlog("[STT] warmup: transcribing 1s silent buffer")
         let silentSamples = [Float](repeating: 0, count: 16000) // 1s at 16kHz
         let options = DecodingOptions(
-            language: "pl",
             skipSpecialTokens: true,
             withoutTimestamps: true
         )

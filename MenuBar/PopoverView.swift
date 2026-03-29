@@ -36,6 +36,8 @@ struct PopoverView: View {
                 RecordingSettingsSection()
                 Divider()
                 STTModelSection()
+                Divider()
+                STTLanguageSection()
                 if settings.llmCleanupEnabled {
                     Divider()
                     LLMModelSection()
@@ -1065,6 +1067,229 @@ private struct WhisperModelRow: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - STT Language
+
+private struct STTLanguageSection: View {
+    @EnvironmentObject var settings: AppSettings
+    @State private var showingAppPicker = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: "section.stt.language", defaultValue: "Język rozpoznawania"))
+                .font(.headline)
+
+            // General language picker
+            HStack {
+                Text(String(localized: "section.stt.language.general", defaultValue: "Ogólny"))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Picker("", selection: Binding(
+                    get: { settings.sttLanguage },
+                    set: { settings.sttLanguage = $0 }
+                )) {
+                    ForEach(STTLanguage.allCases, id: \.self) { lang in
+                        Text(lang.displayName).tag(lang)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 160)
+            }
+
+            // Per-app languages
+            HStack {
+                Text(String(localized: "section.stt.language.perapp", defaultValue: "Język per aplikacja"))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button {
+                    showingAppPicker = true
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if settings.appSTTLanguages.isEmpty {
+                Text(String(localized: "section.stt.language.perapp.empty", defaultValue: "Brak — używany będzie język ogólny"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            ForEach(settings.appSTTLanguages) { appLang in
+                AppSTTLanguageRow(appLang: appLang)
+            }
+        }
+        .padding()
+        .sheet(isPresented: $showingAppPicker) {
+            AppSTTLanguagePickerSheet()
+                .environmentObject(settings)
+        }
+    }
+}
+
+private struct AppSTTLanguageRow: View {
+    let appLang: AppSTTLanguage
+    @EnvironmentObject var settings: AppSettings
+
+    private var cleanAppName: String {
+        appLang.appName.replacingOccurrences(of: ".app", with: "")
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Toggle("", isOn: Binding(
+                get: { appLang.enabled },
+                set: { _ in settings.toggleAppSTTLanguage(bundleId: appLang.bundleId) }
+            ))
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .controlSize(.mini)
+
+            if let icon = appIcon(for: appLang.bundleId) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 18, height: 18)
+            } else {
+                Image(systemName: "app.fill")
+                    .frame(width: 18, height: 18)
+                    .foregroundColor(.secondary)
+            }
+            Text(cleanAppName)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(appLang.enabled ? .primary : .secondary)
+
+            Spacer()
+
+            Picker("", selection: Binding(
+                get: { appLang.language },
+                set: { settings.updateAppSTTLanguage(bundleId: appLang.bundleId, language: $0) }
+            )) {
+                ForEach(STTLanguage.allCases, id: \.self) { lang in
+                    Text(lang.displayName).tag(lang)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 130)
+            .controlSize(.small)
+
+            Button {
+                settings.removeAppSTTLanguage(bundleId: appLang.bundleId)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(8)
+        .background(.quaternary.opacity(0.5))
+        .cornerRadius(8)
+    }
+
+    private func appIcon(for bundleId: String) -> NSImage? {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return nil }
+        return NSWorkspace.shared.icon(forFile: url.path)
+    }
+}
+
+private struct AppSTTLanguagePickerSheet: View {
+    @EnvironmentObject var settings: AppSettings
+    @Environment(\.dismiss) var dismiss
+    @State private var searchText = ""
+    @State private var apps: [(name: String, bundleId: String, icon: NSImage)] = []
+
+    var filteredApps: [(name: String, bundleId: String, icon: NSImage)] {
+        let existing = Set(settings.appSTTLanguages.map(\.bundleId))
+        let available = apps.filter { !existing.contains($0.bundleId) }
+        if searchText.isEmpty { return available }
+        return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(String(localized: "section.stt.language.picker.title", defaultValue: "Wybierz aplikację"))
+                    .font(.headline)
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField(String(localized: "section.stt.language.picker.search", defaultValue: "Szukaj aplikacji..."), text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(8)
+            .background(.quaternary)
+            .cornerRadius(8)
+            .padding(.horizontal)
+
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(filteredApps, id: \.bundleId) { app in
+                        Button {
+                            settings.addAppSTTLanguage(AppSTTLanguage(
+                                bundleId: app.bundleId,
+                                appName: app.name.replacingOccurrences(of: ".app", with: ""),
+                                language: .auto
+                            ))
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(nsImage: app.icon)
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 24, height: 24)
+                                Text(app.name)
+                                    .font(.body)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .frame(width: 300, height: 400)
+        .onAppear { loadApps() }
+    }
+
+    private func loadApps() {
+        let fileManager = FileManager.default
+        let dirs = ["/Applications", "/System/Applications", "/System/Applications/Utilities"]
+        var result: [(name: String, bundleId: String, icon: NSImage)] = []
+        for dir in dirs {
+            guard let items = try? fileManager.contentsOfDirectory(atPath: dir) else { continue }
+            for item in items where item.hasSuffix(".app") {
+                let path = "\(dir)/\(item)"
+                guard let bundle = Bundle(path: path), let bid = bundle.bundleIdentifier else { continue }
+                let icon = NSWorkspace.shared.icon(forFile: path)
+                icon.size = NSSize(width: 24, height: 24)
+                result.append((name: item.replacingOccurrences(of: ".app", with: ""), bundleId: bid, icon: icon))
+            }
+        }
+        apps = result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 

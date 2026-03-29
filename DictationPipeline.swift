@@ -237,8 +237,9 @@ final class DictationPipeline: ObservableObject {
             }
 
             guard !isCancelled else { return }
-            dlog("[Dictum] transcribing \(samples.count) samples...")
-            let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples)
+            let sttLanguage = settings.resolveSTTLanguage(for: targetBundleId)
+            dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
+            let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
             guard !isCancelled else { return }
             dlog("[Dictum] transcription result: '\(rawText)'")
             settings.lastTranscription = rawText

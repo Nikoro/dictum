@@ -40,6 +40,7 @@ Dictum — native macOS menu bar app (Swift/SwiftUI) for voice dictation in Poli
 - Models loaded **lazily** — on first recording, not at app launch
 - `AppSettings.shared` — singleton with `@AppStorage` + `@Published` state; `AppState` enum (idle, warmingUp, recording, transcribing, processingLLM, done (set briefly by MenuBarManager after paste for 1s icon flash, then transitions to idle), error(String) — value-carrying case with associated error message)
 - `resolvePrompt(for:)` priority: (1) enabled per-app prompt for frontmost bundle ID → (2) general prompt (if `llmGeneralPromptEnabled` && non-empty) → (3) nil — skips LLM even when `llmCleanupEnabled = true`
+- `resolveSTTLanguage(for:)` priority: (1) enabled per-app STT language for frontmost bundle ID → (2) general `sttLanguage` setting → returns Whisper code or nil (auto-detect)
 - `DictationPipeline.shared` — singleton orchestrator, two modes: normal (auto-paste) and context (clipboard only)
 - CGEvent tap requires Accessibility permission — `AXIsProcessTrusted()` (system prompt via `AXIsProcessTrustedWithOptions`, but auto-grant impossible)
 - **Hotkey**: default Right ⌘ (keyCode 54) in modifier-only mode; alternatively key+modifier combo; Escape cancels recording
@@ -92,7 +93,9 @@ Hotkey (GlobalHotkeyManager)
 | `hotkeyModifiers` | Int | `0` | `AppSettings` |
 | `hotkeyIsModifierOnly` | Bool | `true` | `AppSettings` |
 | `whisperDownloadedModelIds` | [String] | `[]` | `WhisperModelManager` |
+| `sttLanguage` | String | `auto` | `AppSettings` |
 | `appPrompts` | Data (JSON `[AppPrompt]`) | `[]` | `AppSettings` (via `UserDefaults.standard`) |
+| `appSTTLanguages` | Data (JSON `[AppSTTLanguage]`) | `[]` | `AppSettings` (via `UserDefaults.standard`) |
 | `llmDownloadedModelId` | String? | nil | `SetupView` (onboarding only, not cleared on model delete) |
 
 ## Tests
