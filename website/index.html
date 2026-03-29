@@ -552,6 +552,7 @@
         </a>
       </div>
       <div class="hero-meta">
+        <span id="version-badge"></span>
         <span>macOS 26+ (Tahoe)</span>
         <span>Apple Silicon</span>
         <span data-i18n="hero.opensource">Open Source</span>
@@ -743,6 +744,18 @@
 
       select.value = initial;
       if (initial !== 'en') setLang(initial);
+    })();
+
+    // Fetch latest release version from GitHub
+    (async function loadVersion() {
+      try {
+        const res = await fetch('https://api.github.com/repos/Nikoro/dictum/releases/latest');
+        const data = await res.json();
+        const badge = document.getElementById('version-badge');
+        if (data.tag_name && badge) {
+          badge.textContent = data.tag_name;
+        }
+      } catch (_) {}
     })();
   </script>
 </body>
