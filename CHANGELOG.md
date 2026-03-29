@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-29
+
+### Added
+
+- Landing page with i18n support (10 languages) and GitHub Pages deployment
+- PKG installer with automatic quarantine removal (no Terminal needed)
+
+### Fixed
+
+- Harden CI security: Sparkle key via temp file, SHA-256 checksum verification
+- Move log file to ~/Library/Logs/Dictum/ (user-scoped, was /tmp)
+- Pin WhisperKit to exact version 0.17.0 (was floating branch: main)
+- Expand .gitignore for signing certificates and provisioning profiles
+
 ## [0.3.0] - 2026-03-29
 
 ### Added
@@ -56,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Nikoro/dictum/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Nikoro/dictum/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Nikoro/dictum/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Nikoro/dictum/compare/v0.1.0...v0.1.1
