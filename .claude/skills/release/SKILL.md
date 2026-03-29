@@ -129,7 +129,18 @@ Allow the user to request edits to the CHANGELOG content before proceeding.
    git tag -a vX.Y.Z -m "Release version X.Y.Z"
    ```
 
-## Step 9: Push to Repository
+## Step 9: Rebuild Locally
+
+Rebuild the app so the local build carries the new version number:
+
+```bash
+pkill -x Dictum || true
+xcodegen generate && xcodebuild -project Dictum.xcodeproj -scheme Dictum -configuration Release CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" 2>&1 | tail -5
+```
+
+If the build fails, warn the user but do **not** abort — the release commit and tag are already created. Proceed to push.
+
+## Step 10: Push to Repository
 
 **IMPORTANT**: Pushing the tag will trigger the GitHub Actions `release.yml` workflow, which builds the app and creates a GitHub Release with `Dictum.zip`.
 
