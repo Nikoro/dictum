@@ -5,8 +5,6 @@
   "hero.title": "Sprache zu Text,<br><span class=\"gradient\">vollständig lokal.</span>",
   "hero.subtitle": "Native macOS-Menüleisten-App für Sprachdiktat. Sprechen Sie, und der Text erscheint an der Cursorposition. Keine Cloud, kein Netzwerk, keine Daten verlassen Ihren Mac.",
   "hero.download": "Für macOS laden",
-  "hero.releases": "Versionshinweise",
-  "hero.free": "Kostenlos",
   "pipeline.mic": "Mikrofon",
   "pipeline.llm": "Lokales LLM",
   "pipeline.paste": "Auto-Einfügen",
@@ -32,5 +30,7 @@
   "install.step2": "Verschieben Sie <strong>Dictum.app</strong> nach <code>/Applications</code>",
   "install.step3": "Führen Sie <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> im Terminal aus",
   "install.step4": "Starten Sie Dictum und folgen Sie der Einrichtung: Berechtigungen erteilen, Sprachmodell laden und optional ein LLM",
-  "footer.copy": "Dictum — lokales Sprachdiktat für macOS"
+  "footer.copy": "Dictum — lokales Sprachdiktat für macOS",
+  "hero.source": "Quellcode ansehen",
+  "hero.opensource": "Open Source"
 }

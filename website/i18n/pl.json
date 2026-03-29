@@ -5,8 +5,6 @@
   "hero.title": "Mowa na tekst,<br><span class=\"gradient\">w pełni na urządzeniu.</span>",
   "hero.subtitle": "Natywna aplikacja macOS do dyktowania głosowego. Mów, a tekst pojawi się tam, gdzie jest kursor. Bez chmury, bez sieci, żadne dane nie opuszczają Twojego Maca.",
   "hero.download": "Pobierz na macOS",
-  "hero.releases": "Historia wersji",
-  "hero.free": "Za darmo",
   "pipeline.mic": "Mikrofon",
   "pipeline.llm": "Lokalny LLM",
   "pipeline.paste": "Auto-wklejanie",
@@ -32,5 +30,7 @@
   "install.step2": "Przenieś <strong>Dictum.app</strong> do <code>/Applications</code>",
   "install.step3": "Uruchom <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> w Terminalu",
   "install.step4": "Uruchom Dictum i przejdź przez konfigurację: nadaj uprawnienia, pobierz model mowy i opcjonalnie LLM",
-  "footer.copy": "Dictum — dyktowanie głosowe na macOS, w pełni na urządzeniu"
+  "footer.copy": "Dictum — dyktowanie głosowe na macOS, w pełni na urządzeniu",
+  "hero.source": "Kod źródłowy",
+  "hero.opensource": "Open Source"
 }

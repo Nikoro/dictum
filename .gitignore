@@ -1,9 +1,16 @@
 # Xcode
-xcuserdata/
+**/xcuserdata/
 *.xcscmblueprint
 *.xccheckout
 DerivedData/
 build/
+
+# Code signing
+*.xcconfig
+*.cer
+*.p12
+*.mobileprovision
+*.provisionprofile
 
 # Swift Package Manager
 .build/

@@ -5,8 +5,6 @@
   "hero.title": "语音转文字，<br><span class=\"gradient\">完全本地运行。</span>",
   "hero.subtitle": "原生macOS菜单栏语音听写应用。说话即可在光标位置显示文字。无需云端、无需网络，数据不会离开你的Mac。",
   "hero.download": "下载macOS版",
-  "hero.releases": "版本说明",
-  "hero.free": "免费",
   "pipeline.mic": "麦克风",
   "pipeline.llm": "本地LLM",
   "pipeline.paste": "自动粘贴",
@@ -32,5 +30,7 @@
   "install.step2": "将<strong>Dictum.app</strong>移动到<code>/Applications</code>",
   "install.step3": "在终端运行<code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code>",
   "install.step4": "启动Dictum并完成设置：授予权限、下载语音模型，可选下载LLM",
-  "footer.copy": "Dictum — macOS本地语音听写"
+  "footer.copy": "Dictum — macOS本地语音听写",
+  "hero.source": "查看源码",
+  "hero.opensource": "开源"
 }

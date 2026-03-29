@@ -5,7 +5,10 @@ import Combine
 
 func dlog(_ msg: String) {
     let line = "[\(Date())] \(msg)\n"
-    let path = "/tmp/dictum.log"
+    let logsDir = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Logs/Dictum")
+    try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
+    let path = logsDir.appendingPathComponent("dictum.log").path
     if let handle = FileHandle(forWritingAtPath: path) {
         handle.seekToEndOfFile()
         handle.write(line.data(using: .utf8)!)

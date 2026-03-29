@@ -15,7 +15,7 @@ Dictum — native macOS menu bar app (Swift/SwiftUI) for voice dictation in Poli
 
 ## Dependencies (SPM via XcodeGen)
 
-- `WhisperKit` — `branch: main` (floating pin, unstable API <1.0)
+- `WhisperKit` — `exactVersion: 0.17.0` (unstable API <1.0)
 - `mlx-swift-lm` 2.29.3 (exact pin, products: `MLXLLM`, `MLXLMCommon`; `mlx-swift` is a transitive dependency)
 
 ## Architecture
@@ -23,7 +23,7 @@ Dictum — native macOS menu bar app (Swift/SwiftUI) for voice dictation in Poli
 ### Layers
 
 - **DictumApp.swift** — `@main`, `NSApplicationDelegateAdaptor(AppDelegate.self)` → `AppDelegate` → `MenuBarManager`
-- **DictationPipeline.swift** — singleton orchestrator, connects all layers, handles hotkey callbacks; defines `dlog()` → `/tmp/dictum.log`
+- **DictationPipeline.swift** — singleton orchestrator, connects all layers, handles hotkey callbacks; defines `dlog()` → `~/Library/Logs/Dictum/dictum.log`
 - **Audio/** — `AudioRecorder` — AVAudioEngine, PCM Float32 16kHz mono, format conversion if hardware ≠ 16kHz
 - **Transcription/** — `TranscriptionEngine` (actor), `WhisperModelManager` — lazy model loading
 - **TextProcessing/** — `LLMProcessor` (actor) — MLX Swift, `ChatSession` API; `cleanText(rawText:prompt:context:)` — 4 prompt resolution paths: (1) context + `{{context}}` in prompt → both placeholders replaced; (2) context without `{{context}}` → hardcoded EN system prompt, user prompt skipped; (3) no context + `{{text}}` → placeholder replaced; (4) no context, no `{{text}}` → prompt as system message. Automatically strips Qwen3 `<think>...</think>` blocks. Generation params hardcoded: `maxTokens: 2048`, `temperature: 0.7`, `topP: 0.9`
@@ -73,7 +73,7 @@ Hotkey (GlobalHotkeyManager)
 
 ## Debugging
 
-- `dlog()` → `tail -f /tmp/dictum.log` — all pipeline logs (~45 callsites)
+- `dlog()` → `tail -f ~/Library/Logs/Dictum/dictum.log` — all pipeline logs (~45 callsites)
 
 ## Persistence (AppStorage keys)
 

@@ -5,8 +5,6 @@
   "hero.title": "Voice to text,<br><span class=\"gradient\">fully on-device.</span>",
   "hero.subtitle": "Native macOS menu bar app for voice dictation. Speak, and the text appears where your cursor is. No cloud, no network, no data leaves your Mac.",
   "hero.download": "Download for macOS",
-  "hero.releases": "Release Notes",
-  "hero.free": "Free",
   "pipeline.mic": "Microphone",
   "pipeline.llm": "Local LLM",
   "pipeline.paste": "Auto-paste",
@@ -32,5 +30,7 @@
   "install.step2": "Move <strong>Dictum.app</strong> to <code>/Applications</code>",
   "install.step3": "Run <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> in Terminal",
   "install.step4": "Launch Dictum and follow the onboarding: grant permissions, download a speech model, and optionally an LLM",
-  "footer.copy": "Dictum — on-device voice dictation for macOS"
+  "footer.copy": "Dictum — on-device voice dictation for macOS",
+  "hero.source": "View Source",
+  "hero.opensource": "Open Source"
 }

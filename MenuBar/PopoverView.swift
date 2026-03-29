@@ -1922,7 +1922,8 @@ private struct FooterSection: View {
         try? fm.removeItem(at: appCacheDir)
 
         // 3. Delete log file
-        try? fm.removeItem(atPath: "/tmp/dictum.log")
+        let logDir = home.appendingPathComponent("Library/Logs/Dictum")
+        try? fm.removeItem(at: logDir)
 
         // 4. Clear UserDefaults
         if let bundleId = Bundle.main.bundleIdentifier {

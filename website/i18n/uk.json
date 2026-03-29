@@ -5,8 +5,6 @@
   "hero.title": "Голос у текст,<br><span class=\"gradient\">повністю на пристрої.</span>",
   "hero.subtitle": "Нативний додаток macOS у рядку меню для голосової диктовки. Говоріть, і текст з’являється там, де курсор. Без хмари, без мережі, жодні дані не залишають ваш Mac.",
   "hero.download": "Завантажити для macOS",
-  "hero.releases": "Історія версій",
-  "hero.free": "Безкоштовно",
   "pipeline.mic": "Мікрофон",
   "pipeline.llm": "Локальна LLM",
   "pipeline.paste": "Авто-вставка",
@@ -32,5 +30,7 @@
   "install.step2": "Перемістіть <strong>Dictum.app</strong> до <code>/Applications</code>",
   "install.step3": "Виконайте <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> у Терміналі",
   "install.step4": "Запустіть Dictum і пройдіть налаштування: надайте дозволи, завантажте модель мови та опціонально LLM",
-  "footer.copy": "Dictum — локальна голосова диктовка для macOS"
+  "footer.copy": "Dictum — локальна голосова диктовка для macOS",
+  "hero.source": "Переглянути код",
+  "hero.opensource": "Open Source"
 }

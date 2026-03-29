@@ -5,8 +5,6 @@
   "hero.title": "音声をテキストに、<br><span class=\"gradient\">完全にデバイス上で。</span>",
   "hero.subtitle": "macOSネイティブのメニューバー音声ディクテーションアプリ。話すだけで、カーソル位置にテキストが表示されます。クラウドなし、ネットワークなし、データはMacから一切外に出ません。",
   "hero.download": "macOS版をダウンロード",
-  "hero.releases": "リリースノート",
-  "hero.free": "無料",
   "pipeline.mic": "マイク",
   "pipeline.llm": "ローカルLLM",
   "pipeline.paste": "自動ペースト",
@@ -32,5 +30,7 @@
   "install.step2": "<strong>Dictum.app</strong>を<code>/Applications</code>に移動",
   "install.step3": "ターミナルで<code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code>を実行",
   "install.step4": "Dictumを起動してセットアップに従う：権限を付与、音声モデルをダウンロード、オプションでLLMも",
-  "footer.copy": "Dictum — macOS用ローカル音声ディクテーション"
+  "footer.copy": "Dictum — macOS用ローカル音声ディクテーション",
+  "hero.source": "ソースを見る",
+  "hero.opensource": "オープンソース"
 }

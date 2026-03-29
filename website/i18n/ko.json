@@ -5,8 +5,6 @@
   "hero.title": "음성을 텍스트로,<br><span class=\"gradient\">완전히 기기에서.</span>",
   "hero.subtitle": "macOS 네이티브 메뉴 바 음성 받아쓰기 앱. 말하면 커서 위치에 텍스트가 나타납니다. 클라우드 없이, 네트워크 없이, 데이터가 Mac을 떠나지 않습니다.",
   "hero.download": "macOS용 다운로드",
-  "hero.releases": "릴리스 노트",
-  "hero.free": "무료",
   "pipeline.mic": "마이크",
   "pipeline.llm": "로컬 LLM",
   "pipeline.paste": "자동 붙여넣기",
@@ -32,5 +30,7 @@
   "install.step2": "<strong>Dictum.app</strong>을 <code>/Applications</code>로 이동",
   "install.step3": "터미널에서 <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> 실행",
   "install.step4": "Dictum을 실행하고 설정을 따르세요: 권한 부여, 음성 모델 다운로드, 선택적으로 LLM도",
-  "footer.copy": "Dictum — macOS용 로컬 음성 받아쓰기"
+  "footer.copy": "Dictum — macOS용 로컬 음성 받아쓰기",
+  "hero.source": "소스 보기",
+  "hero.opensource": "오픈소스"
 }

@@ -5,8 +5,6 @@
   "hero.title": "Voz a texto,<br><span class=\"gradient\">todo en el dispositivo.</span>",
   "hero.subtitle": "App nativa de macOS en la barra de menú para dictado por voz. Habla y el texto aparece donde está el cursor. Sin nube, sin red, ningún dato sale de tu Mac.",
   "hero.download": "Descargar para macOS",
-  "hero.releases": "Notas de versión",
-  "hero.free": "Gratis",
   "pipeline.mic": "Micrófono",
   "pipeline.llm": "LLM local",
   "pipeline.paste": "Auto-pegar",
@@ -32,5 +30,7 @@
   "install.step2": "Mueve <strong>Dictum.app</strong> a <code>/Applications</code>",
   "install.step3": "Ejecuta <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> en Terminal",
   "install.step4": "Abre Dictum y sigue la configuración: otorga permisos, descarga un modelo de voz y opcionalmente un LLM",
-  "footer.copy": "Dictum — dictado por voz en macOS, todo en el dispositivo"
+  "footer.copy": "Dictum — dictado por voz en macOS, todo en el dispositivo",
+  "hero.source": "Ver código",
+  "hero.opensource": "Open Source"
 }
