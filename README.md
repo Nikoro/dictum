@@ -26,14 +26,15 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 | Chip | Apple Silicon (M1+) |
 | RAM | 16 GB (32 GB recommended) |
 | Disk | ~5 GB for models |
-| Xcode | 26.0+ |
+| Xcode | 26.0+ (build only) |
 
 ## Stack
 
-- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) — large-v3-turbo, CoreML on Neural Engine
-- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) — Qwen3.5 4B 4-bit (default)
+- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.17.0 — large-v3-turbo, CoreML on Neural Engine
+- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 2.29.3 — Qwen3.5 4B 4-bit (default), any mlx-community model
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API
+- **Updates:** [Sparkle](https://github.com/sparkle-project/Sparkle) 2.7+ — automatic updates from GitHub Releases
 
 ## Build
 
@@ -52,7 +53,7 @@ open Dictum.xcodeproj
 
 ## Permissions
 
-On first launch:
+On first launch, the onboarding flow guides you through:
 
 1. **Microphone** — system prompts automatically
 2. **Accessibility** — manual: System Settings → Privacy & Security → Accessibility → add Dictum
@@ -69,7 +70,7 @@ On first launch:
 
 | Icon | State |
 |------|-------|
-| Template mic.fill | Idle / Transcribing / Processing / Done |
+| Template mic.fill | Idle / Transcribing / Processing |
 | Custom (mic + red dot) | Recording |
 
 ## Features
@@ -78,17 +79,77 @@ On first launch:
 - **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
 - **Context-aware dictation** — select text before dictating to use it as LLM context; result is copied to clipboard instead of auto-pasted
 - **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
+- **General prompt toggle** — enable/disable the default system prompt independently
 - **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
 - **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
 - **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
 - **Hold / Toggle modes** — hold-to-record or press-to-start/press-to-stop
 - **Onboarding** — guided setup: permissions → STT model download → optional LLM download
+- **Auto-updates** — Sparkle checks GitHub Releases on launch and every 24h
+- **Launch at login** — via SMAppService
+- **Uninstall** — removes models, cache, settings, and moves app to Trash
 
 ## Architecture
 
-Hotkey → optional selected text capture → audio recording → WhisperKit STT → optional LLM cleanup → auto-paste (or clipboard in context mode). Settings and onboarding live in a menu bar popover, with a floating pill at the cursor during recording.
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Menu Bar                                                           │
+│  ┌──────────────┐  ┌──────────────────────────────────────────────┐ │
+│  │ MenuBarIcon   │  │ PopoverView                                 │ │
+│  │ (NSStatusItem)│  │  ┌─────────┐ ┌──────────┐ ┌─────────────┐  │ │
+│  │               │  │  │ Setup   │ │ Settings │ │ Model       │  │ │
+│  │  idle ○       │  │  │ View    │ │ (hotkey, │ │ Browser     │  │ │
+│  │  rec  ●       │  │  │         │ │  mode,   │ │ (HF API)    │  │ │
+│  │               │  │  │ perms → │ │  prompts)│ │             │  │ │
+│  └──────┬───────┘  │  │ STT  → │ │          │ │  search     │  │ │
+│         │          │  │ LLM    │ │          │ │  download   │  │ │
+│         ▼          │  └─────────┘ └──────────┘ └─────────────┘  │ │
+│    NSPopover       └──────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
 
-See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer architecture reference.
+┌─────────────────────────────────────────────────────────────────────┐
+│  Dictation Pipeline (singleton orchestrator)                        │
+│                                                                     │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
+│  │ Hotkey   │───▶│ Audio    │───▶│ Whisper  │───▶│ LLM         │  │
+│  │ Manager  │    │ Recorder │    │ Kit STT  │    │ Processor   │  │
+│  │          │    │          │    │          │    │ (optional)  │  │
+│  │ CGEvent  │    │ AVAudio  │    │ CoreML / │    │ MLX Swift / │  │
+│  │ tap      │    │ Engine   │    │ Neural   │    │ Metal GPU   │  │
+│  │          │    │ 16kHz    │    │ Engine   │    │             │  │
+│  └────┬─────┘    └──────────┘    └──────────┘    └──────┬───────┘  │
+│       │                                                  │          │
+│       ▼                                                  ▼          │
+│  ┌──────────┐                                    ┌──────────────┐  │
+│  │ Selected │                                    │ Paste        │  │
+│  │ Text     │ ─ ─ context ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│ Manager      │  │
+│  │ Reader   │                                    │              │  │
+│  │ (Cmd+C)  │                                    │ normal: ⌘V   │  │
+│  └──────────┘                                    │ context: 📋  │  │
+│                                                  └──────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  Floating Indicator                                                 │
+│  ┌───────────────────────────────────────┐                          │
+│  │ NSPanel (pill at cursor)              │                          │
+│  │  AX API → caret position              │                          │
+│  │  fallback → mouse position            │                          │
+│  │  shows: state + audio level           │                          │
+│  └───────────────────────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  Settings & Persistence                                             │
+│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
+│  │ AppSettings  │  │ Permissions      │  │ Sparkle               │ │
+│  │ (@AppStorage)│  │ Manager          │  │ (auto-updates from    │ │
+│  │              │  │ (AX + Mic)       │  │  GitHub Releases)     │ │
+│  └──────────────┘  └──────────────────┘  └───────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer code reference.
 
 ## Download
 
@@ -98,15 +159,14 @@ Grab `Dictum.zip` from the [latest release](https://github.com/Nikoro/dictum/rel
 xattr -dr com.apple.quarantine /Applications/Dictum.app
 ```
 
+Or visit the [landing page](https://nikoro.github.io/dictum/) for install instructions.
+
 ## Known limitations
 
-- WhisperKit API is unstable (pre-1.0) — pinned to exact version, may need updates
+- WhisperKit API is unstable (pre-1.0) — pinned to exact version 0.17.0
 - First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
-- RAM usage: WhisperKit ~3 GB + LLM ~2.5 GB ≈ 5.5 GB unified memory
+- RAM usage: WhisperKit ~3 GB + LLM ~2.5 GB ~ 5.5 GB unified memory
 - Whisper language hardcoded to Polish (`"pl"`) — no UI to change
 - Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
-
-## Links
-
-- [FINDINGS.md](FINDINGS.md) — critical discoveries and workarounds from dev sessions
-- [CLAUDE.md](CLAUDE.md) — detailed architecture reference and conventions
+- LLM output capped at 2048 tokens — long dictations may be silently truncated
+- Launch at login requires app installed in `/Applications` (fails from DerivedData)
