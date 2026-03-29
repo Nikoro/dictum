@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-03-29
+
+### Changed
+
+- Revert PKG installer, restore ZIP distribution with xattr command
+
+### Fixed
+
+- Point download link directly to Dictum.zip
+
 ## [0.4.0] - 2026-03-29
 
 ### Added
@@ -69,7 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Nikoro/dictum/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Nikoro/dictum/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Nikoro/dictum/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Nikoro/dictum/compare/v0.1.1...v0.2.0
