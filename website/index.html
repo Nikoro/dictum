@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dictum — Voice Dictation for macOS</title>
+  <meta name="description" content="Native macOS menu bar app for voice dictation. Speech to text, fully on-device. No cloud, no network.">
+  <meta property="og:title" content="Dictum — Voice Dictation for macOS">
+  <meta property="og:description" content="Native menu bar app for voice dictation. WhisperKit STT + local LLM cleanup. 100% on-device.">
+  <meta property="og:image" content="https://nikoro.github.io/dictum/icon.png">
+  <meta property="og:url" content="https://nikoro.github.io/dictum/">
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    :root {
+      --purple: #8B5CF6;
+      --purple-dark: #7C3AED;
+      --bg: #0A0A0B;
+      --surface: #141416;
+      --surface-hover: #1C1C20;
+      --border: #27272A;
+      --text: #FAFAFA;
+      --text-muted: #A1A1AA;
+      --text-dim: #71717A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Grain texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Nav */
+    nav {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-brand img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .nav-brand span {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-links .gh-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-links .gh-link svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Hero */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+
+    .hero-icon {
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      margin-bottom: 32px;
+      box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.15), 0 8px 40px rgba(139, 92, 246, 0.1);
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--purple), #C084FC);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 480px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: var(--purple);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+
+    .btn-download:hover {
+      background: var(--purple-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-download svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-dim);
+    }
+
+    .hero-meta {
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .hero-meta span + span::before {
+      content: '\00b7';
+      margin: 0 8px;
+    }
+
+    /* Pipeline */
+    .pipeline {
+      padding: 48px 0;
+    }
+
+    .pipeline-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 20px 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow-x: auto;
+    }
+
+    .pipeline-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .pipeline-step .icon {
+      font-size: 18px;
+    }
+
+    .pipeline-arrow {
+      margin: 0 16px;
+      color: var(--text-dim);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* Features */
+    .features {
+      padding: 80px 0;
+    }
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .feature-card {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--text-dim);
+    }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 14px;
+    }
+
+    .feature-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* Requirements */
+    .requirements {
+      padding: 60px 0;
+    }
+
+    .req-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .req-card {
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .req-card .label {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .req-card .value {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    /* Install */
+    .install {
+      padding: 60px 0;
+    }
+
+    .install-box {
+      padding: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .install-box h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .install-box p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .install-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .install-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      background: var(--purple);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text-muted);
+    }
+
+    .step-text code {
+      background: rgba(139, 92, 246, 0.12);
+      color: var(--purple);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 13px;
+      font-family: 'SF Mono', Menlo, monospace;
+    }
+
+    /* Footer */
+    footer {
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    footer .copy {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    footer .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    footer .footer-links a {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    footer .footer-links a:hover { color: var(--text); }
+
+    /* Lang switcher */
+    .lang-switch select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--surface) url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2371717A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 28px 6px 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .lang-switch select:hover {
+      border-color: var(--text-dim);
+    }
+
+    .lang-switch select:focus {
+      outline: none;
+      border-color: var(--purple);
+    }
+
+    .lang-switch select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero { padding: 64px 0 48px; }
+      .hero h1 { font-size: 36px; }
+      .hero .subtitle { font-size: 16px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .req-grid { grid-template-columns: repeat(2, 1fr); }
+      .pipeline-bar { padding: 16px 20px; }
+      .pipeline-step { font-size: 12px; }
+      .pipeline-arrow { margin: 0 8px; }
+      .nav-links .hide-mobile { display: none; }
+      footer .container { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-brand">
+        <img src="icon.png" alt="Dictum">
+        <span>Dictum</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features" class="hide-mobile" data-i18n="nav.features">Features</a>
+        <a href="#install" class="hide-mobile" data-i18n="nav.install">Install</a>
+        <a href="https://github.com/Nikoro/dictum/releases" class="gh-link">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>Releases</span>
+        </a>
+        <div class="lang-switch"></div>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="container">
+      <img src="icon.png" alt="Dictum" class="hero-icon">
+      <h1 data-i18n-html="hero.title">Voice to text,<br><span class="gradient">fully on-device.</span></h1>
+      <p class="subtitle" data-i18n="hero.subtitle">
+        Native macOS menu bar app for voice dictation. Speak, and the text appears where your cursor is. No cloud, no network, no data leaves your Mac.
+      </p>
+      <div class="hero-actions">
+        <a href="https://github.com/Nikoro/dictum/releases/latest" class="btn-download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="hero.download">Download for macOS</span>
+        </a>
+        <a href="https://github.com/Nikoro/dictum/releases" class="btn-secondary">
+          <span data-i18n="hero.releases">Release Notes</span>
+        </a>
+      </div>
+      <div class="hero-meta">
+        <span>macOS 26+ (Tahoe)</span>
+        <span>Apple Silicon</span>
+        <span data-i18n="hero.free">Free</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="pipeline">
+    <div class="container">
+      <div class="pipeline-bar">
+        <div class="pipeline-step"><span class="icon">🎙</span> <span data-i18n="pipeline.mic">Microphone</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step"><span class="icon">🧠</span> WhisperKit STT</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step"><span class="icon">✨</span> <span data-i18n="pipeline.llm">Local LLM</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step"><span class="icon">📋</span> <span data-i18n="pipeline.paste">Auto-paste</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-label" data-i18n="features.label">Features</div>
+      <h2 class="section-title" data-i18n="features.title">Everything runs on your Mac.</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3 data-i18n="features.ondevice.title">100% On-Device</h3>
+          <p data-i18n="features.ondevice.desc">WhisperKit runs on the Neural Engine, LLM runs on Metal via MLX. No data ever leaves your Mac.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⌨️</div>
+          <h3 data-i18n="features.paste.title">Auto-Paste</h3>
+          <p data-i18n="features.paste.desc">Transcribed text is automatically pasted wherever your cursor is. No copy-paste needed.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧹</div>
+          <h3 data-i18n="features.cleanup.title">LLM Cleanup</h3>
+          <p data-i18n="features.cleanup.desc">Optional local LLM pass to fix punctuation, grammar, and formatting before pasting.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3 data-i18n="features.context.title">Context-Aware</h3>
+          <p data-i18n="features.context.desc">Select text before dictating to give the LLM context. Per-app prompts for different workflows.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3 data-i18n="features.indicator.title">Floating Indicator</h3>
+          <p data-i18n="features.indicator.desc">Translucent pill at your text cursor shows recording state and audio level in real time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3 data-i18n="features.menubar.title">Menu Bar Native</h3>
+          <p data-i18n="features.menubar.desc">Lives in your menu bar. Configurable hotkey, hold or toggle mode. Stays out of the way.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="requirements">
+    <div class="container">
+      <div class="section-label" data-i18n="req.label">Requirements</div>
+      <h2 class="section-title" data-i18n="req.title">What you need.</h2>
+      <div class="req-grid">
+        <div class="req-card">
+          <div class="label">macOS</div>
+          <div class="value">26.0+ (Tahoe)</div>
+        </div>
+        <div class="req-card">
+          <div class="label">Chip</div>
+          <div class="value">Apple Silicon (M1+)</div>
+        </div>
+        <div class="req-card">
+          <div class="label">RAM</div>
+          <div class="value">16 GB+</div>
+        </div>
+        <div class="req-card">
+          <div class="label">Disk</div>
+          <div class="value">~65 MB + models</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="install" id="install">
+    <div class="container">
+      <div class="install-box">
+        <h3 data-i18n="install.title">Installation</h3>
+        <p data-i18n="install.desc">Download the latest release, unzip, and drop into Applications. The app is ad-hoc signed (not notarized), so you'll need to clear the quarantine flag on first launch.</p>
+        <div class="install-steps">
+          <div class="install-step">
+            <span class="step-num">1</span>
+            <span class="step-text" data-i18n-html="install.step1">Download <strong>Dictum.zip</strong> from the button above and extract it</span>
+          </div>
+          <div class="install-step">
+            <span class="step-num">2</span>
+            <span class="step-text" data-i18n-html="install.step2">Move <strong>Dictum.app</strong> to <code>/Applications</code></span>
+          </div>
+          <div class="install-step">
+            <span class="step-num">3</span>
+            <span class="step-text" data-i18n-html="install.step3">Run <code>xattr -dr com.apple.quarantine /Applications/Dictum.app</code> in Terminal</span>
+          </div>
+          <div class="install-step">
+            <span class="step-num">4</span>
+            <span class="step-text" data-i18n="install.step4">Launch Dictum and follow the onboarding: grant permissions, download a speech model, and optionally an LLM</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <span class="copy" data-i18n-html="footer.copy">Dictum &mdash; on-device voice dictation for macOS</span>
+      <div class="footer-links">
+        <a href="https://github.com/Nikoro/dictum/releases">Releases</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- i18n: add new language by creating i18n/<code>.json and adding code to langs array -->
+  <script>
+    const langs = [
+      { code: 'en', label: 'English' },
+      { code: 'pl', label: 'Polski' },
+      { code: 'de', label: 'Deutsch' },
+      { code: 'es', label: 'Espa\u00f1ol' },
+      { code: 'fr', label: 'Fran\u00e7ais' },
+      { code: 'pt', label: 'Portugu\u00eas' },
+      { code: 'uk', label: '\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430' },
+      { code: 'ja', label: '\u65e5\u672c\u8a9e' },
+      { code: 'zh', label: '\u4e2d\u6587' },
+      { code: 'ko', label: '\ud55c\uad6d\uc5b4' }
+    ];
+    const cache = {};
+
+    async function loadLang(code) {
+      if (cache[code]) return cache[code];
+      const res = await fetch(`i18n/${code}.json`);
+      cache[code] = await res.json();
+      return cache[code];
+    }
+
+    async function setLang(code) {
+      const strings = await loadLang(code);
+      document.documentElement.lang = code;
+      localStorage.setItem('dictum-lang', code);
+
+      const select = document.querySelector('.lang-switch select');
+      if (select) select.value = code;
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (strings[key]) el.textContent = strings[key];
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const key = el.getAttribute('data-i18n-html');
+        if (strings[key]) el.innerHTML = strings[key];
+      });
+
+      if (strings['meta.title']) document.title = strings['meta.title'];
+    }
+
+    // Build switcher dropdown
+    (function initSwitcher() {
+      const container = document.querySelector('.lang-switch');
+      const select = document.createElement('select');
+      select.setAttribute('aria-label', 'Language');
+      langs.forEach(({ code, label }) => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = label;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', (e) => setLang(e.target.value));
+      container.appendChild(select);
+
+      const saved = localStorage.getItem('dictum-lang');
+      const browserLang = navigator.language.split('-')[0];
+      const initial = saved || (langs.some(l => l.code === browserLang) ? browserLang : 'en');
+
+      select.value = initial;
+      if (initial !== 'en') setLang(initial);
+    })();
+  </script>
+</body>
+</html>
