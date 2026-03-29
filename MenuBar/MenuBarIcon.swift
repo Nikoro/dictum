@@ -89,7 +89,7 @@ enum MenuBarIcon {
     }
 
     /// Rounded rectangle with mic cutout (template — adapts to light/dark).
-    static func microphone(state: AppState) -> NSImage {
+    static func microphone() -> NSImage {
         let image = NSImage(size: iconSize, flipped: false) { rect in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             drawRoundedRectWithMicCutout(in: ctx, size: iconSize, fillColor: NSColor.black.cgColor)

@@ -4,6 +4,11 @@ import CoreGraphics
 final class PasteManager {
     static let shared = PasteManager()
 
+    /// Delay before simulating Cmd+V to ensure clipboard is ready
+    private let clipboardSettleDelay: TimeInterval = 0.15
+    /// Delay before restoring original clipboard after paste is processed by target app
+    private let clipboardRestoreDelay: TimeInterval = 0.5
+
     private init() {}
 
     func pasteText(_ text: String) {
@@ -24,11 +29,12 @@ final class PasteManager {
         pasteboard.setString(text, forType: .string)
 
         // 3. Simulate Cmd+V after short delay (ensure clipboard is ready)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + clipboardSettleDelay) { [weak self] in
+            guard let self else { return }
             self.simulatePaste()
 
             // 4. Restore clipboard after paste completes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.clipboardRestoreDelay) {
                 if !savedContents.isEmpty {
                     pasteboard.clearContents()
                     for (type, data) in savedContents {

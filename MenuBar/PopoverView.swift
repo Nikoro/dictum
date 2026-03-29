@@ -2,10 +2,22 @@ import SwiftUI
 import AVFoundation
 import ServiceManagement
 
+private let appVersion: String = appVersion
+
+private func appIcon(forBundleId bundleId: String) -> NSImage? {
+    guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return nil }
+    return NSWorkspace.shared.icon(forFile: url.path)
+}
+
+private func ghostCompletionFor(_ text: String) -> String? {
+    if text.hasSuffix("{{") { return "text}}" }
+    return nil
+}
+
 struct PopoverView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var pipeline: DictationPipeline
-    @StateObject private var permissions = PermissionsManager.shared
+    @ObservedObject private var permissions = PermissionsManager.shared
 
     private var isSetupComplete: Bool {
         permissions.allGranted && pipeline.whisperModelManager.downloadedModelIds.contains(settings.sttModelId)
@@ -94,14 +106,15 @@ private struct SetupView: View {
     @ObservedObject var whisperManager: WhisperModelManager
     @EnvironmentObject var settings: AppSettings
 
-    @State private var isDownloadingLLM = false
-    @State private var downloadingLLMId: String?
-    @State private var llmDownloadProgress: Double = 0
-    @State private var llmDownloadTask: Task<Void, Never>?
+    @EnvironmentObject var pipeline: DictationPipeline
     @State private var downloadedLLMId: String? = UserDefaults.standard.string(forKey: "llmDownloadedModelId")
 
     private var permissionsDone: Bool { permissions.allGranted }
     private var sttDone: Bool { whisperManager.downloadedModelIds.contains(settings.sttModelId) }
+    private var llmDone: Bool {
+        guard let id = downloadedLLMId else { return false }
+        return pipeline.downloadedModelsManager.downloadedModels.contains { $0.id == id }
+    }
 
     var body: some View {
         ScrollView {
@@ -198,7 +211,7 @@ private struct SetupView: View {
                 SetupStepHeader(
                     number: 3,
                     title: String(localized: "setup.step3.title", defaultValue: "LLM text processing (optional)"),
-                    isDone: downloadedLLMId != nil
+                    isDone: llmDone
                 )
 
                 if sttDone {
@@ -208,44 +221,28 @@ private struct SetupView: View {
                                 model: model,
                                 isSelected: settings.llmModelId == model.id,
                                 isDownloaded: downloadedLLMId == model.id,
-                                isDownloading: downloadingLLMId == model.id,
-                                downloadProgress: downloadingLLMId == model.id ? llmDownloadProgress : 0,
+                                isDownloading: pipeline.llmDownloadingModelId == model.id,
+                                downloadProgress: pipeline.llmDownloadingModelId == model.id ? pipeline.llmDownloadProgress : 0,
                                 onSelect: {
                                     settings.llmModelId = model.id
                                 },
                                 onDownload: {
                                     settings.llmModelId = model.id
-                                    downloadingLLMId = model.id
-                                    isDownloadingLLM = true
-                                    llmDownloadProgress = 0
-                                    llmDownloadTask = Task {
-                                        do {
-                                            try await LLMProcessor.shared.loadModel(model.id) { progress in
-                                                Task { @MainActor in
-                                                    llmDownloadProgress = progress.fractionCompleted
-                                                }
-                                            }
+                                    pipeline.downloadLLMModel(model.id)
+                                    // Track completion for setup step
+                                    Task {
+                                        // Wait for download to finish
+                                        while pipeline.llmIsDownloading { try? await Task.sleep(for: .milliseconds(200)) }
+                                        if pipeline.llmDownloadError == nil {
                                             downloadedLLMId = model.id
                                             settings.llmCleanupEnabled = true
                                             UserDefaults.standard.set(model.id, forKey: "llmDownloadedModelId")
-                                            DictationPipeline.shared.warmUpModels()
-                                        } catch {
-                                            if !Task.isCancelled {
-                                                dlog("[Setup] LLM download failed: \(error)")
-                                            }
+                                            pipeline.warmUpModels()
                                         }
-                                        isDownloadingLLM = false
-                                        downloadingLLMId = nil
-                                        llmDownloadProgress = 0
-                                        llmDownloadTask = nil
                                     }
                                 },
                                 onCancel: {
-                                    llmDownloadTask?.cancel()
-                                    llmDownloadTask = nil
-                                    isDownloadingLLM = false
-                                    downloadingLLMId = nil
-                                    llmDownloadProgress = 0
+                                    pipeline.cancelLLMDownload()
                                 }
                             )
                         }
@@ -274,14 +271,14 @@ private struct SetupView: View {
                         Image(systemName: "power")
                     }
                     .buttonStyle(.plain)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .font(.caption)
 
                     Spacer()
 
-                    Text("Wersja: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                    Text("Wersja: \(appVersion)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     Spacer()
 
@@ -364,7 +361,7 @@ private struct SetupLLMRow: View {
                             .font(.caption)
                     } else {
                         Image(systemName: "arrow.down.circle")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color("AccentColor"))
                             .font(.body)
                     }
                 }
@@ -432,9 +429,7 @@ private struct SetupModelRow: View {
     let onDownload: () -> Void
     var onCancel: (() -> Void)?
 
-    private var isRecommended: Bool {
-        model.id == "openai_whisper-large-v3_turbo"
-    }
+    private var isRecommended: Bool { model.isRecommended }
 
     var body: some View {
         Button(action: {
@@ -489,7 +484,7 @@ private struct SetupModelRow: View {
                             .font(.caption)
                     } else {
                         Image(systemName: "arrow.down.circle")
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color("AccentColor"))
                             .font(.body)
                     }
                 }
@@ -619,69 +614,9 @@ private struct HeaderSection: View {
         case .transcribing: return .yellow
         case .processingLLM: return .orange
         case .done: return .green
-        case .error: return .red
+        case .error: return .yellow
         default: return .secondary
         }
-    }
-}
-
-private struct StatusDot: View {
-    let state: AppState
-
-    var body: some View {
-        Circle()
-            .fill(color)
-            .frame(width: 10, height: 10)
-            .overlay(
-                Circle()
-                    .fill(color.opacity(isPulsing ? 0.5 : 0))
-                    .frame(width: 18, height: 18)
-                    .animation(isPulsing ? .easeInOut(duration: 0.6).repeatForever() : .default, value: isPulsing)
-            )
-    }
-
-    private var color: Color {
-        switch state {
-        case .idle: return .gray
-        case .warmingUp: return .blue
-        case .recording: return .red
-        case .transcribing: return .yellow
-        case .processingLLM: return .orange
-        case .done: return .green
-        case .error: return .red
-        }
-    }
-
-    private var isPulsing: Bool {
-        state == .recording
-    }
-}
-
-// MARK: - Prompt
-
-private struct PromptSection: View {
-    @EnvironmentObject var settings: AppSettings
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "section.prompt", defaultValue: "LLM Prompt"))
-                .font(.headline)
-
-            TextEditor(text: $settings.llmPrompt)
-                .font(.system(.body, design: .monospaced))
-                .frame(minHeight: 100, maxHeight: 140)
-                .scrollContentBackground(.hidden)
-                .padding(8)
-                .background(.quaternary)
-                .cornerRadius(8)
-
-            Button(String(localized: "section.prompt.reset", defaultValue: "Reset to default")) {
-                settings.resetPrompt()
-            }
-            .buttonStyle(.link)
-            .font(.caption)
-        }
-        .padding()
     }
 }
 
@@ -709,6 +644,7 @@ private struct LaunchAtLoginToggle: View {
                     launchAtLogin = SMAppService.mainApp.status == .enabled
                 }
             }
+            .onAppear { launchAtLogin = SMAppService.mainApp.status == .enabled }
     }
 }
 
@@ -758,11 +694,11 @@ private struct RecordingSettingsSection: View {
         }
 
         var parts: [String] = []
-        let modifiers = settings.hotkeyModifiers
-        if modifiers & 1048576 != 0 { parts.append("\u{2318}") }
-        if modifiers & 524288 != 0 { parts.append("\u{2325}") }
-        if modifiers & 262144 != 0 { parts.append("\u{2303}") }
-        if modifiers & 131072 != 0 { parts.append("\u{21E7}") }
+        let mods = NSEvent.ModifierFlags(rawValue: UInt(settings.hotkeyModifiers))
+        if mods.contains(.command) { parts.append("\u{2318}") }
+        if mods.contains(.option) { parts.append("\u{2325}") }
+        if mods.contains(.control) { parts.append("\u{2303}") }
+        if mods.contains(.shift) { parts.append("\u{21E7}") }
 
         let keyName: String
         switch settings.hotkeyKeyCode {
@@ -856,6 +792,10 @@ private final class HotkeyRecorderModel: ObservableObject {
     deinit {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
+        // Re-register hotkey if we were recording when dismissed
+        Task { @MainActor in
+            DictationPipeline.shared.setupHotkey()
+        }
     }
 }
 
@@ -877,7 +817,7 @@ private struct HotkeyRecorderButton: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(recorder.isRecording ? Color("AccentColor").opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
-                .cornerRadius(4)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
                 .font(.system(.body, design: .monospaced))
                 .overlay(
                     RoundedRectangle(cornerRadius: 4)
@@ -912,6 +852,7 @@ private enum KeyCodeMapping {
 // MARK: - STT Model
 
 private struct STTModelSection: View {
+    @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var pipeline: DictationPipeline
     @State private var isExpanded = false
 
@@ -944,12 +885,12 @@ private struct STTModelSection: View {
                             downloadProgress: 0
                         ) {
                             pipeline.whisperModelManager.activeModelId = model.id
-                            AppSettings.shared.sttModelId = model.id
+                            settings.sttModelId = model.id
                         }
                     }
                 }
                 .background(.quaternary)
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
             // Expandable list of available models
@@ -961,14 +902,14 @@ private struct STTModelSection: View {
                 } label: {
                     HStack {
                         Image(systemName: "arrow.down.circle")
-                            .foregroundColor(Color("AccentColor"))
+                            .foregroundStyle(Color("AccentColor"))
                         Text(String(localized: "section.stt.more", defaultValue: "More models (\(availableModels.count))"))
                             .font(.subheadline)
-                            .foregroundColor(Color("AccentColor"))
+                            .foregroundStyle(Color("AccentColor"))
                         Spacer()
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .padding(8)
                 }
@@ -991,7 +932,7 @@ private struct STTModelSection: View {
                         }
                     }
                     .background(.quaternary)
-                    .cornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -1014,11 +955,11 @@ private struct WhisperModelRow: View {
                 HStack {
                     if isActive {
                         Image(systemName: "circle.fill")
-                            .foregroundColor(Color("AccentColor"))
+                            .foregroundStyle(Color("AccentColor"))
                             .font(.caption2)
                     } else {
                         Image(systemName: "circle")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .font(.caption2)
                     }
 
@@ -1027,7 +968,7 @@ private struct WhisperModelRow: View {
                             .fontWeight(isActive ? .semibold : .regular)
                         Text(model.description)
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
 
@@ -1035,23 +976,23 @@ private struct WhisperModelRow: View {
 
                     Text(model.formattedSize)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     if isDownloading {
                         Text("\(Int(downloadProgress * 100))%")
                             .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .frame(width: 36, alignment: .trailing)
                         Button {
                             onCancel?()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
                     } else if !isDownloaded {
                         Image(systemName: "arrow.down.circle")
-                            .foregroundColor(.white)
+                            .foregroundStyle(Color("AccentColor"))
                             .font(.body)
                     }
                 }
@@ -1085,7 +1026,7 @@ private struct STTLanguageSection: View {
             HStack {
                 Text(String(localized: "section.stt.language.general", defaultValue: "Ogólny"))
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Picker("", selection: Binding(
                     get: { settings.sttLanguage },
@@ -1103,7 +1044,7 @@ private struct STTLanguageSection: View {
             HStack {
                 Text(String(localized: "section.stt.language.perapp", defaultValue: "Język per aplikacja"))
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Button {
                     showingAppPicker = true
@@ -1117,7 +1058,7 @@ private struct STTLanguageSection: View {
             if settings.appSTTLanguages.isEmpty {
                 Text(String(localized: "section.stt.language.perapp.empty", defaultValue: "Brak — używany będzie język ogólny"))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             ForEach(settings.appSTTLanguages) { appLang in
@@ -1126,8 +1067,16 @@ private struct STTLanguageSection: View {
         }
         .padding()
         .sheet(isPresented: $showingAppPicker) {
-            AppSTTLanguagePickerSheet()
-                .environmentObject(settings)
+            InstalledAppPickerSheet(
+                title: String(localized: "section.stt.language.picker.title", defaultValue: "Wybierz aplikację"),
+                excludedBundleIds: Set(settings.appSTTLanguages.map(\.bundleId))
+            ) { bundleId, appName in
+                settings.addAppSTTLanguage(AppSTTLanguage(
+                    bundleId: bundleId,
+                    appName: appName,
+                    language: .auto
+                ))
+            }
         }
     }
 }
@@ -1150,7 +1099,7 @@ private struct AppSTTLanguageRow: View {
             .labelsHidden()
             .controlSize(.mini)
 
-            if let icon = appIcon(for: appLang.bundleId) {
+            if let icon = appIcon(forBundleId: appLang.bundleId) {
                 Image(nsImage: icon)
                     .resizable()
                     .interpolation(.high)
@@ -1159,12 +1108,12 @@ private struct AppSTTLanguageRow: View {
             } else {
                 Image(systemName: "app.fill")
                     .frame(width: 18, height: 18)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             Text(cleanAppName)
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(appLang.enabled ? .primary : .secondary)
+                .foregroundStyle(appLang.enabled ? .primary : .secondary)
 
             Spacer()
 
@@ -1184,31 +1133,29 @@ private struct AppSTTLanguageRow: View {
                 settings.removeAppSTTLanguage(bundleId: appLang.bundleId)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .font(.caption)
             }
             .buttonStyle(.plain)
         }
         .padding(8)
         .background(.quaternary.opacity(0.5))
-        .cornerRadius(8)
-    }
-
-    private func appIcon(for bundleId: String) -> NSImage? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return nil }
-        return NSWorkspace.shared.icon(forFile: url.path)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
-private struct AppSTTLanguagePickerSheet: View {
-    @EnvironmentObject var settings: AppSettings
+private struct InstalledAppPickerSheet: View {
     @Environment(\.dismiss) var dismiss
+    let title: String
+    let excludedBundleIds: Set<String>
+    let onSelect: (_ bundleId: String, _ appName: String) -> Void
+
     @State private var searchText = ""
     @State private var apps: [(name: String, bundleId: String, icon: NSImage)] = []
+    @State private var isLoading = true
 
-    var filteredApps: [(name: String, bundleId: String, icon: NSImage)] {
-        let existing = Set(settings.appSTTLanguages.map(\.bundleId))
-        let available = apps.filter { !existing.contains($0.bundleId) }
+    private var filteredApps: [(name: String, bundleId: String, icon: NSImage)] {
+        let available = apps.filter { !excludedBundleIds.contains($0.bundleId) }
         if searchText.isEmpty { return available }
         return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
@@ -1216,14 +1163,12 @@ private struct AppSTTLanguagePickerSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(String(localized: "section.stt.language.picker.title", defaultValue: "Wybierz aplikację"))
+                Text(title)
                     .font(.headline)
                 Spacer()
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -1231,65 +1176,99 @@ private struct AppSTTLanguagePickerSheet: View {
 
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                TextField(String(localized: "section.stt.language.picker.search", defaultValue: "Szukaj aplikacji..."), text: $searchText)
+                    .foregroundStyle(.secondary)
+                TextField(String(localized: "picker.search", defaultValue: "Szukaj aplikacji..."), text: $searchText)
                     .textFieldStyle(.plain)
             }
             .padding(8)
             .background(.quaternary)
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal)
 
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(filteredApps, id: \.bundleId) { app in
-                        Button {
-                            settings.addAppSTTLanguage(AppSTTLanguage(
-                                bundleId: app.bundleId,
-                                appName: app.name.replacingOccurrences(of: ".app", with: ""),
-                                language: .auto
-                            ))
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(nsImage: app.icon)
-                                    .resizable()
-                                    .interpolation(.high)
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 24, height: 24)
-                                Text(app.name)
-                                    .font(.body)
-                                Spacer()
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 100)
+            } else if filteredApps.isEmpty {
+                Text(searchText.isEmpty
+                    ? String(localized: "picker.empty", defaultValue: "No apps found")
+                    : String(localized: "picker.noResults", defaultValue: "No results"))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 60)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 2) {
+                        ForEach(filteredApps, id: \.bundleId) { app in
+                            Button {
+                                onSelect(app.bundleId, app.name)
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(nsImage: app.icon)
+                                        .resizable()
+                                        .interpolation(.high)
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 24, height: 24)
+                                    Text(app.name)
+                                        .font(.body)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.vertical, 8)
                 }
-                .padding(.vertical, 8)
             }
         }
-        .frame(width: 300, height: 400)
-        .onAppear { loadApps() }
+        .frame(width: 320, height: 400)
+        .task { await loadInstalledApps() }
     }
 
-    private func loadApps() {
-        let fileManager = FileManager.default
-        let dirs = ["/Applications", "/System/Applications", "/System/Applications/Utilities"]
-        var result: [(name: String, bundleId: String, icon: NSImage)] = []
-        for dir in dirs {
-            guard let items = try? fileManager.contentsOfDirectory(atPath: dir) else { continue }
-            for item in items where item.hasSuffix(".app") {
-                let path = "\(dir)/\(item)"
-                guard let bundle = Bundle(path: path), let bid = bundle.bundleIdentifier else { continue }
-                let icon = NSWorkspace.shared.icon(forFile: path)
-                icon.size = NSSize(width: 24, height: 24)
-                result.append((name: item.replacingOccurrences(of: ".app", with: ""), bundleId: bid, icon: icon))
+    private func loadInstalledApps() async {
+        let found: [(name: String, bundleId: String, icon: NSImage)] = await Task.detached {
+            let workspace = NSWorkspace.shared
+            let appURLs = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
+                + FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
+
+            var result: [(name: String, bundleId: String, icon: NSImage)] = []
+            var seen = Set<String>()
+
+            for dir in appURLs {
+                guard let contents = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { continue }
+                for url in contents where url.pathExtension == "app" {
+                    guard let bundle = Bundle(url: url),
+                          let bundleId = bundle.bundleIdentifier,
+                          !seen.contains(bundleId) else { continue }
+                    seen.insert(bundleId)
+                    let name = FileManager.default.displayName(atPath: url.path)
+                    let icon = workspace.icon(forFile: url.path)
+                    icon.size = NSSize(width: 24, height: 24)
+                    result.append((name: name, bundleId: bundleId, icon: icon))
+                }
             }
-        }
-        apps = result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+
+            let userApps = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
+            if let contents = try? FileManager.default.contentsOfDirectory(at: userApps, includingPropertiesForKeys: nil) {
+                for url in contents where url.pathExtension == "app" {
+                    guard let bundle = Bundle(url: url),
+                          let bundleId = bundle.bundleIdentifier,
+                          !seen.contains(bundleId) else { continue }
+                    seen.insert(bundleId)
+                    let name = FileManager.default.displayName(atPath: url.path)
+                    let icon = workspace.icon(forFile: url.path)
+                    icon.size = NSSize(width: 24, height: 24)
+                    result.append((name: name, bundleId: bundleId, icon: icon))
+                }
+            }
+
+            return result.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }.value
+
+        apps = found
+        isLoading = false
     }
 }
 
@@ -1300,15 +1279,13 @@ private struct LLMModelSection: View {
     @EnvironmentObject var pipeline: DictationPipeline
     @ObservedObject private var browser: ModelBrowser
 
-    @State private var isDownloading = false
-    @State private var downloadingModelId: String?
-    @State private var downloadProgress: Double = 0
-    @State private var downloadError: String?
-    @State private var downloadTask: Task<Void, Never>?
-
     init() {
-        _browser = ObservedObject(wrappedValue: DictationPipeline.shared.modelBrowser)
+        _browser = ObservedObject(wrappedValue: ModelBrowser.shared)
     }
+
+    private var isDownloading: Bool { pipeline.llmIsDownloading }
+    private var downloadingModelId: String? { pipeline.llmDownloadingModelId }
+    private var downloadProgress: Double { pipeline.llmDownloadProgress }
 
     private var downloadedModels: [DownloadedModel] {
         pipeline.downloadedModelsManager.downloadedModels
@@ -1329,7 +1306,7 @@ private struct LLMModelSection: View {
                         } label: {
                             HStack {
                                 Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
-                                    .foregroundColor(model.id == settings.llmModelId ? Color("AccentColor") : .secondary)
+                                    .foregroundStyle(model.id == settings.llmModelId ? Color("AccentColor") : .secondary)
                                     .font(.caption2)
 
                                 VStack(alignment: .leading, spacing: 1) {
@@ -1337,7 +1314,7 @@ private struct LLMModelSection: View {
                                         .fontWeight(model.id == settings.llmModelId ? .semibold : .regular)
                                     Text(model.formattedSize)
                                         .font(.caption2)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
 
@@ -1350,13 +1327,13 @@ private struct LLMModelSection: View {
                     }
                 }
                 .background(.quaternary)
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
             // Search bar
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 TextField(String(localized: "section.llm.search", defaultValue: "Search models (e.g. qwen, gemma, llama)..."), text: $browser.searchQuery)
                     .textFieldStyle(.plain)
                     .onChange(of: browser.searchQuery) { _, _ in
@@ -1371,14 +1348,14 @@ private struct LLMModelSection: View {
                         browser.clearSearch()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .padding(8)
             .background(.quaternary)
-            .cornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // Search results
             if !browser.searchResults.isEmpty {
@@ -1399,7 +1376,7 @@ private struct LLMModelSection: View {
                                         if model.totalSizeBytes > 0 {
                                             Text(model.formattedSize)
                                                 .font(.caption)
-                                                .foregroundColor(.orange)
+                                                .foregroundStyle(.orange)
                                         }
                                     }
                                     Spacer()
@@ -1408,7 +1385,7 @@ private struct LLMModelSection: View {
                                             .scaleEffect(0.6)
                                     } else if isDownloaded {
                                         Image(systemName: "checkmark")
-                                            .foregroundColor(.green)
+                                            .foregroundStyle(.green)
                                             .font(.caption)
                                     }
                                 }
@@ -1416,13 +1393,13 @@ private struct LLMModelSection: View {
                                 .padding(.vertical, 4)
                             }
                             .buttonStyle(.plain)
-                            .disabled(isDownloaded || isDownloading)
+                            .disabled(isDownloaded || isThisDownloading)
                         }
                     }
                 }
                 .frame(maxHeight: 200)
                 .background(.background)
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .shadow(radius: 4)
             }
 
@@ -1432,16 +1409,16 @@ private struct LLMModelSection: View {
                     HStack(spacing: 6) {
                         Text(String(localized: "section.llm.downloading", defaultValue: "Downloading \(modelId.replacingOccurrences(of: "mlx-community/", with: ""))..."))
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Text("\(Int(downloadProgress * 100))%")
                             .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Button {
                             cancelDownload()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
                     }
@@ -1450,10 +1427,21 @@ private struct LLMModelSection: View {
                 }
             }
 
-            if let error = downloadError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
+            if let error = pipeline.llmDownloadError {
+                HStack {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                    Spacer()
+                    Button {
+                        pipeline.llmDownloadError = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
             // Prompts
@@ -1464,46 +1452,12 @@ private struct LLMModelSection: View {
     }
 
     private func downloadModel(_ modelId: String) {
-        isDownloading = true
-        downloadingModelId = modelId
-        downloadProgress = 0
-        downloadError = nil
         browser.clearSearch()
-        downloadTask = Task {
-            do {
-                try await LLMProcessor.shared.loadModel(modelId) { progress in
-                    Task { @MainActor in
-                        downloadProgress = progress.fractionCompleted
-                    }
-                }
-                await MainActor.run {
-                    settings.llmModelId = modelId
-                    pipeline.downloadedModelsManager.scanDownloadedModels()
-                    isDownloading = false
-                    downloadingModelId = nil
-                    downloadProgress = 0
-                    downloadTask = nil
-                }
-            } catch {
-                await MainActor.run {
-                    if !Task.isCancelled {
-                        downloadError = error.localizedDescription
-                    }
-                    isDownloading = false
-                    downloadingModelId = nil
-                    downloadProgress = 0
-                    downloadTask = nil
-                }
-            }
-        }
+        pipeline.downloadLLMModel(modelId)
     }
 
     private func cancelDownload() {
-        downloadTask?.cancel()
-        downloadTask = nil
-        isDownloading = false
-        downloadingModelId = nil
-        downloadProgress = 0
+        pipeline.cancelLLMDownload()
     }
 }
 
@@ -1515,10 +1469,7 @@ private struct GeneralPromptSection: View {
     @EnvironmentObject var settings: AppSettings
     @State private var localPrompt: String = ""
 
-    private var ghostSuffix: String? {
-        if localPrompt.hasSuffix("{{") { return "text}}" }
-        return nil
-    }
+    private var ghostSuffix: String? { ghostCompletionFor(localPrompt) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -1530,12 +1481,12 @@ private struct GeneralPromptSection: View {
 
                 Image(systemName: "text.bubble")
                     .frame(width: 18, height: 18)
-                    .foregroundColor(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+                    .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
 
                 Text(String(localized: "section.prompt.general", defaultValue: "Prompt ogólny"))
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+                    .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
             }
 
             if settings.llmGeneralPromptEnabled {
@@ -1547,7 +1498,7 @@ private struct GeneralPromptSection: View {
                 )
                 .frame(minHeight: 80, maxHeight: 120)
                 .background(.quaternary)
-                .cornerRadius(6)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .onChange(of: localPrompt) { _, newValue in
                     settings.llmPrompt = newValue
                 }
@@ -1564,7 +1515,7 @@ private struct GeneralPromptSection: View {
         }
         .padding(8)
         .background(.quaternary.opacity(0.5))
-        .cornerRadius(8)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { localPrompt = settings.llmPrompt }
     }
 
@@ -1583,7 +1534,7 @@ private struct AppPromptsSection: View {
             HStack {
                 Text(String(localized: "section.prompt.perapp", defaultValue: "Prompty per aplikacja"))
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Button {
                     showingAppPicker = true
@@ -1597,7 +1548,7 @@ private struct AppPromptsSection: View {
             if settings.appPrompts.isEmpty {
                 Text(String(localized: "section.prompt.perapp.empty", defaultValue: "Brak — używany będzie prompt ogólny"))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             ForEach(settings.appPrompts) { appPrompt in
@@ -1605,8 +1556,16 @@ private struct AppPromptsSection: View {
             }
         }
         .sheet(isPresented: $showingAppPicker) {
-            AppPickerSheet()
-                .environmentObject(settings)
+            InstalledAppPickerSheet(
+                title: String(localized: "section.prompt.picker.title", defaultValue: "Wybierz aplikację"),
+                excludedBundleIds: Set(settings.appPrompts.map(\.bundleId))
+            ) { bundleId, appName in
+                settings.addAppPrompt(AppPrompt(
+                    bundleId: bundleId,
+                    appName: appName,
+                    prompt: ""
+                ))
+            }
         }
     }
 }
@@ -1617,10 +1576,7 @@ private struct AppPromptRow: View {
     @State private var localPrompt: String = ""
 
     /// Ghost text suggestion — shows greyed-out completion after `{{`
-    private var ghostSuffix: String? {
-        if localPrompt.hasSuffix("{{") { return "text}}" }
-        return nil
-    }
+    private var ghostSuffix: String? { ghostCompletionFor(localPrompt) }
 
     private var cleanAppName: String {
         appPrompt.appName.replacingOccurrences(of: ".app", with: "")
@@ -1637,7 +1593,7 @@ private struct AppPromptRow: View {
                 .labelsHidden()
                 .controlSize(.mini)
 
-                if let icon = appIcon(for: appPrompt.bundleId) {
+                if let icon = appIcon(forBundleId: appPrompt.bundleId) {
                     Image(nsImage: icon)
                         .resizable()
                         .interpolation(.high)
@@ -1646,18 +1602,18 @@ private struct AppPromptRow: View {
                 } else {
                     Image(systemName: "app.fill")
                         .frame(width: 18, height: 18)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 Text(cleanAppName)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundColor(appPrompt.enabled ? .primary : .secondary)
+                    .foregroundStyle(appPrompt.enabled ? .primary : .secondary)
                 Spacer()
                 Button {
                     settings.removeAppPrompt(bundleId: appPrompt.bundleId)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
@@ -1672,7 +1628,7 @@ private struct AppPromptRow: View {
                 )
                 .frame(minHeight: 60, maxHeight: 100)
                 .background(.quaternary)
-                .cornerRadius(6)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .onChange(of: localPrompt) { _, newValue in
                     settings.updateAppPrompt(bundleId: appPrompt.bundleId, prompt: newValue)
                 }
@@ -1680,7 +1636,7 @@ private struct AppPromptRow: View {
         }
         .padding(8)
         .background(.quaternary.opacity(0.5))
-        .cornerRadius(8)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { localPrompt = appPrompt.prompt }
     }
 
@@ -1688,11 +1644,6 @@ private struct AppPromptRow: View {
         guard let ghost = ghostSuffix else { return }
         // Append ghost completion (e.g. "text}}" after "{{")
         localPrompt += ghost
-    }
-
-    private func appIcon(for bundleId: String) -> NSImage? {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return nil }
-        return NSWorkspace.shared.icon(forFile: url.path)
     }
 }
 
@@ -1832,136 +1783,14 @@ private struct PromptTextEditor: NSViewRepresentable {
     }
 }
 
-private struct AppPickerSheet: View {
-    @EnvironmentObject var settings: AppSettings
-    @Environment(\.dismiss) var dismiss
-    @State private var searchText = ""
-    @State private var apps: [(name: String, bundleId: String, icon: NSImage)] = []
-
-    var filteredApps: [(name: String, bundleId: String, icon: NSImage)] {
-        let existing = Set(settings.appPrompts.map(\.bundleId))
-        let available = apps.filter { !existing.contains($0.bundleId) }
-        if searchText.isEmpty { return available }
-        return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(String(localized: "section.prompt.picker.title", defaultValue: "Wybierz aplikację"))
-                    .font(.headline)
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding()
-
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                TextField(String(localized: "section.prompt.picker.search", defaultValue: "Szukaj aplikacji..."), text: $searchText)
-                    .textFieldStyle(.plain)
-            }
-            .padding(8)
-            .background(.quaternary)
-            .cornerRadius(8)
-            .padding(.horizontal)
-
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(filteredApps, id: \.bundleId) { app in
-                        Button {
-                            settings.addAppPrompt(AppPrompt(
-                                bundleId: app.bundleId,
-                                appName: app.name.replacingOccurrences(of: ".app", with: ""),
-                                prompt: ""
-                            ))
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(nsImage: app.icon)
-                                    .resizable()
-                                    .interpolation(.high)
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 24, height: 24)
-                                Text(app.name)
-                                    .font(.body)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal)
-            }
-            .frame(maxHeight: 300)
-        }
-        .frame(width: 320, height: 400)
-        .onAppear { loadInstalledApps() }
-    }
-
-    private func loadInstalledApps() {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let workspace = NSWorkspace.shared
-            let appURLs = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
-                + FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
-
-            var found: [(name: String, bundleId: String, icon: NSImage)] = []
-            var seen = Set<String>()
-
-            for dir in appURLs {
-                guard let contents = try? FileManager.default.contentsOfDirectory(
-                    at: dir, includingPropertiesForKeys: nil
-                ) else { continue }
-                for url in contents where url.pathExtension == "app" {
-                    guard let bundle = Bundle(url: url),
-                          let bundleId = bundle.bundleIdentifier,
-                          !seen.contains(bundleId) else { continue }
-                    seen.insert(bundleId)
-                    let name = FileManager.default.displayName(atPath: url.path)
-                    let icon = workspace.icon(forFile: url.path)
-                    icon.size = NSSize(width: 32, height: 32)
-                    found.append((name: name, bundleId: bundleId, icon: icon))
-                }
-            }
-
-            // Also scan user Applications
-            let userApps = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
-            if let contents = try? FileManager.default.contentsOfDirectory(at: userApps, includingPropertiesForKeys: nil) {
-                for url in contents where url.pathExtension == "app" {
-                    guard let bundle = Bundle(url: url),
-                          let bundleId = bundle.bundleIdentifier,
-                          !seen.contains(bundleId) else { continue }
-                    seen.insert(bundleId)
-                    let name = FileManager.default.displayName(atPath: url.path)
-                    let icon = workspace.icon(forFile: url.path)
-                    icon.size = NSSize(width: 32, height: 32)
-                    found.append((name: name, bundleId: bundleId, icon: icon))
-                }
-            }
-
-            found.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-
-            DispatchQueue.main.async {
-                self.apps = found
-            }
-        }
-    }
-}
 
 // MARK: - Downloaded Models
 
 private struct DownloadedModelsSection: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var pipeline: DictationPipeline
+    @State private var modelToDeleteSTT: WhisperModelInfo?
+    @State private var modelToDeleteLLM: DownloadedModel?
 
     var body: some View {
         let whisperDownloaded = WhisperModelManager.defaultModels.filter {
@@ -1980,31 +1809,33 @@ private struct DownloadedModelsSection: View {
                     ForEach(whisperDownloaded) { model in
                         Button {
                             pipeline.whisperModelManager.activeModelId = model.id
-                            AppSettings.shared.sttModelId = model.id
+                            settings.sttModelId = model.id
                         } label: {
                             HStack {
                                 Image(systemName: model.id == pipeline.whisperModelManager.activeModelId ? "circle.fill" : "circle")
-                                    .foregroundColor(model.id == pipeline.whisperModelManager.activeModelId ? Color("AccentColor") : .secondary)
+                                    .foregroundStyle(model.id == pipeline.whisperModelManager.activeModelId ? Color("AccentColor") : .secondary)
                                     .font(.caption)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(model.displayName)
                                         .font(.caption)
                                     Text("STT")
                                         .font(.system(size: 9))
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 Text(model.formattedSize)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Button {
-                                    pipeline.whisperModelManager.deleteModel(model.id)
+                                    modelToDeleteSTT = model
                                 } label: {
+                                    let isActive = model.id == pipeline.whisperModelManager.activeModelId
                                     Image(systemName: "trash")
-                                        .foregroundColor(.red)
+                                        .foregroundStyle(isActive ? Color.secondary : Color.red)
                                         .font(.body)
                                 }
                                 .buttonStyle(.plain)
+                                .disabled(model.id == pipeline.whisperModelManager.activeModelId)
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -2019,27 +1850,24 @@ private struct DownloadedModelsSection: View {
                         } label: {
                             HStack {
                                 Image(systemName: model.id == settings.llmModelId ? "circle.fill" : "circle")
-                                    .foregroundColor(model.id == settings.llmModelId ? Color("AccentColor") : .secondary)
+                                    .foregroundStyle(model.id == settings.llmModelId ? Color("AccentColor") : .secondary)
                                     .font(.caption)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(model.shortName)
                                         .font(.caption)
                                     Text("LLM")
                                         .font(.system(size: 9))
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 Text(model.formattedSize)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Button {
-                                    if model.id == settings.llmModelId {
-                                        Task { await LLMProcessor.shared.unloadModel() }
-                                    }
-                                    try? pipeline.downloadedModelsManager.deleteModel(model.id)
+                                    modelToDeleteLLM = model
                                 } label: {
                                     Image(systemName: "trash")
-                                        .foregroundColor(.red)
+                                        .foregroundStyle(.red)
                                         .font(.body)
                                 }
                                 .buttonStyle(.plain)
@@ -2051,16 +1879,16 @@ private struct DownloadedModelsSection: View {
                     }
                 }
                 .background(.quaternary)
-                .cornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 let totalDisk = pipeline.downloadedModelsManager.totalSizeOnDisk + pipeline.whisperModelManager.totalSizeOnDisk()
                 if totalDisk > 0 {
                     HStack {
                         Image(systemName: "internaldrive")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Text(String(localized: "section.downloaded.total", defaultValue: "Total on disk:"))
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Text(ByteCountFormatter.string(fromByteCount: totalDisk, countStyle: .file))
                             .font(.caption.bold())
@@ -2070,6 +1898,45 @@ private struct DownloadedModelsSection: View {
             .padding()
             .onAppear {
                 pipeline.downloadedModelsManager.scanDownloadedModels()
+            }
+            .alert(
+                String(localized: "alert.delete.stt.title", defaultValue: "Delete model?"),
+                isPresented: Binding(get: { modelToDeleteSTT != nil }, set: { if !$0 { modelToDeleteSTT = nil } })
+            ) {
+                Button(String(localized: "alert.delete.confirm", defaultValue: "Delete"), role: .destructive) {
+                    if let model = modelToDeleteSTT {
+                        pipeline.whisperModelManager.deleteModel(model.id)
+                    }
+                    modelToDeleteSTT = nil
+                }
+                Button(String(localized: "alert.delete.cancel", defaultValue: "Cancel"), role: .cancel) {
+                    modelToDeleteSTT = nil
+                }
+            } message: {
+                if let model = modelToDeleteSTT {
+                    Text(String(localized: "alert.delete.stt.message", defaultValue: "This will remove \(model.formattedSize) from disk. You will need to re-download the model."))
+                }
+            }
+            .alert(
+                String(localized: "alert.delete.llm.title", defaultValue: "Delete model?"),
+                isPresented: Binding(get: { modelToDeleteLLM != nil }, set: { if !$0 { modelToDeleteLLM = nil } })
+            ) {
+                Button(String(localized: "alert.delete.confirm", defaultValue: "Delete"), role: .destructive) {
+                    if let model = modelToDeleteLLM {
+                        if model.id == settings.llmModelId {
+                            Task { await LLMProcessor.shared.unloadModel() }
+                        }
+                        try? pipeline.downloadedModelsManager.deleteModel(model.id)
+                    }
+                    modelToDeleteLLM = nil
+                }
+                Button(String(localized: "alert.delete.cancel", defaultValue: "Cancel"), role: .cancel) {
+                    modelToDeleteLLM = nil
+                }
+            } message: {
+                if let model = modelToDeleteLLM {
+                    Text(String(localized: "alert.delete.llm.message", defaultValue: "This will remove \(model.formattedSize) from disk. You will need to re-download the model."))
+                }
             }
         }
     }
@@ -2087,7 +1954,7 @@ private struct FooterSection: View {
             if case .error(let message) = settings.appState {
                 Text(message)
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                     .lineLimit(2)
             }
 
@@ -2096,19 +1963,20 @@ private struct FooterSection: View {
                     Image(systemName: "power")
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .font(.caption)
 
                 Spacer()
 
                 Button(action: { updaterManager.checkForUpdates() }) {
-                    Text("Wersja: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                    Text("Wersja: \(appVersion)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(updaterManager.canCheckForUpdates ? Color("AccentColor") : .secondary)
+                        .underline(updaterManager.canCheckForUpdates)
                 }
                 .buttonStyle(.plain)
                 .disabled(!updaterManager.canCheckForUpdates)
-                .help("Sprawdź aktualizacje")
+                .help(String(localized: "footer.checkUpdates", defaultValue: "Sprawdź aktualizacje"))
 
                 Spacer()
 
@@ -2116,7 +1984,7 @@ private struct FooterSection: View {
                     Image(systemName: "trash")
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .font(.caption)
             }
         }

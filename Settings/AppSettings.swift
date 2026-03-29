@@ -75,14 +75,6 @@ struct AppPrompt: Identifiable, Codable, Equatable {
     var prompt: String
     var enabled: Bool = true
 
-    /// Resolve the final prompt: if it contains {{text}}, replace placeholder; otherwise use as system prompt.
-    func resolve(with text: String) -> (systemPrompt: String?, userMessage: String) {
-        if prompt.contains("{{text}}") {
-            return (nil, prompt.replacingOccurrences(of: "{{text}}", with: text))
-        } else {
-            return (prompt, text)
-        }
-    }
 }
 
 enum RecordingMode: String, CaseIterable {
@@ -107,6 +99,7 @@ enum AppState: Equatable {
     case error(String)
 }
 
+@MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 

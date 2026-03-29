@@ -8,9 +8,9 @@ enum TranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .modelNotLoaded:
-            return "Model STT nie jest załadowany."
+            return String(localized: "error.stt.notLoaded", defaultValue: "STT model not loaded.")
         case .transcriptionFailed(let reason):
-            return "Transkrypcja nie powiodła się: \(reason)"
+            return String(localized: "error.stt.transcriptionFailed", defaultValue: "Transcription failed:") + " " + reason
         }
     }
 }
@@ -22,35 +22,23 @@ actor TranscriptionEngine {
     private(set) var isModelLoaded = false
     private(set) var isLoading = false
     private(set) var currentModelId: String?
+    private var loadingTask: Task<Void, Error>?
 
     func loadModel(_ modelName: String = "openai_whisper-large-v3_turbo") async throws {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
+        if let existingTask = loadingTask { return try await existingTask.value }
 
-        // Unload previous model
-        whisperKit = nil
-        isModelLoaded = false
-
-        dlog("[STT] loading model: \(modelName)")
         let config = WhisperKitConfig(
             model: modelName,
             verbose: true,
             logLevel: .debug
         )
-        whisperKit = try await WhisperKit(config)
-        isModelLoaded = true
-        currentModelId = modelName
+        dlog("[STT] loading model: \(modelName)")
+        try await loadWhisperKit(config, modelId: modelName)
         dlog("[STT] model loaded successfully")
     }
 
     func loadModel(fromFolder folder: String) async throws {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
-
-        whisperKit = nil
-        isModelLoaded = false
+        if let existingTask = loadingTask { return try await existingTask.value }
 
         let startTime = CFAbsoluteTimeGetCurrent()
         dlog("[STT] loading model from folder: \(folder)")
@@ -59,11 +47,25 @@ actor TranscriptionEngine {
             verbose: true,
             logLevel: .debug
         )
-        whisperKit = try await WhisperKit(config)
+        let modelId = URL(fileURLWithPath: folder).lastPathComponent
+        try await loadWhisperKit(config, modelId: modelId)
         let loadTime = CFAbsoluteTimeGetCurrent() - startTime
-        isModelLoaded = true
-        currentModelId = URL(fileURLWithPath: folder).lastPathComponent
         dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
+    }
+
+    private func loadWhisperKit(_ config: WhisperKitConfig, modelId: String) async throws {
+        let task = Task {
+            whisperKit = nil
+            isModelLoaded = false
+            isLoading = true
+            defer { isLoading = false; loadingTask = nil }
+
+            whisperKit = try await WhisperKit(config)
+            isModelLoaded = true
+            currentModelId = modelId
+        }
+        loadingTask = task
+        try await task.value
     }
 
     func transcribe(audioSamples: [Float], language: String? = nil) async throws -> String {

@@ -27,6 +27,7 @@ struct HFModelInfo: Codable, Identifiable {
 
 @MainActor
 final class ModelBrowser: ObservableObject {
+    static let shared = ModelBrowser()
     @Published var searchQuery = ""
     @Published var searchResults: [HFModelInfo] = []
     @Published var isSearching = false

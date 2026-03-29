@@ -236,9 +236,12 @@ final class FloatingIndicatorManager {
             return nil
         }
 
+        // AXUIElement is a CF type — cast always succeeds after .success check
+        let element = focusedElement as! AXUIElement
+
         // Check this is actually a text element
         var role: AnyObject?
-        AXUIElementCopyAttributeValue(focusedElement as! AXUIElement, kAXRoleAttribute as CFString, &role)
+        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
         let roleStr = role as? String ?? ""
         guard roleStr == kAXTextFieldRole as String
            || roleStr == kAXTextAreaRole as String
@@ -249,13 +252,13 @@ final class FloatingIndicatorManager {
         }
 
         var selectedRange: AnyObject?
-        guard AXUIElementCopyAttributeValue(focusedElement as! AXUIElement, kAXSelectedTextRangeAttribute as CFString, &selectedRange) == .success else {
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selectedRange) == .success else {
             return nil
         }
 
         var caretBounds: AnyObject?
         guard AXUIElementCopyParameterizedAttributeValue(
-            focusedElement as! AXUIElement,
+            element,
             kAXBoundsForRangeParameterizedAttribute as CFString,
             selectedRange!,
             &caretBounds
@@ -264,6 +267,7 @@ final class FloatingIndicatorManager {
         }
 
         var rect = CGRect.zero
+        // AXValue is a CF type — cast always succeeds after .success check
         guard AXValueGetValue(caretBounds as! AXValue, .cgRect, &rect) else {
             return nil
         }

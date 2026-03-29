@@ -3,18 +3,39 @@ import SwiftUI
 import AppKit
 import Combine
 
+private let _logger = DictumLogger()
+
 func dlog(_ msg: String) {
-    let line = "[\(Date())] \(msg)\n"
-    let logsDir = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Logs/Dictum")
-    try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
-    let path = logsDir.appendingPathComponent("dictum.log").path
-    if let handle = FileHandle(forWritingAtPath: path) {
-        handle.seekToEndOfFile()
-        handle.write(line.data(using: .utf8)!)
-        handle.closeFile()
-    } else {
-        FileManager.default.createFile(atPath: path, contents: line.data(using: .utf8))
+    _logger.log(msg)
+}
+
+private final class DictumLogger: @unchecked Sendable {
+    private let lock = NSLock()
+    private var handle: FileHandle?
+    private let path: String
+
+    init() {
+        let logsDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs/Dictum")
+        try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
+        self.path = logsDir.appendingPathComponent("dictum.log").path
+        if !FileManager.default.fileExists(atPath: path) {
+            FileManager.default.createFile(atPath: path, contents: nil)
+        }
+        self.handle = FileHandle(forWritingAtPath: path)
+        self.handle?.seekToEndOfFile()
+    }
+
+    func log(_ msg: String) {
+        let line = "[\(Date())] \(msg)\n"
+        let data = Data(line.utf8)
+        lock.lock()
+        defer { lock.unlock() }
+        if handle == nil {
+            handle = FileHandle(forWritingAtPath: path)
+            handle?.seekToEndOfFile()
+        }
+        handle?.write(data)
     }
 }
 
@@ -26,7 +47,6 @@ final class DictationPipeline: ObservableObject {
     let hotkeyManager = GlobalHotkeyManager.shared
     let whisperModelManager = WhisperModelManager.shared
     let downloadedModelsManager = DownloadedModelsManager.shared
-    let modelBrowser = ModelBrowser()
 
     private let settings = AppSettings.shared
     private let permissions = PermissionsManager.shared
@@ -37,6 +57,11 @@ final class DictationPipeline: ObservableObject {
     private var targetBundleId: String?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     var pendingSelectedContext: String?
+    @Published var llmDownloadError: String?
+    @Published var llmIsDownloading = false
+    @Published var llmDownloadingModelId: String?
+    @Published var llmDownloadProgress: Double = 0
+    private var llmDownloadTask: Task<Void, Never>?
     private var selectedContext: String?
     private var permissionsCancellable: AnyCancellable?
     private var whisperSink: AnyCancellable?
@@ -103,7 +128,6 @@ final class DictationPipeline: ObservableObject {
                 guard let self else { return }
                 dlog("[Dictum] Accessibility granted via PermissionsManager, restarting hotkey")
                 if !self.hotkeyManager.isListening {
-                    self.hotkeyManager.stop()
                     self.setupHotkey()
                 }
             }
@@ -157,7 +181,7 @@ final class DictationPipeline: ObservableObject {
     func cancelOperation() {
         dlog("[Dictum] cancel requested")
         if isRecording {
-            let _ = audioRecorder.stopRecording()
+            _ = audioRecorder.stopRecording()
             isRecording = false
         }
         isCancelled = true
@@ -301,11 +325,48 @@ final class DictationPipeline: ObservableObject {
             FloatingIndicatorManager.shared.hide()
             settings.appState = .error(error.localizedDescription)
             // Clear error after 3s
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(3))
                 if case .error = self?.settings.appState {
                     self?.settings.appState = .idle
                 }
             }
         }
+    }
+
+    // MARK: - LLM Download
+
+    func downloadLLMModel(_ modelId: String) {
+        llmIsDownloading = true
+        llmDownloadingModelId = modelId
+        llmDownloadProgress = 0
+        llmDownloadError = nil
+        llmDownloadTask = Task {
+            do {
+                try await LLMProcessor.shared.loadModel(modelId) { [weak self] progress in
+                    Task { @MainActor in
+                        self?.llmDownloadProgress = progress.fractionCompleted
+                    }
+                }
+                settings.llmModelId = modelId
+                downloadedModelsManager.scanDownloadedModels()
+            } catch {
+                if !Task.isCancelled {
+                    llmDownloadError = error.localizedDescription
+                }
+            }
+            llmIsDownloading = false
+            llmDownloadingModelId = nil
+            llmDownloadProgress = 0
+            llmDownloadTask = nil
+        }
+    }
+
+    func cancelLLMDownload() {
+        llmDownloadTask?.cancel()
+        llmDownloadTask = nil
+        llmIsDownloading = false
+        llmDownloadingModelId = nil
+        llmDownloadProgress = 0
     }
 }

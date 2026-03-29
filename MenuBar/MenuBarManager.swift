@@ -4,7 +4,7 @@ import Combine
 
 @MainActor
 final class MenuBarManager: ObservableObject {
-    static weak var shared: MenuBarManager?
+    static var shared: MenuBarManager?
 
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
@@ -26,7 +26,7 @@ final class MenuBarManager: ObservableObject {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem?.button {
-            button.image = MenuBarIcon.microphone(state: .idle)
+            button.image = MenuBarIcon.microphone()
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -69,14 +69,15 @@ final class MenuBarManager: ObservableObject {
             // Kolorowa ikona z czerwoną kropką REC
             button.image = MenuBarIcon.recording()
         case .done:
-            button.image = MenuBarIcon.microphone(state: .done)
+            button.image = MenuBarIcon.microphone()
             // Flash back to idle after 1s
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
                 self?.settings.appState = .idle
             }
         default:
             // Template image — system automatycznie dopasuje do light/dark mode
-            button.image = MenuBarIcon.microphone(state: state)
+            button.image = MenuBarIcon.microphone()
         }
     }
 

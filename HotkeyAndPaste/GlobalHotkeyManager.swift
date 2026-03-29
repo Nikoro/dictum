@@ -16,6 +16,11 @@ final class GlobalHotkeyManager: ObservableObject {
 
     private let settings = AppSettings.shared
 
+    /// Cached hotkey settings for safe access from nonisolated event tap callback
+    private nonisolated(unsafe) var cachedIsModifierOnly: Bool = true
+    private nonisolated(unsafe) var cachedKeyCode: Int = 54
+    private nonisolated(unsafe) var cachedModifiers: Int = 0
+
     /// Tracks whether a modifier-only hotkey is currently "pressed"
     private var modifierKeyDown = false
 
@@ -36,6 +41,11 @@ final class GlobalHotkeyManager: ObservableObject {
         self.cancelHandler = onCancel
 
         dlog("[Hotkey] start() called, accessibility=\(accessibilityGranted), keyCode=\(settings.hotkeyKeyCode), isModifierOnly=\(settings.hotkeyIsModifierOnly)")
+
+        // Cache settings for safe access from nonisolated event tap callback
+        cachedIsModifierOnly = settings.hotkeyIsModifierOnly
+        cachedKeyCode = settings.hotkeyKeyCode
+        cachedModifiers = settings.hotkeyModifiers
 
         guard accessibilityGranted else {
             dlog("[Hotkey] accessibility NOT granted, requesting...")
@@ -96,8 +106,8 @@ final class GlobalHotkeyManager: ObservableObject {
     private nonisolated func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-        let isModifierOnly = AppSettings.shared.hotkeyIsModifierOnly
-        let expectedKeyCode = Int64(AppSettings.shared.hotkeyKeyCode)
+        let isModifierOnly = cachedIsModifierOnly
+        let expectedKeyCode = Int64(cachedKeyCode)
 
         // Escape key cancels current operation
         if type == .keyDown && keyCode == 53 {
@@ -146,7 +156,7 @@ final class GlobalHotkeyManager: ObservableObject {
             }
         } else {
             // Key + modifier combo
-            let expectedModifiers = CGEventFlags(rawValue: UInt64(AppSettings.shared.hotkeyModifiers))
+            let expectedModifiers = CGEventFlags(rawValue: UInt64(cachedModifiers))
             let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
             let currentModifiers = flags.intersection(modifierMask)
             let expectedMods = expectedModifiers.intersection(modifierMask)

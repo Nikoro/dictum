@@ -10,9 +10,9 @@ enum LLMError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .modelNotLoaded:
-            return "Model LLM nie jest załadowany."
+            return String(localized: "error.llm.notLoaded", defaultValue: "LLM model not loaded.")
         case .generationFailed(let reason):
-            return "Generowanie tekstu nie powiodło się: \(reason)"
+            return String(localized: "error.llm.generationFailed", defaultValue: "Text generation failed:") + " " + reason
         }
     }
 }

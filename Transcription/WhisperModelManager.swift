@@ -7,6 +7,7 @@ struct WhisperModelInfo: Identifiable {
     let displayName: String
     let sizeBytes: Int64
     let descriptionKey: String
+    var isRecommended: Bool = false
 
     var description: String {
         String(localized: String.LocalizationValue(descriptionKey))
@@ -36,7 +37,8 @@ final class WhisperModelManager: ObservableObject {
             id: "openai_whisper-large-v3_turbo",
             displayName: "Large V3 Turbo",
             sizeBytes: 954_000_000,
-            descriptionKey: "stt.large_v3_turbo.desc"
+            descriptionKey: "stt.large_v3_turbo.desc",
+            isRecommended: true
         ),
         WhisperModelInfo(
             id: "openai_whisper-large-v3",
@@ -108,9 +110,9 @@ final class WhisperModelManager: ObservableObject {
                         self.downloadProgress += 0.002
                     }
                 }
+                defer { loadingTimer.invalidate() }
 
                 try await TranscriptionEngine.shared.loadModel(fromFolder: modelFolder.path)
-                loadingTimer.invalidate()
                 downloadProgress = 1.0
 
                 downloadedModelIds.insert(modelId)
