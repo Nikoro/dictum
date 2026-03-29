@@ -30,11 +30,15 @@ targets:
           - ".git"
           - ".gitignore"
           - ".DS_Store"
+          - ".claude"
+          - ".github"
+          - ".vscode"
           - "build"
+          - "website"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum
-        MARKETING_VERSION: "0.4.1"
+        MARKETING_VERSION: "0.4.2"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.9"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
