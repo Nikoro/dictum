@@ -35,6 +35,7 @@ struct FloatingIndicatorView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
+            .background(.black.opacity(0.35), in: .capsule)
             .glassEffect(.regular, in: .capsule)
             .onChange(of: context.date) { _, _ in
                 if settings.appState == .recording {
