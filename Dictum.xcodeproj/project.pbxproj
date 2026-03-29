@@ -26,11 +26,13 @@
 		B91C8FF30204A8F1FECF062C /* ModelBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */; };
 		CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A45404D11A8845C3F109251 /* Assets.xcassets */; };
 		CB73C3E9D2CFA71B03379999 /* SelectedTextReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D60DD32B8442E4A16C521F4 /* SelectedTextReader.swift */; };
+		CE2813964072C28FF19D6A55 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 747DEF4FBFC349F561C924A0 /* PrivacyInfo.xcprivacy */; };
 		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
 		DD50DB580798C88C6A1357C5 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8783DFB2FE338D342D231BF /* AppSettings.swift */; };
 		DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F49B35EF21214DF3B51CC21B /* Localizable.strings */; };
 		E5715E5682888026CE990F8E /* DictumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBDDBBA749BAE1BCB250115 /* DictumApp.swift */; };
 		E779256781738096534067BF /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF489945EA1A4D4F417BE2B /* MenuBarIcon.swift */; };
+		F88B3A17E7EE1E7DCAECA911 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AF658D31F5A0AE8A4C68A53A /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +43,8 @@
 		3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedModelsManager.swift; sourceTree = "<group>"; };
 		505E991D55A534262FCDF113 /* TranscriptionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionEngine.swift; sourceTree = "<group>"; };
 		64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dictum.entitlements; sourceTree = "<group>"; };
+		6B232748F2B92E87E846EAE5 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		747DEF4FBFC349F561C924A0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		894B0245FC883E24EDFB48BB /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		8F0883B8EE127B0560E01584 /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		8F2276C69754697A5C25F690 /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
@@ -53,6 +57,7 @@
 		BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
 		C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelManager.swift; sourceTree = "<group>"; };
+		CFFAECC939415D8D8E69BCCE /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterManager.swift; sourceTree = "<group>"; };
 		D90D0DA267187F0BCC9510E9 /* ModelBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelBrowser.swift; sourceTree = "<group>"; };
 		EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
@@ -82,6 +87,8 @@
 				3A45404D11A8845C3F109251 /* Assets.xcassets */,
 				64EC7D530B6F8A219670E6F6 /* Dictum.entitlements */,
 				B5A63125D12472619B955131 /* Info.plist */,
+				747DEF4FBFC349F561C924A0 /* PrivacyInfo.xcprivacy */,
+				AF658D31F5A0AE8A4C68A53A /* InfoPlist.strings */,
 				F49B35EF21214DF3B51CC21B /* Localizable.strings */,
 			);
 			path = Resources;
@@ -276,7 +283,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA8C5EACAF3E4EC6219790EA /* Assets.xcassets in Resources */,
+				F88B3A17E7EE1E7DCAECA911 /* InfoPlist.strings in Resources */,
 				DF483F1D01D393B5A5471509 /* Localizable.strings in Resources */,
+				CE2813964072C28FF19D6A55 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -311,6 +320,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		AF658D31F5A0AE8A4C68A53A /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6B232748F2B92E87E846EAE5 /* en */,
+				CFFAECC939415D8D8E69BCCE /* pl */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
 		F49B35EF21214DF3B51CC21B /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -388,7 +406,7 @@
 				CODE_SIGN_IDENTITY = "Dictum Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 402;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
@@ -477,7 +495,7 @@
 				CODE_SIGN_IDENTITY = "Dictum Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 402;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = Resources/Info.plist;

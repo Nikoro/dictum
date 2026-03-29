@@ -27,7 +27,7 @@
 
     <!-- Microphone permission -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>Dictum potrzebuje mikrofonu do transkrypcji mowy na tekst.</string>
+    <string>Dictum needs microphone access to transcribe speech to text.</string>
 
     <!-- Sparkle auto-update -->
     <key>SUFeedURL</key>

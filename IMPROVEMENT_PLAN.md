@@ -183,7 +183,7 @@
 - **Recommendation**: Replace with `settings.sttModelId`.
 - **Effort**: Quick Win
 
-### [ ] [M9] `WhisperModelManager.totalSizeOnDisk()` uses static estimates, not real disk sizes `[T1]`
+### [x] [M9] `WhisperModelManager.totalSizeOnDisk()` uses static estimates, not real disk sizes `[T1]`
 - **File**: `Transcription/WhisperModelManager.swift:149–155`
 - **Auditor**: code-quality-auditor
 - **Issue**: Sums hardcoded `sizeBytes` from `defaultModels` instead of scanning actual cache directory. Combined with `DownloadedModelsManager.totalSizeOnDisk` (which uses real sizes) in the UI, giving mixed accuracy.
@@ -204,7 +204,7 @@
 - **Recommendation**: Extract as named constants with brief comments. Consider longer baseline on loaded systems.
 - **Effort**: Quick Win
 
-### [ ] [M12] `GeneralPromptSection` and `AppPromptRow` maintain dual-source-of-truth `localPrompt` `[T2]`
+### [x] [M12] `GeneralPromptSection` and `AppPromptRow` maintain dual-source-of-truth `localPrompt` `[T2]`
 - **File**: `MenuBar/PopoverView.swift:1516,1617`
 - **Auditor**: swift-objc-auditor
 - **Issue**: Both maintain `@State var localPrompt` that shadows `settings.llmPrompt` / `appPrompt.prompt`. Sync via `.onAppear` + `.onChange` creates double-write churn and stale state risk.
@@ -255,7 +255,7 @@
 
 ## Low Priority Findings
 
-### [ ] [L1] `WhisperModelManager.deleteModel()` does not delete files from disk `[T3]`
+### [x] [L1] `WhisperModelManager.deleteModel()` does not delete files from disk `[T3]`
 - **File**: `Transcription/WhisperModelManager.swift:141–147`
 - **Auditor**: ios-auditor
 - **Issue**: Removes model ID from `downloadedModelIds` (UserDefaults) but does not delete model files (~1GB+). File deletion only happens through `DownloadedModelsManager.deleteModel()`.
@@ -283,21 +283,21 @@
 - **Recommendation**: Extract `var appVersion: String` computed property.
 - **Effort**: Quick Win
 
-### [ ] [L5] Missing `PrivacyInfo.xcprivacy` for UserDefaults required-reason API `[T3]`
+### [x] [L5] Missing `PrivacyInfo.xcprivacy` for UserDefaults required-reason API `[T3]`
 - **File**: `project.yml` / `Resources/`
 - **Auditor**: ios-auditor
 - **Issue**: App uses `UserDefaults.standard` — Apple requires `PrivacyInfo.xcprivacy` declaring `NSPrivacyAccessedAPITypes` with reason code `CA92.1`.
 - **Recommendation**: Add `PrivacyInfo.xcprivacy` to `Resources/` and declare in `project.yml`.
 - **Effort**: Quick Win
 
-### [ ] [L6] `NSMicrophoneUsageDescription` in Info.plist is Polish-only `[T3]`
+### [x] [L6] `NSMicrophoneUsageDescription` in Info.plist is Polish-only `[T3]`
 - **File**: `Resources/Info.plist:29–30`
 - **Auditor**: ios-auditor
 - **Issue**: Hardcoded Polish string. On English system, macOS permission dialog shows Polish text.
 - **Recommendation**: Use English as canonical plist value; provide Polish via `InfoPlist.strings`.
 - **Effort**: Quick Win
 
-### [ ] [L7] `CURRENT_PROJECT_VERSION` hardcoded to `"1"` — never incremented `[T3]`
+### [x] [L7] `CURRENT_PROJECT_VERSION` hardcoded to `"1"` — never incremented `[T3]`
 - **File**: `project.yml:42`
 - **Auditor**: ios-auditor
 - **Issue**: `CFBundleVersion` always `"1"`. Sparkle may not determine update order by build number alone.

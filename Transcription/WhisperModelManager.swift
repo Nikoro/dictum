@@ -140,18 +140,62 @@ final class WhisperModelManager: ObservableObject {
         downloadProgress = 0
     }
 
+    /// WhisperKit downloads models to ~/Library/Caches/huggingface/hub/
+    private var whisperCacheDir: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Caches/huggingface/hub")
+    }
+
     func deleteModel(_ modelId: String) {
         downloadedModelIds.remove(modelId)
         if activeModelId == modelId {
             activeModelId = Self.defaultModels.first?.id ?? ""
         }
         persistIds()
+
+        // Delete model files from disk
+        // WhisperKit stores models under models--argmaxinc--whisperkit-coreml/snapshots/*/modelId/
+        let cacheDir = whisperCacheDir
+        if let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) {
+            while let url = enumerator.nextObject() as? URL {
+                if url.lastPathComponent == modelId && url.hasDirectoryPath {
+                    try? FileManager.default.removeItem(at: url)
+                    dlog("[STT] deleted model files at \(url.path)")
+                    break
+                }
+            }
+        }
     }
 
     func totalSizeOnDisk() -> Int64 {
         var total: Int64 = 0
+        let cacheDir = whisperCacheDir
         for model in Self.defaultModels where downloadedModelIds.contains(model.id) {
-            total += model.sizeBytes
+            if let realSize = modelSizeOnDisk(model.id, cacheDir: cacheDir), realSize > 0 {
+                total += realSize
+            } else {
+                total += model.sizeBytes // fallback to estimate
+            }
+        }
+        return total
+    }
+
+    private func modelSizeOnDisk(_ modelId: String, cacheDir: URL) -> Int64? {
+        guard let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) else { return nil }
+        while let url = enumerator.nextObject() as? URL {
+            if url.lastPathComponent == modelId && url.hasDirectoryPath {
+                return directorySize(url)
+            }
+        }
+        return nil
+    }
+
+    private func directorySize(_ url: URL) -> Int64 {
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
+        var total: Int64 = 0
+        while let fileURL = enumerator.nextObject() as? URL {
+            let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            total += Int64(size)
         }
         return total
     }
