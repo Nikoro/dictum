@@ -434,7 +434,7 @@
 				CODE_SIGN_IDENTITY = "Dictum Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 202603291621;
+				CURRENT_PROJECT_VERSION = 202603300019;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
@@ -443,7 +443,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.4.2;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
@@ -523,7 +523,7 @@
 				CODE_SIGN_IDENTITY = "Dictum Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 202603291621;
+				CURRENT_PROJECT_VERSION = 202603300019;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
@@ -532,7 +532,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.4.2;
+				MARKETING_VERSION = 0.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
