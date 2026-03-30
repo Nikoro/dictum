@@ -99,3 +99,8 @@
 "uninstall.message" = "This will delete LLM models, settings, and move Dictum to Trash. Whisper models in ~/.cache/huggingface/ must be removed manually. This cannot be undone.";
 "uninstall.confirm" = "Uninstall";
 "uninstall.cancel" = "Cancel";
+
+/* Permissions needed (post-update) */
+"permissions.needed.title" = "Permissions needed";
+"permissions.needed.desc" = "After the update, macOS requires you to re-enable permissions.";
+

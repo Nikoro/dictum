@@ -123,6 +123,7 @@ final class AppSettings: ObservableObject {
     @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
     @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true
     @AppStorage("sttLanguage") var sttLanguageRaw: String = STTLanguage.systemDefault.rawValue
+    @AppStorage("hasCompletedSetup") var hasCompletedSetup: Bool = false
 
     var sttLanguage: STTLanguage {
         get { STTLanguage(rawValue: sttLanguageRaw) ?? .auto }

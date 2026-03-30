@@ -446,7 +446,64 @@ private struct SetupLLMRow: View {
     }
 }
 
-private struct PermissionRow: View {
+// MARK: - Permissions Needed (post-update)
+
+struct PermissionsNeededView: View {
+    @ObservedObject var permissions: PermissionsManager
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "hand.raised.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(.secondary)
+
+            Text(String(localized: "permissions.needed.title", defaultValue: "Permissions needed"))
+                .font(.headline)
+
+            Text(String(localized: "permissions.needed.desc", defaultValue: "After the update, macOS requires you to re-enable permissions."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+
+            VStack(spacing: 10) {
+                if !permissions.microphoneGranted {
+                    PermissionRow(
+                        icon: "mic.fill",
+                        title: String(localized: "setup.step1.mic.title", defaultValue: "Microphone"),
+                        description: String(localized: "setup.step1.mic.desc", defaultValue: "Record voice for transcription"),
+                        isGranted: false,
+                        action: {
+                            if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+                                permissions.requestMicrophone()
+                            } else {
+                                permissions.openMicrophoneSettings()
+                            }
+                        }
+                    )
+                }
+                if !permissions.accessibilityGranted {
+                    PermissionRow(
+                        icon: "hand.raised.fill",
+                        title: String(localized: "setup.step1.acc.title", defaultValue: "Accessibility"),
+                        description: String(localized: "setup.step1.acc.desc", defaultValue: "Global hotkey and auto-paste (Cmd+V)"),
+                        isGranted: false,
+                        action: {
+                            permissions.openAccessibilitySettings()
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, 20)
+
+            Spacer()
+        }
+    }
+}
+
+struct PermissionRow: View {
     let icon: String
     let title: String
     let description: String

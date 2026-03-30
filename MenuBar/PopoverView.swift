@@ -21,6 +21,8 @@ struct PopoverView: View {
         Group {
             if isSetupComplete {
                 mainContent
+            } else if settings.hasCompletedSetup && !permissions.allGranted {
+                PermissionsNeededView(permissions: permissions)
             } else {
                 SetupView(permissions: permissions, whisperManager: pipeline.whisperModelManager)
             }
@@ -30,6 +32,11 @@ struct PopoverView: View {
             permissions.refresh()
             if !permissions.allGranted {
                 permissions.startPolling()
+            }
+        }
+        .onChange(of: isSetupComplete) { _, complete in
+            if complete {
+                settings.hasCompletedSetup = true
             }
         }
     }

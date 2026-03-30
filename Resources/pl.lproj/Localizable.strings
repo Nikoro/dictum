@@ -99,3 +99,8 @@
 "uninstall.message" = "Usunie modele LLM, ustawienia i przeniesie Dictum do Kosza. Modele Whisper w ~/.cache/huggingface/ trzeba usunąć ręcznie. Tej operacji nie można cofnąć.";
 "uninstall.confirm" = "Odinstaluj";
 "uninstall.cancel" = "Anuluj";
+
+/* Permissions needed (post-update) */
+"permissions.needed.title" = "Wymagane uprawnienia";
+"permissions.needed.desc" = "Po aktualizacji macOS wymaga ponownego przyznania uprawnień.";
+
