@@ -26,11 +26,16 @@
   "req.title": "필요한 것.",
   "install.title": "설치",
   "install.desc": "최신 릴리스를 다운로드하고 압축을 풀어 응용 프로그램으로 이동하세요. 앱은 ad-hoc 서명(공증되지 않음)되어 있어 첫 실행 시 격리 플래그를 제거해야 합니다.",
-  "install.step1": "위 버튼에서 <strong>Dictum.zip</strong>을 다운로드하고 압축 해제",
+  "install.step1": "<a href=\"https://github.com/Nikoro/dictum/releases/latest/download/Dictum.zip\" class=\"step-link\"><strong>Dictum.zip</strong></a>을 다운로드하고 압축 해제",
   "install.step2": "<strong>Dictum.app</strong>을 <code>/Applications</code>로 이동",
   "footer.copy": "Dictum — macOS용 로컬 음성 받아쓰기",
   "hero.source": "소스 보기",
+  "hero.or": "또는 수동으로 다운로드",
   "hero.opensource": "오픈소스",
   "install.step3": "터미널에서 실행:",
-  "install.step4": "Dictum을 실행하고 설정을 따르세요: 권한 부여, 음성 모델 다운로드, 선택적으로 LLM도"
+  "install.step4": "Dictum을 실행하고 설정을 따르세요: 권한 부여, 음성 모델 다운로드, 선택적으로 LLM도",
+  "install.terminal_label": "터미널로 설치",
+  "install.terminal_hint": "최신 릴리스를 다운로드하고 /Applications로 이동한 뒤 격리 플래그를 해제합니다 — 한 번에 완료.",
+  "install.manual_toggle": "수동으로 설치하시겠습니까?",
+  "install.post_note": "설치 후 Dictum을 실행하고 설정을 따르세요: 권한 부여, 음성 모델 다운로드, 선택적으로 LLM도."
 }

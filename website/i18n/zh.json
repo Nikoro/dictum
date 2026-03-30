@@ -26,11 +26,16 @@
   "req.title": "你需要什么。",
   "install.title": "安装",
   "install.desc": "下载最新版本，解压并移动到“应用程序”。应用为ad-hoc签名（未经公证），首次启动需要移除隔离标记。",
-  "install.step1": "从上方按钮下载<strong>Dictum.zip</strong>并解压",
+  "install.step1": "下载<a href=\"https://github.com/Nikoro/dictum/releases/latest/download/Dictum.zip\" class=\"step-link\"><strong>Dictum.zip</strong></a>并解压",
   "install.step2": "将<strong>Dictum.app</strong>移动到<code>/Applications</code>",
   "footer.copy": "Dictum — macOS本地语音听写",
   "hero.source": "查看源码",
+  "hero.or": "或手动下载",
   "hero.opensource": "开源",
   "install.step3": "在终端运行:",
-  "install.step4": "启动Dictum并完成设置：授予权限、下载语音模型，可选下载LLM"
+  "install.step4": "启动Dictum并完成设置：授予权限、下载语音模型，可选下载LLM",
+  "install.terminal_label": "通过终端安装",
+  "install.terminal_hint": "下载最新版本，移动到 /Applications 并解除隔离标记 — 一条命令搞定。",
+  "install.manual_toggle": "想要手动安装？",
+  "install.post_note": "安装完成后，启动 Dictum 并完成设置：授予权限、下载语音模型，可选下载 LLM。"
 }

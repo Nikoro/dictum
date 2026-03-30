@@ -26,11 +26,16 @@
   "req.title": "What you need.",
   "install.title": "Installation",
   "install.desc": "Download the latest release, unzip, and drop into Applications. The app is ad-hoc signed (not notarized), so you’ll need to clear the quarantine flag on first launch.",
-  "install.step1": "Download <strong>Dictum.zip</strong> from the button above and extract it",
+  "install.step1": "Download <a href=\"https://github.com/Nikoro/dictum/releases/latest/download/Dictum.zip\" class=\"step-link\"><strong>Dictum.zip</strong></a> and extract it",
   "install.step2": "Move <strong>Dictum.app</strong> to <code>/Applications</code>",
   "footer.copy": "Dictum — on-device voice dictation for macOS",
   "hero.source": "View Source",
+  "hero.or": "or download manually",
   "hero.opensource": "Open Source",
   "install.step3": "Run in Terminal:",
-  "install.step4": "Launch Dictum and follow the onboarding: grant permissions, download a speech model, and optionally an LLM"
+  "install.step4": "Launch Dictum and follow the onboarding: grant permissions, download a speech model, and optionally an LLM",
+  "install.terminal_label": "Install via Terminal",
+  "install.terminal_hint": "Downloads the latest release, moves to /Applications, and clears quarantine — all in one step.",
+  "install.manual_toggle": "Prefer to install manually?",
+  "install.post_note": "After installing, launch Dictum and follow the onboarding: grant permissions, download a speech model, and optionally an LLM."
 }
