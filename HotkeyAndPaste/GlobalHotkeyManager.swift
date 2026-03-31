@@ -36,6 +36,9 @@ final class GlobalHotkeyManager: ObservableObject {
     }
 
     func start(onKeyDown: @escaping () -> Void, onKeyUp: @escaping () -> Void, onCancel: @escaping () -> Void) {
+        // Tear down any existing event tap before creating a new one
+        stop()
+
         self.keyDownHandler = onKeyDown
         self.keyUpHandler = onKeyUp
         self.cancelHandler = onCancel
