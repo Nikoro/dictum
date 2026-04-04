@@ -2,12 +2,12 @@
 
 | File | Area | Findings | Last Updated |
 |------|------|----------|--------------|
-| [audio.md](audio.md) | Transcription & Audio | 2 | 2026-03-26 |
+| [audio.md](audio.md) | Transcription & Audio | 3 | 2026-04-04 |
 | [ui.md](ui.md) | UI & Rendering | 3 | 2026-03-26 |
-| [llm.md](llm.md) | LLM Processing | 1 | 2026-03-27 |
+| [llm.md](llm.md) | LLM Processing | 2 | 2026-04-04 |
 | [settings.md](settings.md) | Settings & Persistence | 1 | 2026-03-28 |
-| [hotkey.md](hotkey.md) | Paste & Hotkey | 2 | 2026-03-28 |
-| [tooling.md](tooling.md) | Tooling & CI | 3 | 2026-03-28 |
+| [hotkey.md](hotkey.md) | Paste & Hotkey | 3 | 2026-04-04 |
+| [tooling.md](tooling.md) | Tooling & CI | 3 | 2026-04-04 |
 | [models.md](models.md) | Model Browser & Downloads | 3 | 2026-04-04 |
 | [dependencies.md](dependencies.md) | Dependencies | 1 | 2026-04-04 |
 
@@ -16,6 +16,7 @@
 ### audio.md
 - [GOTCHA] [CRITICAL] WhisperKit model download state not persisted on disk
 - [GOTCHA] [CRITICAL] Whisper hallucinates on short audio when model loads lazily
+- [GOTCHA] [NOTE] WhisperModelManager download progress 50%–99% is fabricated
 
 ### ui.md
 - [GOTCHA] [GOTCHA] `.background(.ultraThinMaterial)` kills `.glassEffect()` rendering
@@ -24,6 +25,7 @@
 
 ### llm.md
 - [GOTCHA] [NOTE] Qwen3 emits `<think>...</think>` blocks that must be stripped
+- [GOTCHA] [NOTE] LLMProcessor.loadModel() silently no-ops on concurrent calls
 
 ### settings.md
 - [NOTE] [NOTE] llmDownloadedModelId is a one-way write — never cleared on model deletion
@@ -31,6 +33,7 @@
 ### hotkey.md
 - [BUG] [GOTCHA] CGEvent paste requires `.cgAnnotatedSessionEventTap`
 - [GOTCHA] [NOTE] SelectedTextReader.readSelectedText() must never run on event tap's run loop thread
+- [GOTCHA] [NOTE] GlobalHotkeyManager uses nonisolated(unsafe) cache — safe only under current usage
 
 ### tooling.md
 - [BUG] [CRITICAL] AppIcon silently dropped when PNGs have wrong pixel dimensions

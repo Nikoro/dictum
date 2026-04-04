@@ -16,3 +16,11 @@
 **Symptom:** User says "raz dwa trzy" but Whisper transcribes "Dziękuję." every time.
 **Root cause:** STT model loaded lazily after `stopRecording()`. Loading takes ~5s, during which no audio is captured. Result: only ~2.5s of audio (40960 samples at 16kHz), often too short/quiet for Whisper, triggering hallucination of common Polish phrases.
 **Workaround:** Preload STT model at app startup (`preloadSTTModel()` in `DictationPipeline.init`) so it's ready before first recording.
+
+### [GOTCHA] [NOTE] WhisperModelManager download progress 50%–99% is fabricated
+**Area:** `Transcription/WhisperModelManager.swift`
+**Tags:** `#gotcha` `#architecture`
+**Verified:** 2026-04-04
+**Symptom:** Progress bar appears smooth from 0% to 100% during STT model download + load, but the second half is synthetic.
+**Root cause:** WhisperKit provides no progress events during `TranscriptionEngine.loadModel()`. After actual download completes (reported as 0%–50%), a `Timer` fires every 0.5s incrementing progress by 0.002 to simulate loading progress. If model loading exceeds ~120 seconds, the bar stalls at 99% indefinitely.
+**Note:** This is a UX-only concern — the download and load still complete correctly regardless of the progress display.

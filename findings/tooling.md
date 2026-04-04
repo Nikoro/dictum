@@ -14,7 +14,7 @@
 **Tags:** `#integration` `#tooling`
 **Verified:** 2026-03-28
 **Symptom:** Release workflow fails with `Jamba.swift:226: error: unexpected ',' separator` and warning `MACOSX_DEPLOYMENT_TARGET 26.0 not in supported range 10.13–15.0.99`.
-**Root cause:** `macos-15` runner defaults to Xcode 16.4 (SDK macOS 15.0). `mlx-swift-lm` 2.29.3 requires Swift features only available in Xcode 26+. Additionally, the project's macOS 26.0 deployment target is unsupported by Xcode 16.
+**Root cause:** `macos-15` runner defaults to Xcode 16.4 (SDK macOS 15.0). `mlx-swift-lm` (currently pinned to 2.30.6) requires Swift features only available in Xcode 26+. Additionally, the project's macOS 26.0 deployment target is unsupported by Xcode 16.
 **Workaround:** Use `macos-26` runner which defaults to Xcode 26.2. No `xcode-select` needed. Untested alternative: `macos-15` may have Xcode 26.x at `/Applications/Xcode_26.x.app` — requires explicit `xcode-select`.
 
 ### [GOTCHA] [GOTCHA] Claude Code Write tool double-escapes backslashes in .strings files
@@ -23,4 +23,10 @@
 **Verified:** 2026-03-26
 **Symptom:** Polish characters (ę, ł, ś, ć, etc.) display as literal `\U0119` text instead of rendered Unicode.
 **Root cause:** The Write tool escapes backslashes, turning `\U0119` (Apple .strings Unicode escape) into `\\U0119` (literal text). The .strings parser sees a literal backslash, not a Unicode escape.
-**Workaround:** Write .strings files via `python3 -c` with real UTF-8 characters (e.g., `\u0119` in Python source → raw ę bytes in file), bypassing the Write tool's escaping.
+**Workaround:** Write .strings files via `python3 -c` with real UTF-8 characters, bypassing the Write tool's escaping. Example:
+```
+python3 -c "
+with open('Resources/pl.lproj/Localizable.strings', 'w') as f:
+    f.write('\"key\" = \"warto\u015b\u0107\";\n')
+"
+```

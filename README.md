@@ -30,8 +30,8 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 
 ## Stack
 
-- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.17.0 — large-v3-turbo, CoreML on Neural Engine
-- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 2.29.3 — Qwen3.5 4B 4-bit (default), any mlx-community model
+- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.18.0 — large-v3-turbo, CoreML on Neural Engine
+- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 2.30.6 — Gemma 4 E2B (default), any mlx-community model
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API
 - **Updates:** [Sparkle](https://github.com/sparkle-project/Sparkle) 2.7+ — automatic updates from GitHub Releases
@@ -91,63 +91,7 @@ On first launch, the onboarding flow guides you through:
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Menu Bar                                                           │
-│  ┌──────────────┐  ┌──────────────────────────────────────────────┐ │
-│  │ MenuBarIcon   │  │ PopoverView                                 │ │
-│  │ (NSStatusItem)│  │  ┌─────────┐ ┌──────────┐ ┌─────────────┐  │ │
-│  │               │  │  │ Setup   │ │ Settings │ │ Model       │  │ │
-│  │  idle ○       │  │  │ View    │ │ (hotkey, │ │ Browser     │  │ │
-│  │  rec  ●       │  │  │         │ │  mode,   │ │ (HF API)    │  │ │
-│  │               │  │  │ perms → │ │  prompts)│ │             │  │ │
-│  └──────┬───────┘  │  │ STT  → │ │          │ │  search     │  │ │
-│         │          │  │ LLM    │ │          │ │  download   │  │ │
-│         ▼          │  └─────────┘ └──────────┘ └─────────────┘  │ │
-│    NSPopover       └──────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  Dictation Pipeline (singleton orchestrator)                        │
-│                                                                     │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
-│  │ Hotkey   │───▶│ Audio    │───▶│ Whisper  │───▶│ LLM         │  │
-│  │ Manager  │    │ Recorder │    │ Kit STT  │    │ Processor   │  │
-│  │          │    │          │    │          │    │ (optional)  │  │
-│  │ CGEvent  │    │ AVAudio  │    │ CoreML / │    │ MLX Swift / │  │
-│  │ tap      │    │ Engine   │    │ Neural   │    │ Metal GPU   │  │
-│  │          │    │ 16kHz    │    │ Engine   │    │             │  │
-│  └────┬─────┘    └──────────┘    └──────────┘    └──────┬───────┘  │
-│       │                                                  │          │
-│       ▼                                                  ▼          │
-│  ┌──────────┐                                    ┌──────────────┐  │
-│  │ Selected │                                    │ Paste        │  │
-│  │ Text     │ ─ ─ context ─ ─ ─ ─ ─ ─ ─ ─ ─ ─▶│ Manager      │  │
-│  │ Reader   │                                    │              │  │
-│  │ (Cmd+C)  │                                    │ normal: ⌘V   │  │
-│  └──────────┘                                    │ context: 📋  │  │
-│                                                  └──────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  Floating Indicator                                                 │
-│  ┌───────────────────────────────────────┐                          │
-│  │ NSPanel (pill at cursor)              │                          │
-│  │  AX API → caret position              │                          │
-│  │  fallback → mouse position            │                          │
-│  │  shows: state + audio level           │                          │
-│  └───────────────────────────────────────┘                          │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  Settings & Persistence                                             │
-│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
-│  │ AppSettings  │  │ Permissions      │  │ Sparkle               │ │
-│  │ (@AppStorage)│  │ Manager          │  │ (auto-updates from    │ │
-│  │              │  │ (AX + Mic)       │  │  GitHub Releases)     │ │
-│  └──────────────┘  └──────────────────┘  └───────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Hotkey press → audio capture (AVAudioEngine) → speech-to-text (WhisperKit on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into active window. A floating indicator pill tracks recording state at the text cursor. All processing runs on-device with no network calls.
 
 See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer code reference.
 

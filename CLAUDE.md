@@ -15,8 +15,8 @@ Dictum — native macOS menu bar app (Swift/SwiftUI) for voice dictation in Poli
 
 ## Dependencies (SPM via XcodeGen)
 
-- `WhisperKit` — `exactVersion: 0.17.0` (unstable API <1.0)
-- `mlx-swift-lm` 2.29.3 (exact pin, products: `MLXLLM`, `MLXLMCommon`; `mlx-swift` is a transitive dependency)
+- `WhisperKit` — `exactVersion: 0.18.0` (unstable API <1.0)
+- `mlx-swift-lm` 2.30.6 (exact pin, products: `MLXLLM`, `MLXLMCommon`; `mlx-swift` is a transitive dependency). Note: 2.31.3 is incompatible with WhisperKit 0.18.0 due to `swift-transformers` version conflict (see `findings/dependencies.md`)
 - `Sparkle` — `from: "2.7.0"` (auto-updates via appcast from GitHub Releases)
 
 ## Architecture
@@ -30,16 +30,17 @@ Dictum — native macOS menu bar app (Swift/SwiftUI) for voice dictation in Poli
 - **TextProcessing/** — `LLMProcessor` (actor) — MLX Swift, `ChatSession` API; `cleanText(rawText:prompt:context:)` — 4 prompt resolution paths: (1) context + `{{context}}` in prompt → both placeholders replaced; (2) context without `{{context}}` → hardcoded EN system prompt, user prompt skipped; (3) no context + `{{text}}` → placeholder replaced; (4) no context, no `{{text}}` → prompt as system message. Automatically strips Qwen3 `<think>...</think>` blocks. Generation params hardcoded: `maxTokens: 2048`, `temperature: 0.7`, `topP: 0.9`
 - **ModelBrowser/** — `ModelBrowser` (HuggingFace API, debounce 300ms), `DownloadedModelsManager` (scans `~/Library/Caches/models/mlx-community/`)
 - **FloatingIndicator/** — `FloatingIndicatorManager` — NSPanel floating pill at text cursor (AX API), shows recording state + audio level; falls back to mouse position when AX unavailable
-- **MenuBar/** — `MenuBarManager` (NSStatusItem + NSPopover), `PopoverView` (~1940 lines, largest file — full UI + onboarding `SetupView`; `SetupView` gate: `isSetupComplete = allGranted && downloadedModelIds.contains(sttModelId)`, 3 steps: permissions → STT download → optional LLM download; `mainContent` sections: Header, RecordingSettings, STTModel, LLMModel (only shown when `llmCleanupEnabled = true`; contains prompt + per-app prompts), DownloadedModels, Footer), `MenuBarIcon` (NSImage factory per AppState — template icon + custom recording icon)
+- **MenuBar/** — `MenuBarManager` (NSStatusItem + NSPopover), `PopoverView` (main container, routes to `SetupView` / `PermissionsNeededView` / main content via `isSetupComplete` and `hasCompletedSetup`), `SetupView` (onboarding: permissions → STT download → optional LLM download; gate: `isSetupComplete = allGranted && downloadedModelIds.contains(sttModelId)`), `PermissionsNeededView` (post-update recovery when permissions are lost), `LLMModelSection`, `STTModelSection`, `STTLanguageSection`, `DownloadedModelsSection`, `PromptTextEditor`, `InstalledAppPickerSheet`, `MenuBarIcon` (NSImage factory per AppState — template icon + custom recording icon)
 - **HotkeyAndPaste/** — `GlobalHotkeyManager` (CGEvent tap, two modes: modifier-only and key+modifier; Escape cancels recording via `cancelHandler`), `SelectedTextReader` (synchronously captures selected text via simulated Cmd+C in event tap callback, result → `DictationPipeline.pendingSelectedContext`), `PasteManager` (NSPasteboard + CGEvent Cmd+V, save/restore clipboard)
 - **Settings/** — `AppSettings` singleton (`@AppStorage` + `@Published` state), `PermissionsManager` singleton (AX + Microphone polling), `UpdaterManager` singleton (Sparkle `SPUStandardUpdaterController`, auto-update checks on launch, injected into PopoverView), `AppState` enum
+- **Resources/** — `Info.plist` (contains `SUPublicEDKey` for Sparkle), `Dictum.entitlements` (non-sandboxed, no `com.apple.security.app-sandbox`), `PrivacyInfo.xcprivacy` (App Store privacy manifest), `en.lproj/` + `pl.lproj/` localization `.strings`
 
 ### Key patterns
 
 - `TranscriptionEngine` and `LLMProcessor` are **Swift actors** (thread safety)
 - Models loaded **lazily** — on first recording, not at app launch
-- `AppSettings.shared` — singleton with `@AppStorage` + `@Published` state; `AppState` enum (idle, warmingUp, recording, transcribing, processingLLM, done (set briefly by MenuBarManager after paste for 1s icon flash, then transitions to idle), error(String) — value-carrying case with associated error message)
-- `resolvePrompt(for:)` priority: (1) enabled per-app prompt for frontmost bundle ID → (2) general prompt (if `llmGeneralPromptEnabled` && non-empty) → (3) nil — skips LLM even when `llmCleanupEnabled = true`
+- `AppSettings.shared` — singleton with `@AppStorage` + `@Published` state; `AppState` enum (idle, warmingUp, recording, transcribing, processingLLM, done (handled in icon/UI but currently never assigned — pipeline goes directly to idle after paste), error(String) — value-carrying case with associated error message)
+- `resolvePrompt(for:)` priority: (1) enabled per-app prompt for frontmost bundle ID → (2) general prompt (if `llmGeneralPromptEnabled` && non-empty) → (3) nil — **skips LLM entirely** even when `llmCleanupEnabled = true` (non-obvious: no prompt = no LLM processing)
 - `resolveSTTLanguage(for:)` priority: (1) enabled per-app STT language for frontmost bundle ID → (2) general `sttLanguage` setting → returns Whisper code or nil (auto-detect)
 - `DictationPipeline.shared` — singleton orchestrator, two modes: normal (auto-paste) and context (clipboard only)
 - CGEvent tap requires Accessibility permission — `AXIsProcessTrusted()` (system prompt via `AXIsProcessTrustedWithOptions`, but auto-grant impossible)
@@ -63,7 +64,7 @@ Hotkey (GlobalHotkeyManager)
 
 - UI language: Polish (localized .strings)
 - Code, comments, documentation, changelogs, commit messages: **English only** — Polish appears only in UI strings (.strings files)
-- No Polish in CHANGELOG.md, README.md, CLAUDE.md, FINDINGS.md, or any non-UI file
+- No Polish in CHANGELOG.md, README.md, CLAUDE.md, findings/, or any non-UI file
 - No transcription history — app does not store user data
 - `LSUIElement = true` — app does not appear in Dock
 - Menu bar icon states: idle (template — rounded rect with mic.fill cutout), recording (custom icon with red dot REC), other states (warmingUp/transcribing/processingLLM/done) use template icon
@@ -71,7 +72,7 @@ Hotkey (GlobalHotkeyManager)
 ## Dev cycle
 
 - **After every code change**: `pkill -x Dictum` → `xcodebuild -project Dictum.xcodeproj -scheme Dictum` → run new version. Always kill → build → launch.
-- No PR/push CI — only the tag-triggered `release.yml`. Validate locally with `xcodebuild` before merging.
+- No PR/push CI — only the tag-triggered `release.yml` (and `pages.yml` which triggers on push to `main` when `website/**` changes). Validate locally with `xcodebuild` before merging.
 - App is `LSUIElement` — no Dock icon, `pkill -x Dictum` is the only way to kill it
 - Launch-at-login (`SMAppService.mainApp`) silently fails from DerivedData — requires installed copy in `/Applications`
 
@@ -85,7 +86,7 @@ Hotkey (GlobalHotkeyManager)
 |---|---|---|---|
 | `llmPrompt` | String | Polish cleanup prompt | `AppSettings` |
 | `sttModelId` | String | `openai_whisper-large-v3_turbo` | `AppSettings` |
-| `llmModelId` | String | `mlx-community/Qwen3.5-4B-4bit` | `AppSettings` |
+| `llmModelId` | String | `mlx-community/gemma-4-e2b-it-4bit` | `AppSettings` |
 | `recordingMode` | String | `hold` | `AppSettings` |
 | `llmCleanupEnabled` | Bool | `false` | `AppSettings` |
 | `llmGeneralPromptEnabled` | Bool | `true` | `AppSettings` |
@@ -96,6 +97,7 @@ Hotkey (GlobalHotkeyManager)
 | `sttLanguage` | String | `auto` | `AppSettings` |
 | `appPrompts` | Data (JSON `[AppPrompt]`) | `[]` | `AppSettings` (via `UserDefaults.standard`) |
 | `appSTTLanguages` | Data (JSON `[AppSTTLanguage]`) | `[]` | `AppSettings` (via `UserDefaults.standard`) |
+| `hasCompletedSetup` | Bool | `false` | `AppSettings` (controls SetupView vs PermissionsNeededView routing) |
 | `llmDownloadedModelId` | String? | nil | `SetupView` (onboarding only, not cleared on model delete) |
 
 ## Tests
@@ -106,7 +108,12 @@ No tests — manual QA only. Do not add XCTest without asking.
 
 Use `/release` skill (`.claude/skills/release/SKILL.md`) to automate version bump, CHANGELOG update, tag, and GitHub release push. Manual process: bump `MARKETING_VERSION` in `project.yml` → update CHANGELOG.md → `git tag v*` → `git push origin main --follow-tags`. The `release.yml` workflow builds `.app` on `macos-26` runner and creates a GitHub Release with `Dictum.zip` + `appcast.xml`.
 
-Requires `SPARKLE_EDDSA_KEY` secret in GitHub repo settings (EdDSA private key for Sparkle update signing). Generate with `sign_update --generate-keys` from Sparkle tools; public key is in `Resources/Info.plist` (`SUPublicEDKey`). Without this secret, the CI sign step fails.
+Requires 3 secrets in GitHub repo settings:
+- `CERTIFICATE_P12` — base64-encoded Developer ID certificate (export from Keychain Access as .p12, then `base64 -i cert.p12 | pbcopy`)
+- `CERTIFICATE_PASSWORD` — passphrase used during .p12 export
+- `SPARKLE_EDDSA_KEY` — EdDSA private key for Sparkle update signing (generate with `sign_update --generate-keys` from Sparkle tools; public key is in `Resources/Info.plist` (`SUPublicEDKey`))
+
+The release build is ad-hoc signed and not notarized — Gatekeeper will quarantine it on first launch; `website/install.sh` clears this with `xattr -dr com.apple.quarantine`. The local quality-gate build (via `/release` skill) uses `CODE_SIGN_IDENTITY="-"` (ad-hoc), while the CI release build uses the real certificate.
 
 A second workflow `pages.yml` deploys the `website/` landing page to GitHub Pages on any push to `main` that modifies `website/**`.
 
@@ -116,10 +123,11 @@ A second workflow `pages.yml` deploys the `website/` landing page to GitHub Page
 
 ## Known limitations
 
-See [README.md](README.md#known-limitations) for the full list. Additional developer-relevant limitations:
-
-- MLX Swift requires xcodebuild (Metal shaders)
+- MLX Swift requires xcodebuild (Metal shaders) — `swift build` will not work
 - Accessibility permission — system prompt via `AXIsProcessTrustedWithOptions`, but auto-grant impossible; user confirms manually
-- LLM output capped at 2048 tokens (`maxTokens` hardcoded in `LLMProcessor`) — long dictations may be silently truncated
+- LLM output capped at 2048 tokens (`maxTokens` hardcoded in `LLMProcessor.cleanText()`) — long dictations may be silently truncated
+- First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
+- Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
+- Uninstall (`performUninstall()` in `PopoverView`) deletes `~/Library/Caches/models/` — the entire shared MLX cache root, not just Dictum's `mlx-community/` subdirectory. Other MLX apps' models may be affected
 
 See [findings/INDEX.md](findings/INDEX.md) for non-obvious gotchas and workarounds discovered during development.
