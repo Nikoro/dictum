@@ -39,6 +39,7 @@ jobs:
 
       - name: Build Release
         run: |
+          BUILD_NUMBER=$(date -u +"%Y%m%d%H%M")
           xcodebuild \
             -project Dictum.xcodeproj \
             -scheme Dictum \
@@ -46,7 +47,8 @@ jobs:
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="Dictum Development" \
             CODE_SIGN_STYLE="Manual" \
-            DEVELOPMENT_TEAM=""
+            DEVELOPMENT_TEAM="" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
       - name: Cleanup keychain
         if: always()
