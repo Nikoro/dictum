@@ -113,7 +113,24 @@ final class AppSettings: ObservableObject {
     6. Zwróć TYLKO poprawiony tekst, bez komentarzy
     """
 
+    static let defaultUnifiedPrompt = """
+    You are a voice input assistant. You receive:
+    - A screenshot of the user's active window
+    - The app name they're in
+    - Any text they have selected
+    - Their spoken words (transcribed)
+
+    Your job is to figure out what they want and return ONLY the text to be pasted. No explanations, no markdown, no quotes.
+
+    Rules:
+    - If the user is simply dictating text (speaking sentences, notes, thoughts), clean it up: fix punctuation, remove filler words, fix obvious typos. Ignore the screenshot.
+    - If the user is giving a command about what's on screen (e.g. "reply to him that...", "summarize this", "translate this"), use the screenshot and selected text to understand the context, then execute the command.
+    - If replying to a conversation, match the language and formality level visible in the screenshot.
+    - Always return just the final text. Nothing else.
+    """
+
     @AppStorage("llmPrompt") var llmPrompt: String = ""
+    @AppStorage("unifiedSystemPrompt") var unifiedSystemPrompt: String = ""
     @AppStorage("sttModelId") var sttModelId: String = "openai_whisper-large-v3_turbo"
     @AppStorage("llmModelId") var llmModelId: String = "mlx-community/gemma-4-e2b-it-4bit"
     @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
@@ -156,17 +173,28 @@ final class AppSettings: ObservableObject {
         llmPrompt = Self.defaultPrompt
     }
 
+    func resetUnifiedPrompt() {
+        unifiedSystemPrompt = Self.defaultUnifiedPrompt
+    }
+
     // MARK: - Per-app prompts
 
-    /// Resolve which prompt to use for a given frontmost app.
-    /// Returns nil when no prompt applies (general disabled + no per-app match).
-    func resolvePrompt(for bundleId: String?) -> String? {
+    /// Resolve the full system prompt for a given frontmost app.
+    /// Base = unified prompt (always applies). Per-app or general prompt layered on top.
+    func resolvePrompt(for bundleId: String?) -> String {
+        let base = unifiedSystemPrompt.isEmpty ? Self.defaultUnifiedPrompt : unifiedSystemPrompt
+
         if let bundleId,
            let appPrompt = appPrompts.first(where: { $0.bundleId == bundleId && $0.enabled }),
            !appPrompt.prompt.isEmpty {
-            return appPrompt.prompt
+            return base + "\n\nAdditional instructions for this app:\n" + appPrompt.prompt
         }
-        return llmGeneralPromptEnabled && !llmPrompt.isEmpty ? llmPrompt : nil
+
+        if llmGeneralPromptEnabled, !llmPrompt.isEmpty {
+            return base + "\n\nAdditional instructions:\n" + llmPrompt
+        }
+
+        return base
     }
 
     func addAppPrompt(_ prompt: AppPrompt) {

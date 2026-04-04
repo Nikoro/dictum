@@ -42,36 +42,39 @@ actor LLMProcessor {
         currentModelId = modelId
     }
 
-    func cleanText(rawText: String, prompt: String, context: String? = nil) async throws -> String {
+    func cleanText(rawText: String, prompt: String, context: DictationContext? = nil) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
 
-        let systemPrompt: String?
+        let systemPrompt: String
         let userMessage: String
 
         if let context {
-            // Context mode: user selected text and dictated an instruction.
-            // Ignore the default cleanup prompt — use a dedicated context prompt.
-            if prompt.contains("{{context}}") {
-                // Custom prompt with {{context}} and {{text}} placeholders
-                let resolved = prompt
-                    .replacingOccurrences(of: "{{context}}", with: context)
-                    .replacingOccurrences(of: "{{text}}", with: rawText)
-                systemPrompt = nil
-                userMessage = resolved
-            } else {
-                systemPrompt = "Execute the user's instruction based on the provided context. Return ONLY the result, no commentary."
-                userMessage = "Context:\n\(context)\n\nInstruction: \(rawText)"
+            // Smart context mode: unified prompt as system, structured user message
+            systemPrompt = prompt
+
+            var parts: [String] = []
+            if let appName = context.appName {
+                parts.append("App: \(appName)")
             }
+            if let selectedText = context.selectedText, !selectedText.isEmpty {
+                parts.append("Selected text:\n\(selectedText)")
+            }
+            if context.screenshot != nil {
+                // TODO: When mlx-swift-lm 3.x ships with MLXVLM, pass screenshot as image input
+                // via ChatSession.respond(to:images: [.ciImage(CIImage(cgImage: screenshot))])
+                parts.append("[Screenshot captured — vision model not yet available]")
+            }
+            parts.append("Spoken words: \(rawText)")
+            userMessage = parts.joined(separator: "\n\n")
         } else {
-            // Normal mode: standard cleanup/prompt
-            let hasPlaceholder = prompt.contains("{{text}}")
-            systemPrompt = hasPlaceholder ? nil : prompt
-            userMessage = hasPlaceholder ? prompt.replacingOccurrences(of: "{{text}}", with: rawText) : rawText
+            // Fallback: no context
+            systemPrompt = prompt
+            userMessage = rawText
         }
 
         let session = ChatSession(
             modelContainer,
-            instructions: systemPrompt ?? "",
+            instructions: systemPrompt,
             generateParameters: GenerateParameters(
                 maxTokens: 2048,
                 temperature: 0.7,
@@ -81,7 +84,7 @@ actor LLMProcessor {
 
         var result = try await session.respond(to: userMessage)
 
-        // Qwen3 generuje <think>...</think> — usuwamy blok thinking
+        // Strip thinking blocks (Qwen3, Gemma)
         if let thinkEnd = result.range(of: "</think>") {
             result = String(result[thinkEnd.upperBound...])
         }

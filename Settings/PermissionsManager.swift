@@ -8,6 +8,7 @@ final class PermissionsManager: ObservableObject {
 
     @Published var accessibilityGranted = false
     @Published var microphoneGranted = false
+    @Published var screenRecordingGranted = false
 
     var allGranted: Bool { accessibilityGranted && microphoneGranted }
 
@@ -21,6 +22,7 @@ final class PermissionsManager: ObservableObject {
         accessibilityGranted = AXIsProcessTrusted()
         let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
         microphoneGranted = micStatus == .authorized
+        screenRecordingGranted = CGPreflightScreenCaptureAccess()
     }
 
     // MARK: - Request
@@ -53,6 +55,18 @@ final class PermissionsManager: ObservableObject {
         startPolling()
     }
 
+    func requestScreenRecording() {
+        CGRequestScreenCaptureAccess()
+        startPolling()
+    }
+
+    func openScreenRecordingSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
+        startPolling()
+    }
+
     // MARK: - Polling
 
     func startPolling() {
@@ -61,7 +75,7 @@ final class PermissionsManager: ObservableObject {
             Task { @MainActor in
                 guard let self else { timer.invalidate(); return }
                 self.refresh()
-                if self.allGranted {
+                if self.allGranted && self.screenRecordingGranted {
                     timer.invalidate()
                     self.pollingTimer = nil
                 }

@@ -100,6 +100,17 @@ struct SetupView: View {
                             permissions.openAccessibilitySettings()
                         }
                     )
+                    PermissionRow(
+                        icon: "rectangle.dashed.badge.record",
+                        title: String(localized: "setup.step1.screen.title", defaultValue: "Screen Recording"),
+                        description: String(localized: "setup.step1.screen.desc", defaultValue: "Capture window for smart context"),
+                        isGranted: permissions.screenRecordingGranted,
+                        action: {
+                            if !permissions.screenRecordingGranted {
+                                permissions.requestScreenRecording()
+                            }
+                        }
+                    )
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
@@ -492,6 +503,17 @@ struct PermissionsNeededView: View {
                         isGranted: false,
                         action: {
                             permissions.openAccessibilitySettings()
+                        }
+                    )
+                }
+                if !permissions.screenRecordingGranted {
+                    PermissionRow(
+                        icon: "rectangle.dashed.badge.record",
+                        title: String(localized: "setup.step1.screen.title", defaultValue: "Screen Recording"),
+                        description: String(localized: "setup.step1.screen.desc", defaultValue: "Capture window for smart context"),
+                        isGranted: false,
+                        action: {
+                            permissions.requestScreenRecording()
                         }
                     )
                 }

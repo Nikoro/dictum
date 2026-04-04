@@ -54,7 +54,7 @@ final class DictationPipeline: ObservableObject {
     private var isCancelled = false
     private(set) var isWarmedUp = false
     private var warmupTask: Task<Void, Never>?
-    private var targetBundleId: String?
+    private var frontmostApp: NSRunningApplication?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     var pendingSelectedContext: String?
     @Published var llmDownloadError: String?
@@ -62,7 +62,7 @@ final class DictationPipeline: ObservableObject {
     @Published var llmDownloadingModelId: String?
     @Published var llmDownloadProgress: Double = 0
     private var llmDownloadTask: Task<Void, Never>?
-    private var selectedContext: String?
+    private var dictationContext: DictationContext?
     private var permissionsCancellable: AnyCancellable?
     private var whisperSink: AnyCancellable?
     private var downloadedModelsSink: AnyCancellable?
@@ -185,7 +185,8 @@ final class DictationPipeline: ObservableObject {
             isRecording = false
         }
         isCancelled = true
-        selectedContext = nil
+        dictationContext = nil
+        frontmostApp = nil
         settings.appState = .idle
         FloatingIndicatorManager.shared.hide()
     }
@@ -204,19 +205,17 @@ final class DictationPipeline: ObservableObject {
 
         dlog("[Dictum] startRecording called")
 
-        // Use selected text captured synchronously from the event tap
-        selectedContext = pendingSelectedContext
-        pendingSelectedContext = nil
-        if let ctx = selectedContext {
-            dlog("[Dictum] using selected context (\(ctx.count) chars): '\(ctx.prefix(100))...'")
+        // Selected text was captured synchronously from the event tap — will be used in context gathering
+        if let ctx = pendingSelectedContext {
+            dlog("[Dictum] pending selected context (\(ctx.count) chars): '\(ctx.prefix(100))...'")
         }
 
         do {
             try audioRecorder.startRecording()
             isRecording = true
             settings.appState = .recording
-            targetBundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-            dlog("[Dictum] recording started, target app: \(targetBundleId ?? "nil"), showing floating indicator")
+            frontmostApp = NSWorkspace.shared.frontmostApplication
+            dlog("[Dictum] recording started, target app: \(frontmostApp?.bundleIdentifier ?? "nil"), showing floating indicator")
             FloatingIndicatorManager.shared.captureTargetApp()
             FloatingIndicatorManager.shared.show(audioRecorder: audioRecorder)
         } catch {
@@ -261,7 +260,7 @@ final class DictationPipeline: ObservableObject {
             }
 
             guard !isCancelled else { return }
-            let sttLanguage = settings.resolveSTTLanguage(for: targetBundleId)
+            let sttLanguage = settings.resolveSTTLanguage(for: frontmostApp?.bundleIdentifier)
             dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
             let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
             guard !isCancelled else { return }
@@ -274,10 +273,18 @@ final class DictationPipeline: ObservableObject {
                 return
             }
 
-            // LLM cleanup (if enabled and a prompt resolves)
+            // Gather context (screenshot + selected text + app info)
+            let context = await ContextGatherer.gather(
+                selectedText: pendingSelectedContext,
+                frontmostApp: frontmostApp
+            )
+            pendingSelectedContext = nil
+            dlog("[Dictum] context: app=\(context.appName ?? "nil"), selectedText=\(context.selectedText != nil ? "yes" : "no"), screenshot=\(context.screenshot != nil ? "yes" : "no")")
+
+            // LLM cleanup (if enabled)
             let finalText: String
-            let resolvedPrompt = settings.llmCleanupEnabled ? settings.resolvePrompt(for: targetBundleId) : nil
-            if settings.llmCleanupEnabled, let prompt = resolvedPrompt {
+            if settings.llmCleanupEnabled {
+                let prompt = settings.resolvePrompt(for: frontmostApp?.bundleIdentifier)
                 settings.appState = .processingLLM
                 do {
                     // Lazy load LLM if needed
@@ -286,12 +293,12 @@ final class DictationPipeline: ObservableObject {
                         try await LLMProcessor.shared.loadModel(settings.llmModelId)
                     }
 
-                    dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(prompt)'")
-                    dlog("[Dictum] LLM input: '\(rawText)', context: \(selectedContext != nil ? "yes" : "none")")
+                    dlog("[Dictum] LLM prompt for \(frontmostApp?.bundleIdentifier ?? "general")")
+                    dlog("[Dictum] LLM input: '\(rawText)', context: \(context.selectedText != nil ? "yes" : "none")")
                     finalText = try await LLMProcessor.shared.cleanText(
                         rawText: rawText,
                         prompt: prompt,
-                        context: selectedContext
+                        context: context
                     )
                     dlog("[Dictum] LLM raw output: '\(finalText)'")
                 } catch {
@@ -305,7 +312,7 @@ final class DictationPipeline: ObservableObject {
             guard !isCancelled else { return }
             settings.lastCleanedText = finalText
 
-            if selectedContext != nil {
+            if context.selectedText != nil {
                 // Context mode: put result in clipboard, user pastes manually
                 dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
                 NSPasteboard.general.clearContents()
@@ -317,7 +324,8 @@ final class DictationPipeline: ObservableObject {
             }
 
             FloatingIndicatorManager.shared.hide()
-            selectedContext = nil
+            dictationContext = nil
+            frontmostApp = nil
             settings.appState = .idle
             dlog("[Dictum] done!")
         } catch {

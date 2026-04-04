@@ -171,6 +171,7 @@ struct LLMModelSection: View {
             }
 
             // Prompts
+            UnifiedPromptSection()
             GeneralPromptSection(hasDownloadedModels: !downloadedModels.isEmpty)
             AppPromptsSection(hasDownloadedModels: !downloadedModels.isEmpty)
         }
@@ -184,6 +185,55 @@ struct LLMModelSection: View {
 
     private func cancelDownload() {
         pipeline.cancelLLMDownload()
+    }
+}
+
+// MARK: - Unified System Prompt
+
+private struct UnifiedPromptSection: View {
+    @EnvironmentObject var settings: AppSettings
+    @State private var localPrompt: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "brain.head.profile")
+                    .frame(width: 18, height: 18)
+
+                Text(String(localized: "section.prompt.unified", defaultValue: "System prompt"))
+                    .font(.caption)
+                    .fontWeight(.medium)
+
+                Spacer()
+
+                Button(String(localized: "section.prompt.unified.reset", defaultValue: "Reset")) {
+                    settings.resetUnifiedPrompt()
+                    localPrompt = settings.unifiedSystemPrompt
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(Color("AccentColor"))
+            }
+
+            PromptTextEditor(
+                text: $localPrompt,
+                placeholder: String(AppSettings.defaultUnifiedPrompt.prefix(100)) + "..."
+            )
+            .frame(minHeight: 100, maxHeight: 160)
+            .background(.quaternary)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .onChange(of: localPrompt) { _, newValue in
+                settings.unifiedSystemPrompt = newValue
+            }
+        }
+        .padding(8)
+        .background(.quaternary.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .onAppear {
+            localPrompt = settings.unifiedSystemPrompt.isEmpty
+                ? AppSettings.defaultUnifiedPrompt
+                : settings.unifiedSystemPrompt
+        }
     }
 }
 
@@ -217,7 +267,7 @@ private struct GeneralPromptSection: View {
                     .frame(width: 18, height: 18)
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
 
-                Text(String(localized: "section.prompt.general", defaultValue: "Prompt ogólny"))
+                Text(String(localized: "section.prompt.general", defaultValue: "Additional instructions"))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
