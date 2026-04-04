@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-04
+
+### Added
+
+- Switch default LLM to Gemma 4 with E2B/E4B/26B model options
+- Bump WhisperKit to 0.18.0 and mlx-swift-lm to 2.30.6
+- Fix model download flow to register model even when initial load fails
+- Remove HuggingFace tag filter that silently hid new model architectures
+- Redesign landing page hero with privacy pills and animated pill demo
+
 ## [0.6.1] - 2026-03-31
 
 ### Fixed
@@ -125,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Nikoro/dictum/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Nikoro/dictum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Nikoro/dictum/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Nikoro/dictum/compare/v0.5.0...v0.5.1
