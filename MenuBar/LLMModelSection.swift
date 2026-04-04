@@ -224,7 +224,7 @@ private struct GeneralPromptSection: View {
             }
 
             if showNoModelWarning {
-                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Qwen3.5-4B-4bit"))
+                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Gemma 4 E2B"))
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -366,7 +366,7 @@ private struct AppPromptRow: View {
             }
 
             if showNoModelWarning {
-                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Qwen3.5-4B-4bit"))
+                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Gemma 4 E2B"))
                     .font(.caption)
                     .foregroundStyle(.orange)
             }

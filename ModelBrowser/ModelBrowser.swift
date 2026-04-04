@@ -60,10 +60,7 @@ final class ModelBrowser: ObservableObject {
 
                 guard !Task.isCancelled else { return }
 
-                self.searchResults = models.filter { model in
-                    let tags = model.tags ?? []
-                    return tags.contains("text-generation") || tags.isEmpty
-                }
+                self.searchResults = models
             } catch {
                 if !Task.isCancelled {
                     print("HF API error: \(error)")

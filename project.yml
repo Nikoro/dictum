@@ -9,10 +9,10 @@ options:
 packages:
   WhisperKit:
     url: https://github.com/argmaxinc/whisperkit.git
-    exactVersion: 0.17.0
+    exactVersion: 0.18.0
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm.git
-    exactVersion: 2.29.3
+    exactVersion: 2.30.6
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle.git
     from: "2.7.0"

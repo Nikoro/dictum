@@ -32,6 +32,9 @@
 "section.hotkey.press" = "Press a key...";
 "section.stt" = "STT Model";
 "section.stt.more" = "More models (%lld)";
+"llm.gemma4_e2b.desc" = "Fast, lightweight. Best choice for cleanup.";
+"llm.gemma4_e4b.desc" = "Better quality. Great for Polish.";
+"llm.gemma4_26b.desc" = "Best quality. Requires lots of RAM.";
 "section.llm" = "LLM Model";
 "section.llm.search" = "Search models (e.g. qwen, gemma, llama)...";
 "section.llm.downloading" = "Downloading %@...";
@@ -57,9 +60,6 @@
 "stt.base.desc" = "Very small and fast. Lower accuracy.";
 
 /* Model descriptions — LLM */
-"llm.qwen3_1.7b.desc" = "Fast, lightweight. Good for simple fixes.";
-"llm.qwen3_4b.desc" = "Good quality cleanup.";
-"llm.qwen3_8b.desc" = "Best quality. Requires more RAM.";
 
 
 /* Recording modes */
@@ -91,7 +91,7 @@
 "section.prompt.picker.search" = "Search apps...";
 "section.prompt.general.placeholder" = "Enter general prompt...";
 "section.prompt.example" = "Example prompt";
-"section.prompt.nomodel" = "Download an LLM model first, e.g. Qwen3.5-4B-4bit";
+"section.prompt.nomodel" = "Download an LLM model first, e.g. Gemma 4 E2B";
 "section.prompt.perapp.placeholder %@" = "Write prompt for %@...";
 
 /* Uninstall */

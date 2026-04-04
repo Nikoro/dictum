@@ -122,4 +122,4 @@ See [README.md](README.md#known-limitations) for the full list. Additional devel
 - Accessibility permission — system prompt via `AXIsProcessTrustedWithOptions`, but auto-grant impossible; user confirms manually
 - LLM output capped at 2048 tokens (`maxTokens` hardcoded in `LLMProcessor`) — long dictations may be silently truncated
 
-See [FINDINGS.md](FINDINGS.md) for non-obvious gotchas and workarounds discovered during development.
+See [findings/INDEX.md](findings/INDEX.md) for non-obvious gotchas and workarounds discovered during development.

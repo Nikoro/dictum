@@ -115,7 +115,7 @@ final class AppSettings: ObservableObject {
 
     @AppStorage("llmPrompt") var llmPrompt: String = ""
     @AppStorage("sttModelId") var sttModelId: String = "openai_whisper-large-v3_turbo"
-    @AppStorage("llmModelId") var llmModelId: String = "mlx-community/Qwen3.5-4B-4bit"
+    @AppStorage("llmModelId") var llmModelId: String = "mlx-community/gemma-4-e2b-it-4bit"
     @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
     @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = false
     @AppStorage("llmGeneralPromptEnabled") var llmGeneralPromptEnabled: Bool = true

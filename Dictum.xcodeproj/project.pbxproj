@@ -569,7 +569,7 @@
 			repositoryURL = "https://github.com/argmaxinc/whisperkit.git";
 			requirement = {
 				kind = exactVersion;
-				version = 0.17.0;
+				version = 0.18.0;
 			};
 		};
 		AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */ = {
@@ -585,7 +585,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
 			requirement = {
 				kind = exactVersion;
-				version = 2.29.3;
+				version = 2.30.6;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

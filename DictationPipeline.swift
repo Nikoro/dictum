@@ -348,13 +348,13 @@ final class DictationPipeline: ObservableObject {
                         self?.llmDownloadProgress = progress.fractionCompleted
                     }
                 }
-                settings.llmModelId = modelId
-                downloadedModelsManager.scanDownloadedModels()
             } catch {
                 if !Task.isCancelled {
-                    llmDownloadError = error.localizedDescription
+                    dlog("[LLM] load after download failed: \(error.localizedDescription)")
                 }
             }
+            settings.llmModelId = modelId
+            downloadedModelsManager.scanDownloadedModels()
             llmIsDownloading = false
             llmDownloadingModelId = nil
             llmDownloadProgress = 0

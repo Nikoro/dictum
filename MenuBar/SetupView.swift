@@ -15,24 +15,24 @@ private struct LLMModelOption: Identifiable {
 
 private let llmModelOptions: [LLMModelOption] = [
     LLMModelOption(
-        id: "mlx-community/Qwen3-1.7B-4bit",
-        displayName: "Qwen3 1.7B",
-        sizeGB: "~1.2 GB",
-        descriptionKey: "llm.qwen3_1.7b.desc",
-        recommended: false
-    ),
-    LLMModelOption(
-        id: "mlx-community/Qwen3.5-4B-4bit",
-        displayName: "Qwen3.5 4B",
-        sizeGB: "~2.5 GB",
-        descriptionKey: "llm.qwen3_4b.desc",
+        id: "mlx-community/gemma-4-e2b-it-4bit",
+        displayName: "Gemma 4 E2B",
+        sizeGB: "~3 GB",
+        descriptionKey: "llm.gemma4_e2b.desc",
         recommended: true
     ),
     LLMModelOption(
-        id: "mlx-community/Qwen3-8B-4bit",
-        displayName: "Qwen3 8B",
+        id: "mlx-community/gemma-4-e4b-it-4bit",
+        displayName: "Gemma 4 E4B",
         sizeGB: "~5 GB",
-        descriptionKey: "llm.qwen3_8b.desc",
+        descriptionKey: "llm.gemma4_e4b.desc",
+        recommended: false
+    ),
+    LLMModelOption(
+        id: "mlx-community/gemma-4-26b-a4b-it-4bit",
+        displayName: "Gemma 4 26B",
+        sizeGB: "~17 GB",
+        descriptionKey: "llm.gemma4_26b.desc",
         recommended: false
     ),
 ]
