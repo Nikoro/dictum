@@ -64,6 +64,8 @@ actor LLMProcessor {
             }
         } else {
             // Normal mode: standard cleanup/prompt
+            // `{{text}}` means the full prompt becomes a user message; otherwise treat the prompt
+            // as system instructions and send only the raw transcription as user input.
             let hasPlaceholder = prompt.contains("{{text}}")
             systemPrompt = hasPlaceholder ? nil : prompt
             userMessage = hasPlaceholder ? prompt.replacingOccurrences(of: "{{text}}", with: rawText) : rawText
@@ -81,7 +83,7 @@ actor LLMProcessor {
 
         var result = try await session.respond(to: userMessage)
 
-        // Qwen3 generuje <think>...</think> — usuwamy blok thinking
+        // Some MLX community models emit hidden reasoning blocks; strip them before returning text.
         if let thinkEnd = result.range(of: "</think>") {
             result = String(result[thinkEnd.upperBound...])
         }

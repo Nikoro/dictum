@@ -12,6 +12,7 @@ final class MenuBarManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private let settings = AppSettings.shared
+    private let runtimeState = AppRuntimeState.shared
     private let pipeline = DictationPipeline.shared
 
     init() {
@@ -40,6 +41,7 @@ final class MenuBarManager: ObservableObject {
             rootView: PopoverView()
                 .tint(Color("AccentColor"))
                 .environmentObject(settings)
+                .environmentObject(runtimeState)
                 .environmentObject(pipeline)
                 .environmentObject(UpdaterManager.shared)
         )
@@ -53,7 +55,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     private func observeState() {
-        settings.$appState
+        runtimeState.$appState
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.updateIcon(for: state)
@@ -73,7 +75,7 @@ final class MenuBarManager: ObservableObject {
             // Flash back to idle after 1s
             Task { [weak self] in
                 try? await Task.sleep(for: .seconds(1))
-                self?.settings.appState = .idle
+                self?.runtimeState.appState = .idle
             }
         default:
             // Template image — system automatycznie dopasuje do light/dark mode

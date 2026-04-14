@@ -30,7 +30,7 @@ final class WhisperModelManager: ObservableObject {
     @Published var downloadProgress: Double = 0
 
     private var downloadTask: Task<Void, Never>?
-    private static let downloadedKey = "whisperDownloadedModelIds"
+    private static let downloadedKey = UserDefaultsKey.whisperDownloadedModelIds.rawValue
 
     static let defaultModels: [WhisperModelInfo] = [
         WhisperModelInfo(

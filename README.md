@@ -91,9 +91,11 @@ On first launch, the onboarding flow guides you through:
 
 ## Architecture
 
-Hotkey press → audio capture (AVAudioEngine) → speech-to-text (WhisperKit on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into active window. A floating indicator pill tracks recording state at the text cursor. All processing runs on-device with no network calls.
+Dictum uses a layered macOS utility-app architecture, not DDD. `DictationPipeline` is the central orchestrator for recording, transcription, optional LLM cleanup, and output, while focused modules handle audio capture, model management, floating-indicator placement, menu bar UI, hotkeys, and settings.
 
-See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer code reference.
+Runtime flow remains straightforward: hotkey press → audio capture (AVAudioEngine) → speech-to-text (WhisperKit on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into the active app or copy to clipboard in context mode. A floating indicator pill tracks recording state near the text cursor.
+
+See [CLAUDE.md](CLAUDE.md) for concise contributor/agent context and `findings/` for non-obvious implementation gotchas.
 
 ## Download
 

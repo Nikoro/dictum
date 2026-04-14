@@ -1,0 +1,60 @@
+included:
+  - .
+
+excluded:
+  - .claude
+  - .git
+  - .github
+  - .vscode
+  - build
+  - Dictum.xcodeproj
+  - website
+
+reporter: xcode
+
+opt_in_rules:
+  - unused_import
+  - vertical_whitespace
+
+cyclomatic_complexity:
+  warning: 10
+  error: 15
+
+file_length:
+  warning: 350
+  error: 500
+
+function_body_length:
+  warning: 50
+  error: 80
+
+type_body_length:
+  warning: 250
+  error: 350
+
+line_length:
+  warning: 140
+  error: 180
+  ignores_comments: true
+  ignores_urls: true
+
+nesting:
+  type_level:
+    warning: 2
+  statement_level:
+    warning: 3
+
+force_cast:
+  severity: warning
+
+force_try:
+  severity: warning
+
+todo:
+  severity: warning
+
+trailing_whitespace:
+  ignores_empty_lines: true
+
+vertical_whitespace:
+  max_empty_lines: 1

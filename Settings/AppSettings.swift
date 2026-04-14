@@ -89,14 +89,22 @@ enum RecordingMode: String, CaseIterable {
     }
 }
 
-enum AppState: Equatable {
-    case idle
-    case warmingUp
-    case recording
-    case transcribing
-    case processingLLM
-    case done
-    case error(String)
+enum UserDefaultsKey: String {
+    case llmPrompt
+    case sttModelId
+    case llmModelId
+    case recordingMode
+    case llmCleanupEnabled
+    case llmGeneralPromptEnabled
+    case hotkeyKeyCode
+    case hotkeyModifiers
+    case hotkeyIsModifierOnly
+    case sttLanguage
+    case hasCompletedSetup
+    case appPrompts
+    case appSTTLanguages
+    case whisperDownloadedModelIds
+    case llmDownloadedModelId
 }
 
 @MainActor
@@ -113,17 +121,17 @@ final class AppSettings: ObservableObject {
     6. Zwróć TYLKO poprawiony tekst, bez komentarzy
     """
 
-    @AppStorage("llmPrompt") var llmPrompt: String = ""
-    @AppStorage("sttModelId") var sttModelId: String = "openai_whisper-large-v3_turbo"
-    @AppStorage("llmModelId") var llmModelId: String = "mlx-community/gemma-4-e2b-it-4bit"
-    @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
-    @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = false
-    @AppStorage("llmGeneralPromptEnabled") var llmGeneralPromptEnabled: Bool = true
-    @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 54 // Right Command
-    @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
-    @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true
-    @AppStorage("sttLanguage") var sttLanguageRaw: String = STTLanguage.systemDefault.rawValue
-    @AppStorage("hasCompletedSetup") var hasCompletedSetup: Bool = false
+    @AppStorage(UserDefaultsKey.llmPrompt.rawValue) var llmPrompt: String = ""
+    @AppStorage(UserDefaultsKey.sttModelId.rawValue) var sttModelId: String = "openai_whisper-large-v3_turbo"
+    @AppStorage(UserDefaultsKey.llmModelId.rawValue) var llmModelId: String = "mlx-community/gemma-4-e2b-it-4bit"
+    @AppStorage(UserDefaultsKey.recordingMode.rawValue) var recordingModeRaw: String = RecordingMode.hold.rawValue
+    @AppStorage(UserDefaultsKey.llmCleanupEnabled.rawValue) var llmCleanupEnabled: Bool = false
+    @AppStorage(UserDefaultsKey.llmGeneralPromptEnabled.rawValue) var llmGeneralPromptEnabled: Bool = true
+    @AppStorage(UserDefaultsKey.hotkeyKeyCode.rawValue) var hotkeyKeyCode: Int = 54 // Right Command
+    @AppStorage(UserDefaultsKey.hotkeyModifiers.rawValue) var hotkeyModifiers: Int = 0 // none (modifier-only)
+    @AppStorage(UserDefaultsKey.hotkeyIsModifierOnly.rawValue) var hotkeyIsModifierOnly: Bool = true
+    @AppStorage(UserDefaultsKey.sttLanguage.rawValue) var sttLanguageRaw: String = STTLanguage.systemDefault.rawValue
+    @AppStorage(UserDefaultsKey.hasCompletedSetup.rawValue) var hasCompletedSetup: Bool = false
 
     var sttLanguage: STTLanguage {
         get { STTLanguage(rawValue: sttLanguageRaw) ?? .auto }
@@ -142,10 +150,6 @@ final class AppSettings: ObservableObject {
         get { RecordingMode(rawValue: recordingModeRaw) ?? .hold }
         set { recordingModeRaw = newValue.rawValue }
     }
-
-    @Published var appState: AppState = .idle
-    @Published var lastTranscription: String = ""
-    @Published var lastCleanedText: String = ""
 
     private init() {
         loadAppPrompts()
@@ -190,12 +194,12 @@ final class AppSettings: ObservableObject {
 
     private func saveAppPrompts() {
         if let data = try? JSONEncoder().encode(appPrompts) {
-            UserDefaults.standard.set(data, forKey: "appPrompts")
+            UserDefaults.standard.set(data, forKey: UserDefaultsKey.appPrompts.rawValue)
         }
     }
 
     private func loadAppPrompts() {
-        if let data = UserDefaults.standard.data(forKey: "appPrompts"),
+        if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appPrompts.rawValue),
            let prompts = try? JSONDecoder().decode([AppPrompt].self, from: data) {
             appPrompts = prompts
         }
@@ -234,12 +238,12 @@ final class AppSettings: ObservableObject {
 
     private func saveAppSTTLanguages() {
         if let data = try? JSONEncoder().encode(appSTTLanguages) {
-            UserDefaults.standard.set(data, forKey: "appSTTLanguages")
+            UserDefaults.standard.set(data, forKey: UserDefaultsKey.appSTTLanguages.rawValue)
         }
     }
 
     private func loadAppSTTLanguages() {
-        if let data = UserDefaults.standard.data(forKey: "appSTTLanguages"),
+        if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appSTTLanguages.rawValue),
            let langs = try? JSONDecoder().decode([AppSTTLanguage].self, from: data) {
             appSTTLanguages = langs
         }

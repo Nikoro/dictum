@@ -49,7 +49,9 @@ final class DictationPipeline: ObservableObject {
     let downloadedModelsManager = DownloadedModelsManager.shared
 
     private let settings = AppSettings.shared
+    private let runtimeState = AppRuntimeState.shared
     private let permissions = PermissionsManager.shared
+    private let llmDownloadManager = LLMDownloadManager()
     private var isRecording = false
     private var isCancelled = false
     private(set) var isWarmedUp = false
@@ -57,21 +59,37 @@ final class DictationPipeline: ObservableObject {
     private var targetBundleId: String?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     var pendingSelectedContext: String?
-    @Published var llmDownloadError: String?
-    @Published var llmIsDownloading = false
-    @Published var llmDownloadingModelId: String?
-    @Published var llmDownloadProgress: Double = 0
-    private var llmDownloadTask: Task<Void, Never>?
     private var selectedContext: String?
     private var permissionsCancellable: AnyCancellable?
     private var whisperSink: AnyCancellable?
     private var downloadedModelsSink: AnyCancellable?
+    private var llmDownloadSink: AnyCancellable?
+
+    var llmDownloadError: String? {
+        get { llmDownloadManager.downloadError }
+        set { llmDownloadManager.downloadError = newValue }
+    }
+
+    var llmIsDownloading: Bool {
+        llmDownloadManager.isDownloading
+    }
+
+    var llmDownloadingModelId: String? {
+        llmDownloadManager.downloadingModelId
+    }
+
+    var llmDownloadProgress: Double {
+        llmDownloadManager.downloadProgress
+    }
 
     private init() {
         whisperSink = whisperModelManager.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         downloadedModelsSink = downloadedModelsManager.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        llmDownloadSink = llmDownloadManager.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         setupHotkey()
@@ -186,7 +204,7 @@ final class DictationPipeline: ObservableObject {
         }
         isCancelled = true
         selectedContext = nil
-        settings.appState = .idle
+        runtimeState.appState = .idle
         FloatingIndicatorManager.shared.hide()
     }
 
@@ -196,7 +214,7 @@ final class DictationPipeline: ObservableObject {
         // Guard: STT model must be downloaded first
         if !whisperModelManager.downloadedModelIds.contains(settings.sttModelId) {
             dlog("[Dictum] STT model not downloaded, showing popover")
-            settings.appState = .error(String(localized: "error.download.stt", defaultValue: "Download STT model in settings"))
+            runtimeState.appState = .error(String(localized: "error.download.stt", defaultValue: "Download STT model in settings"))
             // Open the menu bar popover so user sees the setup screen
             MenuBarManager.shared?.showPopover()
             return
@@ -214,14 +232,14 @@ final class DictationPipeline: ObservableObject {
         do {
             try audioRecorder.startRecording()
             isRecording = true
-            settings.appState = .recording
+            runtimeState.appState = .recording
             targetBundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
             dlog("[Dictum] recording started, target app: \(targetBundleId ?? "nil"), showing floating indicator")
             FloatingIndicatorManager.shared.captureTargetApp()
             FloatingIndicatorManager.shared.show(audioRecorder: audioRecorder)
         } catch {
             dlog("[Dictum] startRecording error: \(error)")
-            settings.appState = .error("\(String(localized: "error.mic", defaultValue: "Cannot start microphone:")) \(error.localizedDescription)")
+            runtimeState.appState = .error("\(String(localized: "error.mic", defaultValue: "Cannot start microphone:")) \(error.localizedDescription)")
         }
     }
 
@@ -236,7 +254,7 @@ final class DictationPipeline: ObservableObject {
         // Wait for warmup to finish if still running
         if !isWarmedUp, let task = warmupTask {
             dlog("[Dictum] waiting for warmup to finish...")
-            settings.appState = .warmingUp
+            runtimeState.appState = .warmingUp
             FloatingIndicatorManager.shared.captureTargetApp()
             FloatingIndicatorManager.shared.show(audioRecorder: audioRecorder)
             await task.value
@@ -244,13 +262,13 @@ final class DictationPipeline: ObservableObject {
 
         guard !samples.isEmpty else {
             dlog("[Dictum] no samples, going idle")
-            settings.appState = .idle
+            runtimeState.appState = .idle
             FloatingIndicatorManager.shared.hide()
             return
         }
 
         // Transcribe
-        settings.appState = .transcribing
+        runtimeState.appState = .transcribing
         do {
             // Lazy load STT model if needed
             let sttLoaded = await TranscriptionEngine.shared.isModelLoaded
@@ -266,10 +284,10 @@ final class DictationPipeline: ObservableObject {
             let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
             guard !isCancelled else { return }
             dlog("[Dictum] transcription result: '\(rawText)'")
-            settings.lastTranscription = rawText
+            runtimeState.lastTranscription = rawText
 
             guard !rawText.isEmpty else {
-                settings.appState = .idle
+                runtimeState.appState = .idle
                 FloatingIndicatorManager.shared.hide()
                 return
             }
@@ -278,7 +296,7 @@ final class DictationPipeline: ObservableObject {
             let finalText: String
             let resolvedPrompt = settings.llmCleanupEnabled ? settings.resolvePrompt(for: targetBundleId) : nil
             if settings.llmCleanupEnabled, let prompt = resolvedPrompt {
-                settings.appState = .processingLLM
+                runtimeState.appState = .processingLLM
                 do {
                     // Lazy load LLM if needed
                     let llmLoaded = await LLMProcessor.shared.isModelLoaded
@@ -303,7 +321,7 @@ final class DictationPipeline: ObservableObject {
             }
 
             guard !isCancelled else { return }
-            settings.lastCleanedText = finalText
+            runtimeState.lastCleanedText = finalText
 
             if selectedContext != nil {
                 // Context mode: put result in clipboard, user pastes manually
@@ -318,17 +336,17 @@ final class DictationPipeline: ObservableObject {
 
             FloatingIndicatorManager.shared.hide()
             selectedContext = nil
-            settings.appState = .idle
+            runtimeState.appState = .idle
             dlog("[Dictum] done!")
         } catch {
             dlog("[Dictum] ERROR: \(error)")
             FloatingIndicatorManager.shared.hide()
-            settings.appState = .error(error.localizedDescription)
+            runtimeState.appState = .error(error.localizedDescription)
             // Clear error after 3s
             Task { [weak self] in
                 try? await Task.sleep(for: .seconds(3))
-                if case .error = self?.settings.appState {
-                    self?.settings.appState = .idle
+                if case .error = self?.runtimeState.appState {
+                    self?.runtimeState.appState = .idle
                 }
             }
         }
@@ -337,36 +355,10 @@ final class DictationPipeline: ObservableObject {
     // MARK: - LLM Download
 
     func downloadLLMModel(_ modelId: String) {
-        llmIsDownloading = true
-        llmDownloadingModelId = modelId
-        llmDownloadProgress = 0
-        llmDownloadError = nil
-        llmDownloadTask = Task {
-            do {
-                try await LLMProcessor.shared.loadModel(modelId) { [weak self] progress in
-                    Task { @MainActor in
-                        self?.llmDownloadProgress = progress.fractionCompleted
-                    }
-                }
-            } catch {
-                if !Task.isCancelled {
-                    dlog("[LLM] load after download failed: \(error.localizedDescription)")
-                }
-            }
-            settings.llmModelId = modelId
-            downloadedModelsManager.scanDownloadedModels()
-            llmIsDownloading = false
-            llmDownloadingModelId = nil
-            llmDownloadProgress = 0
-            llmDownloadTask = nil
-        }
+        llmDownloadManager.downloadModel(modelId)
     }
 
     func cancelLLMDownload() {
-        llmDownloadTask?.cancel()
-        llmDownloadTask = nil
-        llmIsDownloading = false
-        llmDownloadingModelId = nil
-        llmDownloadProgress = 0
+        llmDownloadManager.cancelDownload()
     }
 }

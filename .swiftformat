@@ -1,0 +1,15 @@
+--swiftversion 5.9
+--indent 4
+--linebreaks lf
+--wraparguments before-first
+--wrapcollections before-first
+--closingparen same-line
+--commas inline
+--trimwhitespace always
+--insertlines enabled
+--removelines enabled
+--header ignore
+--stripunusedargs closure-only
+--self remove
+--ifdef no-indent
+--xcodeindentation enabled

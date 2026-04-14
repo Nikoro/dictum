@@ -42,7 +42,8 @@ enum SelectedTextReader {
         keyDown.post(tap: .cghidEventTap)
         keyUp.post(tap: .cghidEventTap)
 
-        // Wait for clipboard to update
+        // This synchronous wait is why callers must never run this on the event tap thread itself.
+        // The hotkey manager hops to a background queue first so the synthetic Cmd+C can be delivered.
         Thread.sleep(forTimeInterval: 0.05)
 
         let text: String?
