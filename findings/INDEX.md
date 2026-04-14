@@ -16,7 +16,7 @@
 ### audio.md
 - [GOTCHA] [CRITICAL] WhisperKit model download state not persisted on disk
 - [GOTCHA] [CRITICAL] Whisper hallucinates on short audio when model loads lazily
-- [GOTCHA] [NOTE] WhisperModelManager download progress 50%–99% is fabricated
+- [GOTCHA] [NOTE] WhisperModelStore download progress 50%–99% is fabricated
 
 ### ui.md
 - [GOTCHA] [GOTCHA] `.background(.ultraThinMaterial)` kills `.glassEffect()` rendering
@@ -32,8 +32,8 @@
 
 ### hotkey.md
 - [BUG] [GOTCHA] CGEvent paste requires `.cgAnnotatedSessionEventTap`
-- [GOTCHA] [NOTE] SelectedTextReader.readSelectedText() must never run on event tap's run loop thread
-- [GOTCHA] [NOTE] GlobalHotkeyManager uses nonisolated(unsafe) cache — safe only under current usage
+- [GOTCHA] [NOTE] SelectedTextCapture.readSelectedText() must never run on event tap's run loop thread
+- [GOTCHA] [NOTE] GlobalHotkeyMonitor uses nonisolated(unsafe) cache — safe only under current usage
 
 ### tooling.md
 - [BUG] [CRITICAL] AppIcon silently dropped when PNGs have wrong pixel dimensions

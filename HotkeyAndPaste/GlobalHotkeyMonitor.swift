@@ -3,8 +3,8 @@ import Carbon.HIToolbox
 import Combine
 
 @MainActor
-final class GlobalHotkeyManager: ObservableObject {
-    static let shared = GlobalHotkeyManager()
+final class GlobalHotkeyMonitor: ObservableObject {
+    static let shared = GlobalHotkeyMonitor()
 
     @Published var isListening = false
 
@@ -85,8 +85,8 @@ final class GlobalHotkeyManager: ObservableObject {
             eventsOfInterest: eventMask,
             callback: { _, type, event, refcon -> Unmanaged<CGEvent>? in
                 guard let refcon else { return Unmanaged.passRetained(event) }
-                let manager = Unmanaged<GlobalHotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
-                return manager.handleEvent(type: type, event: event)
+                let monitor = Unmanaged<GlobalHotkeyMonitor>.fromOpaque(refcon).takeUnretainedValue()
+                return monitor.handleEvent(type: type, event: event)
             },
             userInfo: refcon
         ) else {
@@ -138,7 +138,7 @@ final class GlobalHotkeyManager: ObservableObject {
                 // can't do it here because Thread.sleep blocks the event tap run loop,
                 // preventing the synthetic Cmd+C from being delivered.
                 DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                    let selectedText = SelectedTextReader.readSelectedText()
+                    let selectedText = SelectedTextCapture.readSelectedText()
                     DispatchQueue.main.async {
                         guard let self else { return }
                         DictationPipeline.shared.pendingSelectedContext = selectedText
@@ -170,7 +170,7 @@ final class GlobalHotkeyManager: ObservableObject {
 
             if type == .keyDown {
                 DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                    let selectedText = SelectedTextReader.readSelectedText()
+                    let selectedText = SelectedTextCapture.readSelectedText()
                     DispatchQueue.main.async {
                         DictationPipeline.shared.pendingSelectedContext = selectedText
                         self?.keyDownHandler?()

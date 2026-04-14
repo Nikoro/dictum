@@ -1,7 +1,7 @@
 # Model Browser & Downloads
 
 ### [BUG] [GOTCHA] HuggingFace model tag filter silently hides new model architectures
-**Area:** `ModelBrowser/ModelBrowser.swift`
+**Area:** `ModelBrowser/HuggingFaceModelSearch.swift`
 **Tags:** `#gotcha` `#integration`
 **Verified:** 2026-04-04
 **Trigger:** Searching for "gemma4" in model browser returns no results despite models existing on HuggingFace.

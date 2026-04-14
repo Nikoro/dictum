@@ -11,7 +11,7 @@ final class HotkeyRecorderModel: ObservableObject {
         guard !isRecording else { return }
         isRecording = true
 
-        DictationPipeline.shared.hotkeyManager.stop()
+        DictationPipeline.shared.hotkeyMonitor.stop()
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
@@ -30,9 +30,9 @@ final class HotkeyRecorderModel: ObservableObject {
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self else { return event }
             let keyCode = Int(event.keyCode)
-            guard GlobalHotkeyManager.isModifierKeyCode(keyCode) else { return event }
+            guard GlobalHotkeyMonitor.isModifierKeyCode(keyCode) else { return event }
 
-            let flag = GlobalHotkeyManager.modifierFlag(forKeyCode: keyCode)
+            let flag = GlobalHotkeyMonitor.modifierFlag(forKeyCode: keyCode)
             let flags = CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
             if flags.contains(flag) {
                 self.applyHotkey(keyCode: keyCode, modifiers: 0, isModifierOnly: true)

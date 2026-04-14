@@ -1,8 +1,8 @@
 import AppKit
 import CoreGraphics
 
-final class PasteManager {
-    static let shared = PasteManager()
+final class ClipboardPasteController {
+    static let shared = ClipboardPasteController()
 
     /// Delay before simulating Cmd+V to ensure clipboard is ready
     private let clipboardSettleDelay: TimeInterval = 0.15

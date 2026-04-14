@@ -19,10 +19,10 @@ struct WhisperModelInfo: Identifiable {
 }
 
 @MainActor
-final class WhisperModelManager: ObservableObject {
-    static let shared = WhisperModelManager()
+final class WhisperModelStore: ObservableObject {
+    static let shared = WhisperModelStore()
 
-    @Published var availableModels: [WhisperModelInfo] = WhisperModelManager.defaultModels
+    @Published var availableModels: [WhisperModelInfo] = WhisperModelStore.defaultModels
     @Published var downloadedModelIds: Set<String> = []
     @Published var activeModelId: String = "openai_whisper-large-v3_turbo"
     @Published var isDownloading = false
@@ -104,10 +104,12 @@ final class WhisperModelManager: ObservableObject {
                 // Simulate loading progress from 50% to 99% over ~120s
                 downloadProgress = 0.5
                 let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
-                    guard let self else { timer.invalidate(); return }
-                    if self.downloadProgress < 0.99 {
-                        // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
-                        self.downloadProgress += 0.002
+                    Task { @MainActor in
+                        guard let self else { timer.invalidate(); return }
+                        if self.downloadProgress < 0.99 {
+                            // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
+                            self.downloadProgress += 0.002
+                        }
                     }
                 }
                 defer { loadingTimer.invalidate() }

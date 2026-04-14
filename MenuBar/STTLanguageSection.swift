@@ -86,7 +86,7 @@ private struct AppSTTLanguageRow: View {
             .labelsHidden()
             .controlSize(.mini)
 
-            if let icon = appIcon(forBundleId: appLang.bundleId) {
+            if let icon = applicationIcon(forBundleId: appLang.bundleId) {
                 Image(nsImage: icon)
                     .resizable()
                     .interpolation(.high)

@@ -3,7 +3,7 @@ import AVFoundation
 
 @MainActor
 struct PermissionsNeededView: View {
-    @ObservedObject var permissions: PermissionsManager
+    @ObservedObject var permissionsStore: SystemPermissionStore
 
     var body: some View {
         VStack(spacing: 16) {
@@ -23,7 +23,7 @@ struct PermissionsNeededView: View {
                 .padding(.horizontal, 24)
 
             VStack(spacing: 10) {
-                if !permissions.microphoneGranted {
+                if !permissionsStore.microphoneGranted {
                     PermissionRow(
                         icon: "mic.fill",
                         title: String(localized: "setup.step1.mic.title", defaultValue: "Microphone"),
@@ -31,21 +31,21 @@ struct PermissionsNeededView: View {
                         isGranted: false,
                         action: {
                             if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
-                                permissions.requestMicrophone()
+                                permissionsStore.requestMicrophone()
                             } else {
-                                permissions.openMicrophoneSettings()
+                                permissionsStore.openMicrophoneSettings()
                             }
                         }
                     )
                 }
-                if !permissions.accessibilityGranted {
+                if !permissionsStore.accessibilityGranted {
                     PermissionRow(
                         icon: "hand.raised.fill",
                         title: String(localized: "setup.step1.acc.title", defaultValue: "Accessibility"),
                         description: String(localized: "setup.step1.acc.desc", defaultValue: "Global hotkey and auto-paste (Cmd+V)"),
                         isGranted: false,
                         action: {
-                            permissions.openAccessibilitySettings()
+                            permissionsStore.openAccessibilitySettings()
                         }
                     )
                 }

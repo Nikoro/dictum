@@ -1,7 +1,7 @@
 # UI & Rendering
 
 ### [GOTCHA] [GOTCHA] `.background(.ultraThinMaterial)` kills `.glassEffect()` rendering
-**Area:** `FloatingIndicator/FloatingIndicatorManager.swift`
+**Area:** `FloatingIndicator/FloatingIndicatorView.swift`
 **Tags:** `#gotcha` `#integration`
 **Verified:** 2026-03-26
 **Symptom:** Floating pill renders with flat black background instead of liquid glass effect.
@@ -9,7 +9,7 @@
 **Workaround:** Remove `.background(.ultraThinMaterial)` entirely. Use `.glassEffect()` alone — it provides its own translucency.
 
 ### [GOTCHA] [NOTE] TimelineView reconstructs child views — onAppear fires repeatedly
-**Area:** `FloatingIndicator/FloatingIndicatorManager.swift`
+**Area:** `FloatingIndicator/FloatingIndicatorView.swift`
 **Tags:** `#gotcha` `#architecture`
 **Verified:** 2026-03-26
 **Symptom:** Dot animation timer multiplied — "Transkrybuję" showed 4-6 dots instead of max 3.
@@ -17,7 +17,7 @@
 **Workaround:** Guard timer creation with `guard dotTimer == nil`, store timer in `@State`, and clean up on `.onDisappear`.
 
 ### [GOTCHA] [NOTE] @Published changes don't propagate across NSPanel window boundary
-**Area:** `FloatingIndicator/FloatingIndicatorManager.swift`
+**Area:** `FloatingIndicator/FloatingIndicatorView.swift`
 **Tags:** `#gotcha` `#architecture`
 **Verified:** 2026-03-26
 **Symptom:** Audio level bars in floating pill don't move despite `audioLevel` being updated in `AudioRecorder`.

@@ -1,230 +1,31 @@
 import SwiftUI
-import AVFoundation
-
-private struct LLMModelOption: Identifiable {
-    let id: String
-    let displayName: String
-    let sizeGB: String
-    let descriptionKey: String
-    let recommended: Bool
-
-    var description: String {
-        String(localized: String.LocalizationValue(descriptionKey))
-    }
-}
-
-private let llmModelOptions: [LLMModelOption] = [
-    LLMModelOption(
-        id: "mlx-community/gemma-4-e2b-it-4bit",
-        displayName: "Gemma 4 E2B",
-        sizeGB: "~3 GB",
-        descriptionKey: "llm.gemma4_e2b.desc",
-        recommended: true
-    ),
-    LLMModelOption(
-        id: "mlx-community/gemma-4-e4b-it-4bit",
-        displayName: "Gemma 4 E4B",
-        sizeGB: "~5 GB",
-        descriptionKey: "llm.gemma4_e4b.desc",
-        recommended: false
-    ),
-    LLMModelOption(
-        id: "mlx-community/gemma-4-26b-a4b-it-4bit",
-        displayName: "Gemma 4 26B",
-        sizeGB: "~17 GB",
-        descriptionKey: "llm.gemma4_26b.desc",
-        recommended: false
-    ),
-]
 
 @MainActor
 struct SetupView: View {
-    @ObservedObject var permissions: PermissionsManager
-    @ObservedObject var whisperManager: WhisperModelManager
+    @ObservedObject var permissionsStore: SystemPermissionStore
+    @ObservedObject var whisperModelStore: WhisperModelStore
     @EnvironmentObject var settings: AppSettings
 
     @EnvironmentObject var pipeline: DictationPipeline
     @State private var downloadedLLMId: String? = UserDefaults.standard.string(forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
 
-    private var permissionsDone: Bool { permissions.allGranted }
-    private var sttDone: Bool { whisperManager.downloadedModelIds.contains(settings.sttModelId) }
-    private var llmDone: Bool {
-        guard let id = downloadedLLMId else { return false }
-        return pipeline.downloadedModelsManager.downloadedModels.contains { $0.id == id }
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 8) {
-                    Image("AppLogo")
-                        .resizable()
-                        .frame(width: 64, height: 64)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    Text("Dictum")
-                        .font(.title.bold())
-                    Text(String(localized: "setup.title", defaultValue: "Setup"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 24)
-                .padding(.bottom, 20)
-
-                // MARK: Step 1 — Permissions
-                SetupStepHeader(
-                    number: 1,
-                    title: String(localized: "setup.step1.title", defaultValue: "Permissions"),
-                    isDone: permissionsDone
+                SetupHeaderView()
+                SetupPermissionStep(permissionsStore: permissionsStore)
+                SetupSpeechRecognitionModelStep(
+                    whisperModelStore: whisperModelStore,
+                    selectedModelId: $settings.sttModelId,
+                    isUnlocked: permissionsStore.allGranted
                 )
-
-                VStack(spacing: 10) {
-                    PermissionRow(
-                        icon: "mic.fill",
-                        title: String(localized: "setup.step1.mic.title", defaultValue: "Microphone"),
-                        description: String(localized: "setup.step1.mic.desc", defaultValue: "Record voice for transcription"),
-                        isGranted: permissions.microphoneGranted,
-                        action: {
-                            if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
-                                permissions.requestMicrophone()
-                            } else {
-                                permissions.openMicrophoneSettings()
-                            }
-                        }
-                    )
-                    PermissionRow(
-                        icon: "hand.raised.fill",
-                        title: String(localized: "setup.step1.acc.title", defaultValue: "Accessibility"),
-                        description: String(localized: "setup.step1.acc.desc", defaultValue: "Global hotkey and auto-paste (Cmd+V)"),
-                        isGranted: permissions.accessibilityGranted,
-                        action: {
-                            permissions.openAccessibilitySettings()
-                        }
-                    )
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
-
-                // MARK: Step 2 — Model STT
-                SetupStepHeader(
-                    number: 2,
-                    title: String(localized: "setup.step2.title", defaultValue: "Speech recognition model"),
-                    isDone: sttDone
+                SetupLLMProcessingStep(
+                    downloadedLLMId: $downloadedLLMId,
+                    isUnlocked: whisperModelStore.downloadedModelIds.contains(settings.sttModelId)
                 )
-
-                if permissionsDone {
-                    VStack(spacing: 8) {
-                        ForEach(WhisperModelManager.defaultModels) { model in
-                            SetupModelRow(
-                                model: model,
-                                isSelected: settings.sttModelId == model.id,
-                                isDownloaded: whisperManager.downloadedModelIds.contains(model.id),
-                                isDownloading: whisperManager.downloadingModelId == model.id,
-                                downloadProgress: whisperManager.downloadingModelId == model.id ? whisperManager.downloadProgress : 0,
-                                onSelect: {
-                                    settings.sttModelId = model.id
-                                    whisperManager.activeModelId = model.id
-                                },
-                                onDownload: {
-                                    settings.sttModelId = model.id
-                                    whisperManager.downloadAndActivate(model.id)
-                                },
-                                onCancel: {
-                                    whisperManager.cancelDownload()
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
-                } else {
-                    Text(String(localized: "setup.step1.locked", defaultValue: "Enable permissions above first."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 16)
-                }
-
-                // MARK: Step 3 — Model LLM (optional)
-                SetupStepHeader(
-                    number: 3,
-                    title: String(localized: "setup.step3.title", defaultValue: "LLM text processing (optional)"),
-                    isDone: llmDone
-                )
-
-                if sttDone {
-                    VStack(spacing: 8) {
-                        ForEach(llmModelOptions) { model in
-                            SetupLLMRow(
-                                model: model,
-                                isSelected: settings.llmModelId == model.id,
-                                isDownloaded: downloadedLLMId == model.id,
-                                isDownloading: pipeline.llmDownloadingModelId == model.id,
-                                downloadProgress: pipeline.llmDownloadingModelId == model.id ? pipeline.llmDownloadProgress : 0,
-                                onSelect: {
-                                    settings.llmModelId = model.id
-                                },
-                                onDownload: {
-                                    settings.llmModelId = model.id
-                                    pipeline.downloadLLMModel(model.id)
-                                    // Track completion for setup step
-                                    Task {
-                                        // Wait for download to finish
-                                        while pipeline.llmIsDownloading { try? await Task.sleep(for: .milliseconds(200)) }
-                                        if pipeline.llmDownloadError == nil {
-                                            downloadedLLMId = model.id
-                                            settings.llmCleanupEnabled = true
-                                            UserDefaults.standard.set(model.id, forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
-                                            pipeline.warmUpModels()
-                                        }
-                                    }
-                                },
-                                onCancel: {
-                                    pipeline.cancelLLMDownload()
-                                }
-                            )
-                        }
-
-                        Button(String(localized: "setup.step3.skip", defaultValue: "Skip \u{2014} use transcription only")) {
-                            settings.llmCleanupEnabled = false
-                        }
-                        .buttonStyle(.plain)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
-                } else {
-                    Text(String(localized: "setup.step2.locked", defaultValue: "Download STT model first."))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 16)
-                }
 
                 Spacer(minLength: 12)
-
-                HStack {
-                    Button(action: { NSApplication.shared.terminate(nil) }) {
-                        Image(systemName: "power")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
-
-                    Spacer()
-
-                    Text("Wersja: \(appVersion)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
-
-                    // Balance spacer for power button width
-                    Color.clear
-                        .frame(width: 16, height: 16)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
+                SetupFooterView()
             }
         }
     }

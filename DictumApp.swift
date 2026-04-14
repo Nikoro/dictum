@@ -13,9 +13,9 @@ struct DictumApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var menuBarManager: MenuBarManager?
+    private var menuBarController: MenuBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        menuBarManager = MenuBarManager()
+        menuBarController = MenuBarController()
     }
 }

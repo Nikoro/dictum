@@ -1,35 +1,11 @@
 import Foundation
 import SwiftUI
 
-struct HFSibling: Codable {
-    let rfilename: String
-    let size: Int64?
-}
-
-struct HFModelInfo: Codable, Identifiable {
-    let id: String
-    let downloads: Int?
-    let tags: [String]?
-    let siblings: [HFSibling]?
-
-    var shortName: String {
-        id.replacingOccurrences(of: "mlx-community/", with: "")
-    }
-
-    var totalSizeBytes: Int64 {
-        siblings?.compactMap(\.size).reduce(0, +) ?? 0
-    }
-
-    var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: totalSizeBytes, countStyle: .file)
-    }
-}
-
 @MainActor
-final class ModelBrowser: ObservableObject {
-    static let shared = ModelBrowser()
+final class HuggingFaceModelSearch: ObservableObject {
+    static let shared = HuggingFaceModelSearch()
     @Published var searchQuery = ""
-    @Published var searchResults: [HFModelInfo] = []
+    @Published var searchResults: [HuggingFaceModelInfo] = []
     @Published var isSearching = false
 
     private var searchTask: Task<Void, Never>?
@@ -56,7 +32,7 @@ final class ModelBrowser: ObservableObject {
 
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
-                let models = try JSONDecoder().decode([HFModelInfo].self, from: data)
+                let models = try JSONDecoder().decode([HuggingFaceModelInfo].self, from: data)
 
                 guard !Task.isCancelled else { return }
 

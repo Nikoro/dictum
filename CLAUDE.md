@@ -4,7 +4,7 @@
 
 Dictum is a native macOS menu bar app for Polish voice dictation.
 
-Pipeline: microphone → WhisperKit STT → optional MLX LLM cleanup → auto-paste. Everything is on-device except HuggingFace queries in `ModelBrowser`.
+Pipeline: microphone → WhisperKit STT → optional MLX LLM cleanup → auto-paste. Everything is on-device except HuggingFace queries in `HuggingFaceModelSearch`.
 
 ## Build
 

@@ -3,7 +3,7 @@ import SwiftUI
 @MainActor
 struct FooterSection: View {
     @EnvironmentObject var runtimeState: AppRuntimeState
-    @EnvironmentObject var updaterManager: UpdaterManager
+    @EnvironmentObject var updateController: SparkleUpdateController
     @State private var showUninstallAlert = false
 
     var body: some View {
@@ -25,14 +25,14 @@ struct FooterSection: View {
 
                 Spacer()
 
-                Button(action: { updaterManager.checkForUpdates() }) {
-                    Text("Wersja: \(appVersion)")
+                Button(action: { updateController.checkForUpdates() }) {
+                    Text("Wersja: \(dictumAppVersion)")
                         .font(.caption)
-                        .foregroundStyle(updaterManager.canCheckForUpdates ? Color("AccentColor") : .secondary)
-                        .underline(updaterManager.canCheckForUpdates)
+                        .foregroundStyle(updateController.canCheckForUpdates ? Color("AccentColor") : .secondary)
+                        .underline(updateController.canCheckForUpdates)
                 }
                 .buttonStyle(.plain)
-                .disabled(!updaterManager.canCheckForUpdates)
+                .disabled(!updateController.canCheckForUpdates)
                 .help(String(localized: "footer.checkUpdates", defaultValue: "Sprawdź aktualizacje"))
 
                 Spacer()

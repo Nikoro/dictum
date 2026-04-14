@@ -151,7 +151,7 @@ struct AppPromptRow: View {
                 .labelsHidden()
                 .controlSize(.mini)
 
-                if let icon = appIcon(forBundleId: appPrompt.bundleId) {
+                if let icon = applicationIcon(forBundleId: appPrompt.bundleId) {
                     Image(nsImage: icon)
                         .resizable()
                         .interpolation(.high)

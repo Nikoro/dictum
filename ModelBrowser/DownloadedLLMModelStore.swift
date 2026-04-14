@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct DownloadedModel: Identifiable {
+struct DownloadedLLMModel: Identifiable {
     let id: String
     let sizeOnDisk: Int64
     var isActive: Bool
@@ -16,10 +16,10 @@ struct DownloadedModel: Identifiable {
 }
 
 @MainActor
-final class DownloadedModelsManager: ObservableObject {
-    static let shared = DownloadedModelsManager()
+final class DownloadedLLMModelStore: ObservableObject {
+    static let shared = DownloadedLLMModelStore()
 
-    @Published var downloadedModels: [DownloadedModel] = []
+    @Published var downloadedModels: [DownloadedLLMModel] = []
 
     /// MLX Swift downloads to ~/Library/Caches/models/
     private var mlxCacheDir: URL {
@@ -44,12 +44,12 @@ final class DownloadedModelsManager: ObservableObject {
 
         downloadedModels = contents
             .filter { $0.hasDirectoryPath }
-            .compactMap { url -> DownloadedModel? in
+            .compactMap { url -> DownloadedLLMModel? in
                 let folderName = url.lastPathComponent
                 let modelId = "mlx-community/\(folderName)"
                 let size = directorySize(url)
                 guard size > 0 else { return nil }
-                return DownloadedModel(
+                return DownloadedLLMModel(
                     id: modelId,
                     sizeOnDisk: size,
                     isActive: modelId == activeModelId

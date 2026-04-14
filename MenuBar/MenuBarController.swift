@@ -3,8 +3,8 @@ import SwiftUI
 import Combine
 
 @MainActor
-final class MenuBarManager: ObservableObject {
-    static var shared: MenuBarManager?
+final class MenuBarController: ObservableObject {
+    static var shared: MenuBarController?
 
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
@@ -16,7 +16,7 @@ final class MenuBarManager: ObservableObject {
     private let pipeline = DictationPipeline.shared
 
     init() {
-        MenuBarManager.shared = self
+        MenuBarController.shared = self
         setupStatusItem()
         setupPopover()
         setupEventMonitor()
@@ -43,7 +43,7 @@ final class MenuBarManager: ObservableObject {
                 .environmentObject(settings)
                 .environmentObject(runtimeState)
                 .environmentObject(pipeline)
-                .environmentObject(UpdaterManager.shared)
+                .environmentObject(SparkleUpdateController.shared)
         )
         self.popover = popover
     }

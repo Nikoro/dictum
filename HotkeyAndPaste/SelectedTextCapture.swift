@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-enum SelectedTextReader {
+enum SelectedTextCapture {
 
     /// Capture selected text from the frontmost app by simulating Cmd+C.
     /// Saves and restores the clipboard so the user doesn't notice.
@@ -43,7 +43,7 @@ enum SelectedTextReader {
         keyUp.post(tap: .cghidEventTap)
 
         // This synchronous wait is why callers must never run this on the event tap thread itself.
-        // The hotkey manager hops to a background queue first so the synthetic Cmd+C can be delivered.
+        // The hotkey monitor hops to a background queue first so the synthetic Cmd+C can be delivered.
         Thread.sleep(forTimeInterval: 0.05)
 
         let text: String?
@@ -72,7 +72,7 @@ enum SelectedTextReader {
             return nil
         }
 
-        return focusedElement as! AXUIElement
+        return (focusedElement as! AXUIElement)
     }
 
     private static func selectedTextRange(for element: AXUIElement) -> CFRange? {

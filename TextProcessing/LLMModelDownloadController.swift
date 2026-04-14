@@ -2,22 +2,23 @@ import Foundation
 import Combine
 
 @MainActor
-final class LLMDownloadManager: ObservableObject {
+final class LLMModelDownloadController: ObservableObject {
     @Published var downloadError: String?
     @Published var isDownloading = false
     @Published var downloadingModelId: String?
     @Published var downloadProgress: Double = 0
 
     private let settings: AppSettings
-    private let downloadedModelsManager: DownloadedModelsManager
+    private let downloadedLLMModelStore: DownloadedLLMModelStore
     private var downloadTask: Task<Void, Never>?
 
-    init(
-        settings: AppSettings = .shared,
-        downloadedModelsManager: DownloadedModelsManager = .shared
-    ) {
+    init(settings: AppSettings, downloadedLLMModelStore: DownloadedLLMModelStore) {
         self.settings = settings
-        self.downloadedModelsManager = downloadedModelsManager
+        self.downloadedLLMModelStore = downloadedLLMModelStore
+    }
+
+    convenience init() {
+        self.init(settings: AppSettings.shared, downloadedLLMModelStore: DownloadedLLMModelStore.shared)
     }
 
     func downloadModel(_ modelId: String) {
@@ -49,7 +50,7 @@ final class LLMDownloadManager: ObservableObject {
             }
 
             settings.llmModelId = modelId
-            downloadedModelsManager.scanDownloadedModels()
+            downloadedLLMModelStore.scanDownloadedModels()
         }
     }
 
