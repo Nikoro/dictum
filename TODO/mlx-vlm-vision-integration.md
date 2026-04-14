@@ -49,6 +49,25 @@ We built the full smart context infrastructure on `feat/smart-context`: screensh
 6. Update `LLMProcessor.warmup()` to include a dummy image for VLM warmup
 7. Switch default model from `gemma-4-e2b-it-4bit` (text-only) to `gemma-4-e4b-it-4bit` (multimodal)
 
+## Attempt Log
+
+### 2026-04-14 — first attempt, blocked
+
+PR #180 (Gemma 4 text/vision/MoE) was merged into `mlx-swift-lm` main on 2026-04-13, but no 3.x tag is published yet. Tried pinning `mlx-swift-lm` to `branch: main` and adding `MLXVLM` + `MLXHuggingFace` products.
+
+**SPM resolution succeeded** — WhisperKit 0.18.0 and mlx-swift-lm 3.x main coexist at the resolver level. The "swift-transformers conflict" noted in `findings/dependencies.md` does not block resolution against current main.
+
+**But compilation fails.** The new 3.x API moved away from `LLMModelFactory.shared.loadContainer(configuration:)` to a macro-based loader (`#huggingFaceLoadModelContainer(configuration:progressHandler:)`). The macro expands to code that references `HubClient()` and `AutoTokenizer` from a Hub package — a renamed API that exists only in newer `swift-transformers` versions. WhisperKit 0.18.0 pins `swift-transformers` to `~1.1.6`, where the type is still called `HubApi` (no `HubClient`). Result: macro expansion compiles to symbols that don't exist in the linked Hub product.
+
+In short: the conflict didn't disappear — it just moved from SPM resolver to compile time. mlx-swift-lm 3.x main targets a newer swift-transformers than WhisperKit 0.18.0 allows.
+
+**Paths forward (none viable today):**
+1. Wait for WhisperKit to bump its `swift-transformers` pin past the `HubClient` rename.
+2. Wait for mlx-swift-lm 3.x official tag — maintainers may pin to an older Hub version for compatibility.
+3. Replace WhisperKit with an MLX-based STT (`mlx-audio-swift`, `FluidAudio`). Rejected for now: large refactor across `TranscriptionEngine`, `WhisperModelManager`, `STTModelSection`, model browser, cache layout, and setup flow — not worth the risk for a single feature when WhisperKit works well for Polish.
+
+Decision: revert and revisit after the official `mlx-swift-lm` 3.0 tag drops.
+
 ## Open Questions
 
 - Will mlx-swift-lm 3.x have breaking API changes to `ChatSession` beyond adding image support?
