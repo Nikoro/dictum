@@ -109,11 +109,23 @@ struct FloatingIndicatorView: View {
 
 @MainActor
 final class FloatingIndicatorManager {
+    private enum TextAnchorKind: String {
+        case caret
+        case focusedElement
+    }
+
+    private struct TextAnchor {
+        let rect: CGRect
+        let role: String
+        let kind: TextAnchorKind
+    }
+
     static let shared = FloatingIndicatorManager()
     private var panel: NSPanel?
     private var hostingView: NSHostingView<FloatingIndicatorView>?
     private var targetPID: pid_t = 0
     private var targetAppIcon: NSImage?
+    private var targetAnchor: TextAnchor?
     private init() {}
 
     /// Call before showing to capture which app the user is typing in.
@@ -125,7 +137,14 @@ final class FloatingIndicatorManager {
             } else {
                 targetAppIcon = app.icon
             }
-            dlog("[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil")")
+            targetAnchor = Self.textAnchor(preferredPID: targetPID)
+            if let targetAnchor {
+                dlog(
+                    "[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil"), anchor=\(targetAnchor.kind.rawValue):\(targetAnchor.role)"
+                )
+            } else {
+                dlog("[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil"), anchor=nil")
+            }
         }
     }
 
@@ -170,51 +189,20 @@ final class FloatingIndicatorManager {
         panel.orderOut(nil)
         self.panel = nil
         self.hostingView = nil
+        self.targetAnchor = nil
     }
 
     /// Get caret (text cursor) position via Accessibility API.
-    /// Falls back to mouse position if caret is unavailable.
+    /// Falls back to the focused input frame, then to mouse position.
     private func caretOrigin(panelSize: NSSize) -> NSPoint {
-        if targetPID > 0, let caretRect = Self.caretRect(pid: targetPID) {
-            // AX uses top-left origin; find the screen containing the caret
-            let caretCenter = NSPoint(x: caretRect.midX, y: caretRect.midY)
-            let screen = NSScreen.screens.first { screen in
-                // Convert screen frame to top-left coords for comparison
-                let mainH = NSScreen.screens.first?.frame.height ?? 900
-                let topLeftFrame = NSRect(
-                    x: screen.frame.origin.x,
-                    y: mainH - screen.frame.origin.y - screen.frame.height,
-                    width: screen.frame.width,
-                    height: screen.frame.height
-                )
-                return topLeftFrame.contains(caretCenter)
-            } ?? NSScreen.main
-
-            let mainH = NSScreen.screens.first?.frame.height ?? 900
-
-            // Convert AX top-left Y to AppKit bottom-left Y
-            let caretAppKitY = mainH - caretRect.origin.y - caretRect.size.height
-            let caretAppKitX = caretRect.origin.x
-
-            // Position pill to the left of caret, vertically aligned
-            var x = caretAppKitX - panelSize.width - 8
-            var y = caretAppKitY
-
-            // Clamp to screen bounds
-            if let screenFrame = screen?.visibleFrame {
-                if x < screenFrame.minX {
-                    // Not enough space on left — put it above caret instead
-                    x = caretAppKitX
-                    y = caretAppKitY + caretRect.height + 8
-                }
-                x = max(x, screenFrame.minX)
-                x = min(x, screenFrame.maxX - panelSize.width)
-                y = max(y, screenFrame.minY)
-                y = min(y, screenFrame.maxY - panelSize.height)
-            }
-
-            dlog("[Pill] caretAX=(\(caretRect.origin.x),\(caretRect.origin.y)) → appKit=(\(x),\(y))")
-            return NSPoint(x: x, y: y)
+        if let anchor = targetAnchor ?? Self.textAnchor(preferredPID: targetPID),
+           let screen = Self.screen(containingAXRect: anchor.rect) {
+            let anchorRect = Self.convertAXRectToAppKit(anchor.rect)
+            let origin = Self.panelOrigin(for: anchorRect, kind: anchor.kind, panelSize: panelSize, screenFrame: screen.visibleFrame)
+            dlog(
+                "[Pill] \(anchor.kind.rawValue) role=\(anchor.role) ax=(\(anchor.rect.origin.x),\(anchor.rect.origin.y),\(anchor.rect.size.width),\(anchor.rect.size.height)) → appKit=(\(origin.x),\(origin.y))"
+            )
+            return origin
         }
 
         // Fallback: mouse position
@@ -226,28 +214,104 @@ final class FloatingIndicatorManager {
         )
     }
 
-    /// Query the focused text element's caret position via AX API.
-    /// Uses the stored target PID (the app that was active when recording started).
-    private static func caretRect(pid: pid_t) -> CGRect? {
-        let axApp = AXUIElementCreateApplication(pid)
-
+    private static func focusedElement(in application: AXUIElement) -> AXUIElement? {
         var focusedElement: AnyObject?
-        guard AXUIElementCopyAttributeValue(axApp, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
+        guard AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
             return nil
         }
 
-        // AXUIElement is a CF type — cast always succeeds after .success check
-        let element = focusedElement as! AXUIElement
+        return focusedElement as! AXUIElement
+    }
 
-        // Check this is actually a text element
+    private static func systemWideFocusedElement() -> AXUIElement? {
+        focusedElement(in: AXUIElementCreateSystemWide())
+    }
+
+    private static func textAnchor(preferredPID: pid_t) -> TextAnchor? {
+        if let focusedElement = systemWideFocusedElement(), let anchor = textAnchor(from: focusedElement) {
+            return anchor
+        }
+
+        guard preferredPID > 0,
+              let focusedElement = focusedElement(in: AXUIElementCreateApplication(preferredPID)) else {
+            return nil
+        }
+
+        return textAnchor(from: focusedElement)
+    }
+
+    private static func textAnchor(from startingElement: AXUIElement) -> TextAnchor? {
+        for element in ancestorChain(startingAt: startingElement, limit: 8) {
+            let role = role(of: element)
+            if let caretRect = caretRect(for: element) {
+                return TextAnchor(rect: caretRect, role: role, kind: .caret)
+            }
+            if isTextInputElement(element, role: role), let elementRect = frame(of: element) {
+                return TextAnchor(rect: elementRect, role: role, kind: .focusedElement)
+            }
+        }
+
+        return nil
+    }
+
+    private static func ancestorChain(startingAt element: AXUIElement, limit: Int) -> [AXUIElement] {
+        var chain: [AXUIElement] = []
+        var current: AXUIElement? = element
+
+        while let node = current, chain.count < limit {
+            chain.append(node)
+            current = parent(of: node)
+        }
+
+        return chain
+    }
+
+    private static func parent(of element: AXUIElement) -> AXUIElement? {
+        var parent: AnyObject?
+        guard AXUIElementCopyAttributeValue(element, kAXParentAttribute as CFString, &parent) == .success else {
+            return nil
+        }
+
+        return parent as! AXUIElement
+    }
+
+    private static func role(of element: AXUIElement) -> String {
         var role: AnyObject?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
-        let roleStr = role as? String ?? ""
-        guard roleStr == kAXTextFieldRole as String
-           || roleStr == kAXTextAreaRole as String
-           || roleStr == "AXWebArea"
-           || roleStr == "AXComboBox"
-        else {
+        return role as? String ?? "unknown"
+    }
+
+    private static func isTextInputElement(_ element: AXUIElement, role: String) -> Bool {
+        let supportedRoles: Set<String> = [
+            kAXTextFieldRole as String,
+            kAXTextAreaRole as String,
+            "AXSearchField",
+            "AXComboBox",
+            "AXWebArea",
+            "AXTextView"
+        ]
+
+        if supportedRoles.contains(role) {
+            return true
+        }
+
+        return boolAttribute("AXEditable" as CFString, on: element) == true
+    }
+
+    private static func boolAttribute(_ attribute: CFString, on element: AXUIElement) -> Bool? {
+        var value: AnyObject?
+        guard AXUIElementCopyAttributeValue(element, attribute, &value) == .success else {
+            return nil
+        }
+
+        return value as? Bool
+    }
+
+    /// Query the focused text element's caret position via AX API.
+    private static func caretRect(for element: AXUIElement) -> CGRect? {
+        let roleStr = role(of: element)
+
+        guard isTextInputElement(element, role: roleStr) else {
             return nil
         }
 
@@ -278,5 +342,79 @@ final class FloatingIndicatorManager {
         }
 
         return rect
+    }
+
+    private static func frame(of element: AXUIElement) -> CGRect? {
+        var positionValue: AnyObject?
+        var sizeValue: AnyObject?
+
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionValue) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeValue) == .success,
+              positionValue != nil,
+              sizeValue != nil else {
+            return nil
+        }
+
+          let positionAXValue = positionValue as! AXValue
+          let sizeAXValue = sizeValue as! AXValue
+        var origin = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(positionAXValue, .cgPoint, &origin),
+              AXValueGetValue(sizeAXValue, .cgSize, &size),
+              size.width > 0,
+              size.height > 0 else {
+            return nil
+        }
+
+        return CGRect(origin: origin, size: size)
+    }
+
+    private static func desktopMaxY() -> CGFloat {
+        NSScreen.screens.map(\.frame.maxY).max() ?? 0
+    }
+
+    private static func convertAXRectToAppKit(_ rect: CGRect) -> CGRect {
+        CGRect(
+            x: rect.origin.x,
+            y: desktopMaxY() - rect.origin.y - rect.height,
+            width: rect.width,
+            height: rect.height
+        )
+    }
+
+    private static func screen(containingAXRect rect: CGRect) -> NSScreen? {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let desktopMaxY = desktopMaxY()
+
+        return NSScreen.screens.first { screen in
+            let topLeftFrame = CGRect(
+                x: screen.frame.minX,
+                y: desktopMaxY - screen.frame.maxY,
+                width: screen.frame.width,
+                height: screen.frame.height
+            )
+            return topLeftFrame.contains(center)
+        } ?? NSScreen.main
+    }
+
+    private static func panelOrigin(for anchorRect: CGRect, kind: TextAnchorKind, panelSize: NSSize, screenFrame: CGRect) -> NSPoint {
+        let spacing: CGFloat = 8
+        let preferredLeftX = anchorRect.minX - panelSize.width - spacing
+        let fallbackRightX = anchorRect.maxX + spacing
+        var x = preferredLeftX
+        var y = kind == .caret
+            ? anchorRect.minY - (panelSize.height - anchorRect.height) / 2
+            : anchorRect.midY - panelSize.height / 2
+
+        if preferredLeftX < screenFrame.minX {
+            x = fallbackRightX
+        }
+
+        x = max(x, screenFrame.minX)
+        x = min(x, screenFrame.maxX - panelSize.width)
+        y = max(y, screenFrame.minY)
+        y = min(y, screenFrame.maxY - panelSize.height)
+
+        return NSPoint(x: x, y: y)
     }
 }

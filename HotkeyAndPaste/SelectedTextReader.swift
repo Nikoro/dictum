@@ -7,6 +7,18 @@ enum SelectedTextReader {
     /// Saves and restores the clipboard so the user doesn't notice.
     /// Called synchronously from the event tap callback.
     static func readSelectedText() -> String? {
+        guard let focusedElement = focusedElement(),
+              let selectedRange = selectedTextRange(for: focusedElement),
+              selectedRange.length > 0 else {
+            dlog("[SelectedText] no accessibility selection")
+            return nil
+        }
+
+        if let accessibilityText = selectedText(for: focusedElement), !accessibilityText.isEmpty {
+            dlog("[SelectedText] got \(accessibilityText.count) chars from AX")
+            return accessibilityText
+        }
+
         let pasteboard = NSPasteboard.general
         let changeCount = pasteboard.changeCount
 
@@ -50,5 +62,39 @@ enum SelectedTextReader {
 
         guard let text, !text.isEmpty else { return nil }
         return text
+    }
+
+    private static func focusedElement() -> AXUIElement? {
+        let systemWideElement = AXUIElementCreateSystemWide()
+        var focusedElement: AnyObject?
+        guard AXUIElementCopyAttributeValue(systemWideElement, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
+            return nil
+        }
+
+        return focusedElement as! AXUIElement
+    }
+
+    private static func selectedTextRange(for element: AXUIElement) -> CFRange? {
+        var selectedRangeValue: AnyObject?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selectedRangeValue) == .success,
+              selectedRangeValue != nil else {
+            return nil
+        }
+
+        var selectedRange = CFRange()
+        guard AXValueGetValue(selectedRangeValue as! AXValue, .cfRange, &selectedRange) else {
+            return nil
+        }
+
+        return selectedRange
+    }
+
+    private static func selectedText(for element: AXUIElement) -> String? {
+        var selectedText: AnyObject?
+        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &selectedText) == .success else {
+            return nil
+        }
+
+        return selectedText as? String
     }
 }
