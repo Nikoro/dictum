@@ -54,7 +54,8 @@ struct GeneralPromptSection: View {
                 }
 
                 Button(String(localized: "section.prompt.example", defaultValue: "Przykładowy prompt")) {
-                    let example = "Usuń wypełniacze (yyy, eee, hmm). Popraw interpunkcję i literówki. Popraw zdania, które nie mają sensu. Nie zmieniaj stylu. Zwróć tylko poprawiony tekst."
+                    let example = "Usuń wypełniacze (yyy, eee, hmm). Popraw interpunkcję i literówki. " +
+                        "Popraw zdania, które nie mają sensu. Nie zmieniaj stylu. Zwróć tylko poprawiony tekst."
                     localPrompt = example
                     settings.llmPrompt = example
                 }

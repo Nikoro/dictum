@@ -34,21 +34,21 @@ enum TextInputAnchorResolver {
         let spacing: CGFloat = 8
         let preferredLeftX = anchorRect.minX - panelSize.width - spacing
         let fallbackRightX = anchorRect.maxX + spacing
-        var x = preferredLeftX
-        var y = anchor.kind == .caret
+        var originX = preferredLeftX
+        var originY = anchor.kind == .caret
             ? anchorRect.minY - (panelSize.height - anchorRect.height) / 2
             : anchorRect.midY - panelSize.height / 2
 
         if preferredLeftX < screen.visibleFrame.minX {
-            x = fallbackRightX
+            originX = fallbackRightX
         }
 
-        x = max(x, screen.visibleFrame.minX)
-        x = min(x, screen.visibleFrame.maxX - panelSize.width)
-        y = max(y, screen.visibleFrame.minY)
-        y = min(y, screen.visibleFrame.maxY - panelSize.height)
+        originX = max(originX, screen.visibleFrame.minX)
+        originX = min(originX, screen.visibleFrame.maxX - panelSize.width)
+        originY = max(originY, screen.visibleFrame.minY)
+        originY = min(originY, screen.visibleFrame.maxY - panelSize.height)
 
-        return NSPoint(x: x, y: y)
+        return NSPoint(x: originX, y: originY)
     }
 
     private static func focusedElement(in application: AXUIElement) -> AXUIElement? {
@@ -57,7 +57,7 @@ enum TextInputAnchorResolver {
             return nil
         }
 
-        return (focusedElement as! AXUIElement)
+        return focusedElement as? AXUIElement
     }
 
     private static func systemWideFocusedElement() -> AXUIElement? {
@@ -96,7 +96,7 @@ enum TextInputAnchorResolver {
             return nil
         }
 
-        return (parent as! AXUIElement)
+        return parent as? AXUIElement
     }
 
     private static func role(of element: AXUIElement) -> String {
@@ -156,7 +156,8 @@ enum TextInputAnchorResolver {
         }
 
         var rect = CGRect.zero
-        guard AXValueGetValue(caretBounds as! AXValue, .cgRect, &rect) else {
+        guard let caretBoundsValue = caretBounds as? AXValue,
+              AXValueGetValue(caretBoundsValue, .cgRect, &rect) else {
             return nil
         }
 
@@ -178,8 +179,10 @@ enum TextInputAnchorResolver {
             return nil
         }
 
-        let positionAXValue = positionValue as! AXValue
-        let sizeAXValue = sizeValue as! AXValue
+                guard let positionAXValue = positionValue as? AXValue,
+                            let sizeAXValue = sizeValue as? AXValue else {
+                        return nil
+                }
         var origin = CGPoint.zero
         var size = CGSize.zero
         guard AXValueGetValue(positionAXValue, .cgPoint, &origin),

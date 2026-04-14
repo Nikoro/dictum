@@ -22,8 +22,11 @@ final class FloatingIndicatorPanelController {
             }
             targetAnchor = TextInputAnchorResolver.resolve(preferredPID: targetPID)
             if let targetAnchor {
+                let iconAvailability = targetAppIcon != nil ? "yes" : "nil"
                 dlog(
-                    "[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil"), anchor=\(targetAnchor.kind.rawValue):\(targetAnchor.role)"
+                    "[Pill] captured app: \(app.localizedName ?? "?"), " +
+                    "icon: \(iconAvailability), " +
+                    "anchor=\(targetAnchor.kind.rawValue):\(targetAnchor.role)"
                 )
             } else {
                 dlog("[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil"), anchor=nil")
@@ -80,8 +83,11 @@ final class FloatingIndicatorPanelController {
     private func caretOrigin(panelSize: NSSize) -> NSPoint {
         if let anchor = targetAnchor ?? TextInputAnchorResolver.resolve(preferredPID: targetPID),
            let origin = TextInputAnchorResolver.panelOrigin(for: anchor, panelSize: panelSize) {
+            let anchorDescription = "\(anchor.rect.origin.x),\(anchor.rect.origin.y),\(anchor.rect.size.width),\(anchor.rect.size.height)"
+            let originDescription = "\(origin.x),\(origin.y)"
             dlog(
-                "[Pill] \(anchor.kind.rawValue) role=\(anchor.role) ax=(\(anchor.rect.origin.x),\(anchor.rect.origin.y),\(anchor.rect.size.width),\(anchor.rect.size.height)) → appKit=(\(origin.x),\(origin.y))"
+                "[Pill] \(anchor.kind.rawValue) role=\(anchor.role) " +
+                "ax=(\(anchorDescription)) → appKit=(\(originDescription))"
             )
             return origin
         }

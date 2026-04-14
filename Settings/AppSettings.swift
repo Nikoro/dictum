@@ -4,23 +4,23 @@ import AppKit
 // MARK: - STT Language
 
 enum STTLanguage: String, CaseIterable, Codable {
-    case auto = "auto"
-    case pl = "pl"
-    case en = "en"
-    case de = "de"
-    case fr = "fr"
-    case es = "es"
-    case it = "it"
-    case pt = "pt"
-    case uk = "uk"
-    case cs = "cs"
-    case nl = "nl"
-    case ja = "ja"
-    case ko = "ko"
-    case zh = "zh"
-    case ru = "ru"
-    case sv = "sv"
-    case tr = "tr"
+    case auto
+    case pl
+    case en
+    case de
+    case fr
+    case es
+    case it
+    case pt
+    case uk
+    case cs
+    case nl
+    case ja
+    case ko
+    case zh
+    case ru
+    case sv
+    case tr
 
     var displayName: String {
         switch self {
@@ -78,8 +78,8 @@ struct AppPrompt: Identifiable, Codable, Equatable {
 }
 
 enum RecordingMode: String, CaseIterable {
-    case hold = "hold"
-    case toggle = "toggle"
+    case hold
+    case toggle
 
     var displayName: String {
         switch self {

@@ -69,7 +69,7 @@ final class WhisperModelStore: ObservableObject {
             displayName: "Base",
             sizeBytes: 150_000_000,
             descriptionKey: "stt.base.desc"
-        ),
+        )
     ]
 
     private init() {

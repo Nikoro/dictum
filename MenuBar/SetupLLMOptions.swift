@@ -33,5 +33,5 @@ let setupLLMModelOptions: [LLMModelOption] = [
         sizeGB: "~17 GB",
         descriptionKey: "llm.gemma4_26b.desc",
         recommended: false
-    ),
+    )
 ]

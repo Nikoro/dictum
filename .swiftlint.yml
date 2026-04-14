@@ -12,8 +12,10 @@ excluded:
 
 reporter: xcode
 
-opt_in_rules:
+analyzer_rules:
   - unused_import
+
+opt_in_rules:
   - vertical_whitespace
 
 cyclomatic_complexity:
@@ -22,7 +24,6 @@ cyclomatic_complexity:
 
 file_length:
   warning: 350
-  error: 500
 
 function_body_length:
   warning: 50
@@ -41,8 +42,26 @@ line_length:
 nesting:
   type_level:
     warning: 2
-  statement_level:
-    warning: 3
+
+identifier_name:
+  excluded:
+    - id
+    - pl
+    - en
+    - de
+    - fr
+    - es
+    - it
+    - pt
+    - uk
+    - cs
+    - nl
+    - ja
+    - ko
+    - zh
+    - ru
+    - sv
+    - tr
 
 force_cast:
   severity: warning

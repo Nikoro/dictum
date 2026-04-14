@@ -51,7 +51,7 @@ struct SetupModelRow: View {
             } else if !isDownloading {
                 onDownload()
             }
-        }) {
+        }, label: {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -118,7 +118,7 @@ struct SetupModelRow: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isSelected ? Color("AccentColor").opacity(0.3) : .clear, lineWidth: 1)
             )
-        }
+        })
         .buttonStyle(.plain)
     }
 }
@@ -141,7 +141,7 @@ struct SetupLLMRow: View {
             } else if !isDownloading {
                 onDownload()
             }
-        }) {
+        }, label: {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
                     Image(systemName: isSelected && isDownloaded ? "checkmark.circle.fill" : "circle")
@@ -179,12 +179,12 @@ struct SetupLLMRow: View {
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .frame(width: 36, alignment: .trailing)
-                        Button {
+                        Button(action: {
                             onCancel?()
-                        } label: {
+                        }, label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.secondary)
-                        }
+                        })
                         .buttonStyle(.plain)
                     } else if isDownloaded {
                         Image(systemName: "checkmark")
@@ -213,7 +213,7 @@ struct SetupLLMRow: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isSelected ? Color("AccentColor").opacity(0.3) : .clear, lineWidth: 1)
             )
-        }
+        })
         .buttonStyle(.plain)
     }
 }

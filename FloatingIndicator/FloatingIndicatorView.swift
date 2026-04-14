@@ -84,8 +84,8 @@ struct FloatingIndicatorView: View {
 
     private func sampleLevel() {
         let raw = audioRecorder.audioLevel
-        let db = 20 * log10(max(raw, 0.0001))
-        let normalized = max(0, (db + 50) / 50)
+        let decibels = 20 * log10(max(raw, 0.0001))
+        let normalized = max(0, (decibels + 50) / 50)
         let boosted = pow(normalized, 0.7)
         smoothedLevel = smoothedLevel * 0.5 + Float(boosted) * 0.5
         levels.removeFirst()

@@ -16,7 +16,12 @@ struct PermissionsNeededView: View {
             Text(String(localized: "permissions.needed.title", defaultValue: "Permissions needed"))
                 .font(.headline)
 
-            Text(String(localized: "permissions.needed.desc", defaultValue: "After the update, macOS requires you to re-enable permissions."))
+            Text(
+                String(
+                    localized: "permissions.needed.desc",
+                    defaultValue: "After the update, macOS requires you to re-enable permissions."
+                )
+            )
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

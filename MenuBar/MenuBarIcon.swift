@@ -19,11 +19,11 @@ enum MenuBarIcon {
         let offsetY = alignRect.midY - micSize.height / 2
 
         let scale: CGFloat = 2
-        let w = Int(micSize.width * scale)
-        let h = Int(micSize.height * scale)
+        let pixelWidth = Int(micSize.width * scale)
+        let pixelHeight = Int(micSize.height * scale)
 
         guard let bmp = CGContext(
-            data: nil, width: w, height: h,
+            data: nil, width: pixelWidth, height: pixelHeight,
             bitsPerComponent: 8, bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
@@ -48,11 +48,11 @@ enum MenuBarIcon {
         fillColor: CGColor
     ) {
         let scale: CGFloat = 2
-        let w = Int(size.width * scale)
-        let h = Int(size.height * scale)
+        let pixelWidth = Int(size.width * scale)
+        let pixelHeight = Int(size.height * scale)
 
         guard let offscreen = CGContext(
-            data: nil, width: w, height: h,
+            data: nil, width: pixelWidth, height: pixelHeight,
             bitsPerComponent: 8, bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
@@ -90,7 +90,7 @@ enum MenuBarIcon {
 
     /// Rounded rectangle with mic cutout (template — adapts to light/dark).
     static func microphone() -> NSImage {
-        let image = NSImage(size: iconSize, flipped: false) { rect in
+        let image = NSImage(size: iconSize, flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             drawRoundedRectWithMicCutout(in: ctx, size: iconSize, fillColor: NSColor.black.cgColor)
             return true
@@ -101,7 +101,7 @@ enum MenuBarIcon {
 
     /// Recording icon — rounded rect with mic cutout + red REC dot.
     static func recording() -> NSImage {
-        let image = NSImage(size: iconSize, flipped: false) { rect in
+        let image = NSImage(size: iconSize, flipped: false) { _ in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
             drawRoundedRectWithMicCutout(in: ctx, size: iconSize, fillColor: NSColor.white.cgColor)
 

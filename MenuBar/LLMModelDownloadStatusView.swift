@@ -7,21 +7,28 @@ struct LLMModelDownloadStatusView: View {
     let onCancel: () -> Void
 
     var body: some View {
+        let shortModelId = modelId.replacingOccurrences(of: "mlx-community/", with: "")
+
         VStack(spacing: 4) {
             HStack(spacing: 6) {
-                Text(String(localized: "section.llm.downloading", defaultValue: "Downloading \(modelId.replacingOccurrences(of: "mlx-community/", with: ""))..."))
+                Text(
+                    String(
+                        localized: "section.llm.downloading",
+                        defaultValue: "Downloading \(shortModelId)..."
+                    )
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                Button {
+                Button(action: {
                     onCancel()
-                } label: {
+                }, label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                }
+                })
                 .buttonStyle(.plain)
             }
             ProgressView(value: progress)

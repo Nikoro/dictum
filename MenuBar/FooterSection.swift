@@ -16,30 +16,30 @@ struct FooterSection: View {
             }
 
             HStack {
-                Button(action: { NSApplication.shared.terminate(nil) }) {
+                Button(action: { NSApplication.shared.terminate(nil) }, label: {
                     Image(systemName: "power")
-                }
+                })
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .font(.caption)
 
                 Spacer()
 
-                Button(action: { updateController.checkForUpdates() }) {
+                Button(action: { updateController.checkForUpdates() }, label: {
                     Text("Wersja: \(dictumAppVersion)")
                         .font(.caption)
                         .foregroundStyle(updateController.canCheckForUpdates ? Color("AccentColor") : .secondary)
                         .underline(updateController.canCheckForUpdates)
-                }
+                })
                 .buttonStyle(.plain)
                 .disabled(!updateController.canCheckForUpdates)
                 .help(String(localized: "footer.checkUpdates", defaultValue: "Sprawdź aktualizacje"))
 
                 Spacer()
 
-                Button(action: { showUninstallAlert = true }) {
+                Button(action: { showUninstallAlert = true }, label: {
                     Image(systemName: "trash")
-                }
+                })
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .font(.caption)
@@ -55,7 +55,12 @@ struct FooterSection: View {
                 performUninstall()
             }
         } message: {
-            Text(String(localized: "uninstall.message", defaultValue: "This will delete all downloaded models, settings, and move Dictum to Trash. This cannot be undone."))
+            Text(
+                String(
+                    localized: "uninstall.message",
+                    defaultValue: "This will delete all downloaded models, settings, and move Dictum to Trash. This cannot be undone."
+                )
+            )
         }
     }
 

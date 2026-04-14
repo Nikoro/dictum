@@ -43,7 +43,11 @@ final class GlobalHotkeyMonitor: ObservableObject {
         self.keyUpHandler = onKeyUp
         self.cancelHandler = onCancel
 
-        dlog("[Hotkey] start() called, accessibility=\(accessibilityGranted), keyCode=\(settings.hotkeyKeyCode), isModifierOnly=\(settings.hotkeyIsModifierOnly)")
+        dlog(
+            "[Hotkey] start() called, accessibility=\(accessibilityGranted), " +
+            "keyCode=\(settings.hotkeyKeyCode), " +
+            "isModifierOnly=\(settings.hotkeyIsModifierOnly)"
+        )
 
         // Cache settings for safe access from nonisolated event tap callback
         cachedIsModifierOnly = settings.hotkeyIsModifierOnly
@@ -73,7 +77,10 @@ final class GlobalHotkeyMonitor: ObservableObject {
     }
 
     private func setupEventTap() {
-        let eventMask: CGEventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
+        let eventMask: CGEventMask =
+            (1 << CGEventType.keyDown.rawValue) |
+            (1 << CGEventType.keyUp.rawValue) |
+            (1 << CGEventType.flagsChanged.rawValue)
 
         // Store self reference for callback
         let refcon = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())

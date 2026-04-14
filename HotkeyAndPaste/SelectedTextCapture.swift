@@ -72,7 +72,7 @@ enum SelectedTextCapture {
             return nil
         }
 
-        return (focusedElement as! AXUIElement)
+        return focusedElement as? AXUIElement
     }
 
     private static func selectedTextRange(for element: AXUIElement) -> CFRange? {
@@ -83,7 +83,8 @@ enum SelectedTextCapture {
         }
 
         var selectedRange = CFRange()
-        guard AXValueGetValue(selectedRangeValue as! AXValue, .cfRange, &selectedRange) else {
+        guard let selectedRangeAXValue = selectedRangeValue as? AXValue,
+              AXValueGetValue(selectedRangeAXValue, .cfRange, &selectedRange) else {
             return nil
         }
 

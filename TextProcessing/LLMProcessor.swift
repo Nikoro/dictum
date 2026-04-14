@@ -25,7 +25,10 @@ actor LLMProcessor {
     private(set) var isLoading = false
     private(set) var currentModelId: String?
 
-    func loadModel(_ modelId: String = "mlx-community/gemma-4-e2b-it-4bit", progressHandler: (@Sendable (Progress) -> Void)? = nil) async throws {
+    func loadModel(
+        _ modelId: String = "mlx-community/gemma-4-e2b-it-4bit",
+        progressHandler: (@Sendable (Progress) -> Void)? = nil
+    ) async throws {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }

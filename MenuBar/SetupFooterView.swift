@@ -4,9 +4,9 @@ import SwiftUI
 struct SetupFooterView: View {
     var body: some View {
         HStack {
-            Button(action: { NSApplication.shared.terminate(nil) }) {
+            Button(action: { NSApplication.shared.terminate(nil) }, label: {
                 Image(systemName: "power")
-            }
+            })
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .font(.caption)
