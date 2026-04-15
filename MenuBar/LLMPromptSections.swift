@@ -29,14 +29,14 @@ struct GeneralPromptSection: View {
                     .frame(width: 18, height: 18)
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
 
-                Text(String(localized: "section.prompt.general", defaultValue: "Prompt ogólny"))
+                Text(String(localized: "section.prompt.general", defaultValue: "General prompt"))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
             }
 
             if showNoModelWarning {
-                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Gemma 4 E2B"))
+                Text(String(localized: "section.prompt.nomodel", defaultValue: "Download an LLM model first, e.g. Gemma 4 E2B"))
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
@@ -44,7 +44,7 @@ struct GeneralPromptSection: View {
             if settings.llmGeneralPromptEnabled {
                 PromptTextEditor(
                     text: $localPrompt,
-                    placeholder: String(localized: "section.prompt.general.placeholder", defaultValue: "Wpisz prompt ogólny...")
+                    placeholder: String(localized: "section.prompt.general.placeholder", defaultValue: "Enter general prompt...")
                 )
                 .frame(minHeight: 80, maxHeight: 120)
                 .background(.quaternary)
@@ -53,7 +53,7 @@ struct GeneralPromptSection: View {
                     settings.llmPrompt = newValue
                 }
 
-                Button(String(localized: "section.prompt.example", defaultValue: "Przykładowy prompt")) {
+                Button(String(localized: "section.prompt.example", defaultValue: "Example prompt")) {
                     let example = "Usuń wypełniacze (yyy, eee, hmm). Popraw interpunkcję i literówki. " +
                         "Popraw zdania, które nie mają sensu. Nie zmieniaj stylu. Zwróć tylko poprawiony tekst."
                     localPrompt = example
@@ -83,7 +83,7 @@ struct AppPromptsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(String(localized: "section.prompt.perapp", defaultValue: "Prompty per aplikacja"))
+                Text(String(localized: "section.prompt.perapp", defaultValue: "Per-app prompts"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -97,7 +97,7 @@ struct AppPromptsSection: View {
             }
 
             if settings.appPrompts.isEmpty {
-                Text(String(localized: "section.prompt.perapp.empty", defaultValue: "Brak — używany będzie prompt ogólny"))
+                Text(String(localized: "section.prompt.perapp.empty", defaultValue: "None — general prompt will be used"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -108,7 +108,7 @@ struct AppPromptsSection: View {
         }
         .sheet(isPresented: $showingAppPicker) {
             InstalledAppPickerSheet(
-                title: String(localized: "section.prompt.picker.title", defaultValue: "Wybierz aplikację"),
+                title: String(localized: "section.prompt.picker.title", defaultValue: "Choose application"),
                 excludedBundleIds: Set(settings.appPrompts.map(\.bundleId))
             ) { bundleId, appName in
                 settings.addAppPrompt(AppPrompt(
@@ -179,7 +179,7 @@ struct AppPromptRow: View {
             }
 
             if showNoModelWarning {
-                Text(String(localized: "section.prompt.nomodel", defaultValue: "Pobierz model LLM, np. Gemma 4 E2B"))
+                Text(String(localized: "section.prompt.nomodel", defaultValue: "Download an LLM model first, e.g. Gemma 4 E2B"))
                     .font(.caption)
                     .foregroundStyle(.orange)
             }

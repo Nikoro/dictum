@@ -34,6 +34,11 @@ struct SetupSpeechRecognitionModelStep: View {
                             }
                         )
                     }
+                    if let error = whisperModelStore.downloadError {
+                        LLMModelDownloadErrorView(errorMessage: error) {
+                            whisperModelStore.downloadError = nil
+                        }
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)

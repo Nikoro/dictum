@@ -21,7 +21,7 @@
 "header.warmingUp" = "Przygotowywanie...";
 "header.recording" = "Nagrywanie...";
 "header.transcribing" = "Transkrypcja...";
-"header.processingLLM" = "Przetwarzanie tekstu przez LLM...";
+"header.processingLLM" = "Oczyszczanie tekstu przez LLM...";
 "header.done" = "Gotowe — tekst wklejony";
 
 /* Sections */
@@ -104,3 +104,33 @@
 "permissions.needed.title" = "Wymagane uprawnienia";
 "permissions.needed.desc" = "Po aktualizacji macOS wymaga ponownego przyznania uprawnień.";
 
+/* STT language section */
+"section.stt.language" = "Język rozpoznawania";
+"section.stt.language.general" = "Ogólny";
+"section.stt.language.perapp" = "Język per aplikacja";
+"section.stt.language.perapp.empty" = "Brak — używany będzie język ogólny";
+"section.stt.language.picker.title" = "Wybierz aplikację";
+
+/* Language auto */
+"language.auto" = "Automatycznie";
+
+/* STT/LLM errors */
+"error.stt.notLoaded" = "Model STT nie jest załadowany.";
+"error.stt.transcriptionFailed" = "Transkrypcja nie powiodła się:";
+"error.llm.notLoaded" = "Model LLM nie jest załadowany.";
+"error.llm.generationFailed" = "Generowanie tekstu nie powiodło się:";
+
+/* Delete alerts */
+"alert.delete.stt.title" = "Usunąć model?";
+"alert.delete.llm.title" = "Usunąć model?";
+"alert.delete.confirm" = "Usuń";
+"alert.delete.cancel" = "Anuluj";
+
+/* Footer */
+"footer.checkUpdates" = "Sprawdź aktualizacje";
+"footer.version" = "Wersja: %@";
+
+/* App picker */
+"picker.search" = "Szukaj aplikacji...";
+"picker.empty" = "Nie znaleziono aplikacji";
+"picker.noResults" = "Brak wyników";

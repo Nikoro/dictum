@@ -61,7 +61,16 @@ final class DownloadedLLMModelStore: ObservableObject {
     func deleteModel(_ modelId: String) throws {
         let folderName = modelId.replacingOccurrences(of: "mlx-community/", with: "")
         let modelDir = mlxCacheDir.appendingPathComponent(folderName)
-        try FileManager.default.removeItem(at: modelDir)
+        let resolved = modelDir.standardizedFileURL
+        let cacheRoot = mlxCacheDir.standardizedFileURL.path + "/"
+        guard resolved.path.hasPrefix(cacheRoot) else {
+            throw NSError(
+                domain: "DownloadedLLMModelStore",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid model id: \(modelId)"]
+            )
+        }
+        try FileManager.default.removeItem(at: resolved)
         scanDownloadedModels()
     }
 

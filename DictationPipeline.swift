@@ -182,7 +182,7 @@ final class DictationPipeline: ObservableObject {
         selectedContext = pendingSelectedContext
         pendingSelectedContext = nil
         if let ctx = selectedContext {
-            dlog("[Dictum] using selected context (\(ctx.count) chars): '\(ctx.prefix(100))...'")
+            dlog("[Dictum] using selected context (\(ctx.count) chars)")
         }
 
         do {
@@ -267,7 +267,7 @@ private extension DictationPipeline {
         dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
         let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
         guard !isCancelled else { return "" }
-        dlog("[Dictum] transcription result: '\(rawText)'")
+        dlog("[Dictum] transcription complete, \(rawText.count) chars")
         runtimeState.lastTranscription = rawText
         return rawText
     }
@@ -288,14 +288,13 @@ private extension DictationPipeline {
         runtimeState.appState = .processingLLM
         do {
             try await ensureLLMModelLoaded()
-            dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(prompt)'")
-            dlog("[Dictum] LLM input: '\(rawText)', context: \(selectedContext != nil ? "yes" : "none")")
+            dlog("[Dictum] LLM cleanup for \(targetBundleId ?? "general"), input \(rawText.count) chars, context: \(selectedContext != nil ? "yes" : "none")")
             let cleanedText = try await LLMProcessor.shared.cleanText(
                 rawText: rawText,
                 prompt: prompt,
                 context: selectedContext
             )
-            dlog("[Dictum] LLM raw output: '\(cleanedText)'")
+            dlog("[Dictum] LLM output \(cleanedText.count) chars")
             return cleanedText
         } catch {
             dlog("[Dictum] LLM cleanup failed, using raw text: \(error)")
@@ -311,13 +310,13 @@ private extension DictationPipeline {
 
     func deliverFinalText(_ finalText: String) {
         if selectedContext != nil {
-            dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
+            dlog("[Dictum] final text (context mode), \(finalText.count) chars, copying to clipboard")
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(finalText, forType: .string)
             return
         }
 
-        dlog("[Dictum] final text: '\(finalText)', pasting...")
+        dlog("[Dictum] final text \(finalText.count) chars, pasting...")
         ClipboardPasteController.shared.pasteText(finalText)
     }
 

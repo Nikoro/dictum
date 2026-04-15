@@ -21,7 +21,7 @@
 "header.warmingUp" = "Warming up...";
 "header.recording" = "Recording...";
 "header.transcribing" = "Transcribing...";
-"header.processingLLM" = "Processing text with LLM...";
+"header.processingLLM" = "Cleaning text with LLM...";
 "header.done" = "Done — text pasted";
 
 /* Sections */
@@ -104,3 +104,33 @@
 "permissions.needed.title" = "Permissions needed";
 "permissions.needed.desc" = "After the update, macOS requires you to re-enable permissions.";
 
+/* STT language section */
+"section.stt.language" = "Recognition language";
+"section.stt.language.general" = "General";
+"section.stt.language.perapp" = "Language per app";
+"section.stt.language.perapp.empty" = "None — general language will be used";
+"section.stt.language.picker.title" = "Choose application";
+
+/* Language auto */
+"language.auto" = "Automatic";
+
+/* STT/LLM errors */
+"error.stt.notLoaded" = "STT model not loaded.";
+"error.stt.transcriptionFailed" = "Transcription failed:";
+"error.llm.notLoaded" = "LLM model not loaded.";
+"error.llm.generationFailed" = "Text generation failed:";
+
+/* Delete alerts */
+"alert.delete.stt.title" = "Delete model?";
+"alert.delete.llm.title" = "Delete model?";
+"alert.delete.confirm" = "Delete";
+"alert.delete.cancel" = "Cancel";
+
+/* Footer */
+"footer.checkUpdates" = "Check for updates";
+"footer.version" = "Version: %@";
+
+/* App picker */
+"picker.search" = "Search apps...";
+"picker.empty" = "No apps found";
+"picker.noResults" = "No results";

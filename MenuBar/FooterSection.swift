@@ -26,14 +26,14 @@ struct FooterSection: View {
                 Spacer()
 
                 Button(action: { updateController.checkForUpdates() }, label: {
-                    Text("Wersja: \(dictumAppVersion)")
+                    Text(String(format: String(localized: "footer.version", defaultValue: "Version: %@"), dictumAppVersion))
                         .font(.caption)
                         .foregroundStyle(updateController.canCheckForUpdates ? Color("AccentColor") : .secondary)
                         .underline(updateController.canCheckForUpdates)
                 })
                 .buttonStyle(.plain)
                 .disabled(!updateController.canCheckForUpdates)
-                .help(String(localized: "footer.checkUpdates", defaultValue: "Sprawdź aktualizacje"))
+                .help(String(localized: "footer.checkUpdates", defaultValue: "Check for updates"))
 
                 Spacer()
 
@@ -68,7 +68,7 @@ struct FooterSection: View {
         let fileManager = FileManager.default
         let homeDirectory = fileManager.homeDirectoryForCurrentUser
 
-        let mlxCacheDir = homeDirectory.appendingPathComponent("Library/Caches/models")
+        let mlxCacheDir = homeDirectory.appendingPathComponent("Library/Caches/models/mlx-community")
         try? fileManager.removeItem(at: mlxCacheDir)
 
         let appCacheDir = homeDirectory.appendingPathComponent("Library/Caches/com.dominikkrajcer.dictum")

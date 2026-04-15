@@ -41,7 +41,7 @@ struct InstalledAppPickerSheet: View {
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField(String(localized: "picker.search", defaultValue: "Szukaj aplikacji..."), text: $searchText)
+                TextField(String(localized: "picker.search", defaultValue: "Search apps..."), text: $searchText)
                     .textFieldStyle(.plain)
             }
             .padding(8)

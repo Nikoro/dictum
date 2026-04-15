@@ -13,7 +13,7 @@ struct SetupFooterView: View {
 
             Spacer()
 
-            Text("Wersja: \(dictumAppVersion)")
+            Text(String(format: String(localized: "footer.version", defaultValue: "Version: %@"), dictumAppVersion))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

@@ -6,12 +6,12 @@ struct STTLanguageSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "section.stt.language", defaultValue: "Język rozpoznawania"))
+            Text(String(localized: "section.stt.language", defaultValue: "Recognition language"))
                 .font(.headline)
 
             // General language picker
             HStack {
-                Text(String(localized: "section.stt.language.general", defaultValue: "Ogólny"))
+                Text(String(localized: "section.stt.language.general", defaultValue: "General"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -29,7 +29,7 @@ struct STTLanguageSection: View {
 
             // Per-app languages
             HStack {
-                Text(String(localized: "section.stt.language.perapp", defaultValue: "Język per aplikacja"))
+                Text(String(localized: "section.stt.language.perapp", defaultValue: "Language per app"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -43,7 +43,7 @@ struct STTLanguageSection: View {
             }
 
             if settings.appSTTLanguages.isEmpty {
-                Text(String(localized: "section.stt.language.perapp.empty", defaultValue: "Brak — używany będzie język ogólny"))
+                Text(String(localized: "section.stt.language.perapp.empty", defaultValue: "None — general language will be used"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -55,7 +55,7 @@ struct STTLanguageSection: View {
         .padding()
         .sheet(isPresented: $showingAppPicker) {
             InstalledAppPickerSheet(
-                title: String(localized: "section.stt.language.picker.title", defaultValue: "Wybierz aplikację"),
+                title: String(localized: "section.stt.language.picker.title", defaultValue: "Choose application"),
                 excludedBundleIds: Set(settings.appSTTLanguages.map(\.bundleId))
             ) { bundleId, appName in
                 settings.addAppSTTLanguage(AppSTTLanguage(

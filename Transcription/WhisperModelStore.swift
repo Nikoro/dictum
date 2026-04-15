@@ -28,6 +28,7 @@ final class WhisperModelStore: ObservableObject {
     @Published var isDownloading = false
     @Published var downloadingModelId: String?
     @Published var downloadProgress: Double = 0
+    @Published var downloadError: String?
 
     private var downloadTask: Task<Void, Never>?
     private static let downloadedKey = UserDefaultsKey.whisperDownloadedModelIds.rawValue
@@ -89,6 +90,7 @@ final class WhisperModelStore: ObservableObject {
         isDownloading = true
         downloadingModelId = modelId
         downloadProgress = 0
+        downloadError = nil
 
         downloadTask = Task {
             do {
@@ -126,6 +128,7 @@ final class WhisperModelStore: ObservableObject {
                 dlog("[STT] download cancelled")
             } catch {
                 dlog("[STT] download failed: \(error)")
+                downloadError = error.localizedDescription
             }
             isDownloading = false
             downloadingModelId = nil
