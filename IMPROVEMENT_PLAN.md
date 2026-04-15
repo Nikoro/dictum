@@ -27,28 +27,28 @@
 
 ## Critical Findings
 
-### [ ] [C1] Uninstall destroys entire shared MLX cache root `[T1]`
+### [x] [C1] Uninstall destroys entire shared MLX cache root `[T1]`
 - **File**: `MenuBar/FooterSection.swift:71`
 - **Auditor**: security-auditor, code-quality-auditor, ux-auditor, docs-oss-auditor
 - **Issue**: `performUninstall()` runs `removeItem(at: home.appendingPathComponent("Library/Caches/models"))` — the shared MLX cache used by ALL MLX-based apps on the machine (LM Studio, mlx-lm CLI, etc.). The confirmation dialog says "delete all downloaded models" but silently destroys other apps' multi-GB model caches. `DownloadedLLMModelStore.mlxCacheDir` correctly targets the `mlx-community/` subdirectory — the two paths are inconsistent.
 - **Recommendation**: Change to `home.appendingPathComponent("Library/Caches/models/mlx-community")` to match `mlxCacheDir`. Update alert message accordingly.
 - **Effort**: Quick Win
 
-### [ ] [C2] Plaintext transcription + LLM content written to world-readable unbounded log `[T1]`
+### [x] [C2] Plaintext transcription + LLM content written to world-readable unbounded log `[T1]`
 - **File**: `DictationPipeline.swift:270,292,298,314`, `DictumLogger.swift:21`
 - **Auditor**: security-auditor, performance-auditor, code-quality-auditor
 - **Issue**: `dlog()` writes raw transcription text, LLM prompts, LLM output, final pasted text, and selected-text context (up to 100 chars) to `~/Library/Logs/Dictum/dictum.log`. File created with default 0644 (world-readable), never rotated, grows indefinitely. Any process running as the same user — or any app with Full Disk Access — can read a permanent transcript of everything the user dictates (passwords, messages, medical/financial info).
 - **Recommendation**: (a) Strip content from logs — log metadata only (e.g., `transcription complete, \(rawText.count) chars`). (b) Create the log with `0600` POSIX permissions. (c) Add rotation at 1 MB. (d) Consider switching to `os.Logger` entirely.
 - **Effort**: Moderate
 
-### [ ] [C3] WhisperKit `verbose: true` + `logLevel: .debug` hardcoded in release builds `[T1]`
+### [x] [C3] WhisperKit `verbose: true` + `logLevel: .debug` hardcoded in release builds `[T1]`
 - **File**: `Transcription/TranscriptionEngine.swift:32-33,47-48`
 - **Auditor**: security-auditor
 - **Issue**: Both `loadModel` paths hardcode `verbose: true` and `logLevel: .debug` in `WhisperKitConfig`. Debug output — including audio processing internals — is emitted to unified logging (`os_log`) and visible to anyone running `log stream` on the machine.
 - **Recommendation**: Remove both flags or gate behind `#if DEBUG`.
 - **Effort**: Quick Win
 
-### [ ] [C4] Path traversal in `DownloadedLLMModelStore.deleteModel` `[T1]`
+### [x] [C4] Path traversal in `DownloadedLLMModelStore.deleteModel` `[T1]`
 - **File**: `ModelBrowser/DownloadedLLMModelStore.swift:62-64`
 - **Auditor**: security-auditor
 - **Issue**: `deleteModel(_ modelId:)` strips `mlx-community/` prefix and calls `mlxCacheDir.appendingPathComponent(folderName)` with no canonicalization. A model ID like `mlx-community/../../../Library/Application Support/SomeApp` would escape the cache directory. Values originate from HuggingFace API responses; a compromised/MITM'd response could cause arbitrary deletion under `$HOME` (non-sandboxed app).
@@ -64,7 +64,7 @@
 - **Effort**: Moderate
 
 
-### [ ] [C8] Whisper STT model download failure is silent — user stuck at onboarding dead end `[T3]`
+### [x] [C8] Whisper STT model download failure is silent — user stuck at onboarding dead end `[T3]`
 - **File**: `Transcription/WhisperModelStore.swift:127-128`
 - **Auditor**: ux-auditor
 - **Issue**: The `catch` block in `downloadAndActivate` only calls `dlog()`. The row reverts to the undownloaded state with the download-arrow icon, no error is `@Published`. In SetupView, STT download is the only required step — a user with network/disk issues gets zero feedback and no path forward.
@@ -82,21 +82,21 @@
 - **Recommendation**: Wrap in `OSAllocatedUnfairLock<CachedHotkeyConfig>` or use `Synchronization.Atomic` (available on macOS 26). Snapshot as a single struct.
 - **Effort**: Moderate
 
-### [ ] [H2] `AudioRecorder.appendSamples` dispatches strong `self` to main queue `[T2]`
+### [x] [H2] `AudioRecorder.appendSamples` dispatches strong `self` to main queue `[T2]`
 - **File**: `Audio/AudioRecorder.swift:126-129`
 - **Auditor**: swift-auditor
 - **Issue**: The outer `installTap` closure captures `[weak self]`, but the inner `DispatchQueue.main.async` inside `appendSamples` captures `self` strongly, keeping `AudioRecorder` alive across teardown windows.
 - **Recommendation**: Add `[weak self]` to the inner async block.
 - **Effort**: Quick Win
 
-### [ ] [H3] Synthetic Cmd+C posted to `.cghidEventTap` re-enters own event tap `[T3]`
+### [x] [H3] Synthetic Cmd+C posted to `.cghidEventTap` re-enters own event tap `[T3]`
 - **File**: `HotkeyAndPaste/SelectedTextCapture.swift:42-43`
 - **Auditor**: macos-auditor
 - **Issue**: Posting to `.cghidEventTap` re-injects at HID level, passing through Dictum's own `GlobalHotkeyMonitor` tap. If the user configures `C` + `Command` as their hotkey, context capture triggers a second dictation. `ClipboardPasteController` correctly uses `.cgAnnotatedSessionEventTap`.
 - **Recommendation**: Change both `keyDown.post` / `keyUp.post` calls to `.cgAnnotatedSessionEventTap`.
 - **Effort**: Quick Win
 
-### [ ] [H4] `appendSamples` allocates `[Float]` + does `map.reduce` in hot audio path `[T3]`
+### [x] [H4] `appendSamples` allocates `[Float]` + does `map.reduce` in hot audio path `[T3]`
 - **File**: `Audio/AudioRecorder.swift:83,120`
 - **Auditor**: performance-auditor
 - **Issue**: ~64 callbacks/sec allocate new `[Float]` via `Array(UnsafeBufferPointer(...))`, then `samples.map { $0 * $0 }.reduce(0, +)` builds another intermediate array before summing. `audioBuffer` has no `reserveCapacity` — a 60s recording causes ~20 reallocations doubling storage.
@@ -118,7 +118,7 @@
 - **Effort**: Moderate
 
 
-### [ ] [H9] No SPM cache + no job timeout in release.yml `[T3]`
+### [x] [H9] No SPM cache + no job timeout in release.yml `[T3]`
 - **File**: `.github/workflows/release.yml:13,37-38`
 - **Auditor**: ci-cd-auditor, docs-oss-auditor
 - **Issue**: Every release re-downloads WhisperKit + mlx-swift-lm + Sparkle (~3-5 min). Job has no `timeout-minutes` — a hang runs for GitHub's default 360-minute cap.
@@ -164,7 +164,7 @@
 - **Effort**: Quick Win
 
 
-### [ ] [H17] Audit finding: STT/LLM models deletable while actively loaded `[T1]`
+### [x] [H17] Audit finding: STT/LLM models deletable while actively loaded `[T1]`
 - **File**: `Transcription/WhisperModelStore.swift:152`
 - **Auditor**: code-quality-auditor
 - **Issue**: `WhisperModelStore.deleteModel` does not unload the active `TranscriptionEngine` before removing files. A concurrent recording will try to use the deleted model folder.
@@ -179,7 +179,7 @@
 - **Recommendation**: Switch to `os.Logger` (system handles rotation, integrates with Console.app) or add size check on open rotating to `.log.bak` at 1-10 MB. Also add `deinit { handle?.closeFile() }`.
 - **Effort**: Moderate
 
-### [ ] [H19] Error state in `PopoverStatusHeader` rendered yellow — same as transcribing `[T3]`
+### [x] [H19] Error state in `PopoverStatusHeader` rendered yellow — same as transcribing `[T3]`
 - **File**: `MenuBar/PopoverStatusHeader.swift:65`
 - **Auditor**: ux-auditor, a11y-auditor
 - **Issue**: `AppState.error` → `.yellow` (same as transcribing). Every other error surface uses `.red`. Confuses state, and red/green colorblind users can't distinguish error from other states.
@@ -193,7 +193,7 @@
 - **Recommendation**: Store task in property; add `do/catch` with `dlog`; coordinate with `warmupTask`.
 - **Effort**: Moderate
 
-### [ ] [H21] `SystemPermissionStore` polling timer never stopped on popover close `[T3]`
+### [x] [H21] `SystemPermissionStore` polling timer never stopped on popover close `[T3]`
 - **File**: `Settings/SystemPermissionStore.swift:58-75`, `MenuBar/PopoverView.swift:26-28`
 - **Auditor**: macos-auditor
 - **Issue**: `startPolling()` called in `onAppear` runs at 1 Hz until `allGranted == true`. If user dismisses popover without granting, timer runs forever, waking the process at 1 Hz for days.
@@ -222,7 +222,7 @@
 - **Recommendation**: `private(set)` + method `setPendingContext(_:)`.
 - **Effort**: Quick Win
 
-### [ ] [M4] `DictationPipeline.handleProcessingError` unstored auto-clear Task `[T1]`
+### [x] [M4] `DictationPipeline.handleProcessingError` unstored auto-clear Task `[T1]`
 - **File**: `DictationPipeline.swift:341-346`
 - **Auditor**: code-quality-auditor, swift-auditor
 - **Recommendation**: Store as `private var errorResetTask: Task<Void, Never>?`; `.cancel()` in `startRecording`.
@@ -234,7 +234,7 @@
 - **Recommendation**: Remove duplicates; call `SystemPermissionStore.shared` or accept a param.
 - **Effort**: Moderate
 
-### [ ] [M6] `LLMModelDownloadController` doesn't clear prior error on new download `[T1]`
+### [x] [M6] `LLMModelDownloadController` doesn't clear prior error on new download `[T1]`
 - **File**: `DictationPipeline.swift:32` / `LLMModelDownloadController`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: `downloadError = nil` at top of `downloadModel()`.
@@ -371,7 +371,7 @@
 - **Recommendation**: `KeyCodes` enum.
 - **Effort**: Quick Win
 
-### [ ] [L2] `print()` instead of `dlog()` in error paths `[T1]`
+### [x] [L2] `print()` instead of `dlog()` in error paths `[T1]`
 - **File**: `GlobalHotkeyMonitor.swift:100`, `HuggingFaceModelSearch.swift:41`
 - **Recommendation**: Replace with `dlog`.
 - **Effort**: Quick Win
@@ -386,7 +386,7 @@
 - **Recommendation**: Protocol + generic `ModelDownloadRow<M>` view.
 - **Effort**: Moderate
 
-### [ ] [L5] Missing `Sendable` on `STTLanguage`, `RecordingMode`, `AppState` `[T2]`
+### [x] [L5] Missing `Sendable` on `STTLanguage`, `RecordingMode`, `AppState` `[T2]`
 - **File**: `Settings/AppSettings.swift:6,80`, `Settings/AppRuntimeState.swift:3`
 - **Recommendation**: Add `Sendable`.
 - **Effort**: Quick Win
@@ -396,7 +396,7 @@
 - **Recommendation**: Annotate `@MainActor`.
 - **Effort**: Quick Win
 
-### [ ] [L7] `AVAudioFormat(...)!` force-unwrap without comment `[T2]`
+### [x] [L7] `AVAudioFormat(...)!` force-unwrap without comment `[T2]`
 - **File**: `Audio/AudioRecorder.swift:54`
 - **Recommendation**: `guard let else fatalError("internal: ...")`.
 - **Effort**: Quick Win

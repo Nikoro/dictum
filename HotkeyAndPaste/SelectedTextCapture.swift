@@ -39,8 +39,8 @@ enum SelectedTextCapture {
         }
         keyDown.flags = CGEventFlags.maskCommand
         keyUp.flags = CGEventFlags.maskCommand
-        keyDown.post(tap: .cghidEventTap)
-        keyUp.post(tap: .cghidEventTap)
+        keyDown.post(tap: .cgAnnotatedSessionEventTap)
+        keyUp.post(tap: .cgAnnotatedSessionEventTap)
 
         // This synchronous wait is why callers must never run this on the event tap thread itself.
         // The hotkey monitor hops to a background queue first so the synthetic Cmd+C can be delivered.

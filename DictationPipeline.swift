@@ -20,6 +20,7 @@ final class DictationPipeline: ObservableObject {
     private var isCancelled = false
     private(set) var isWarmedUp = false
     private var warmupTask: Task<Void, Never>?
+    private var errorResetTask: Task<Void, Never>?
     private var targetBundleId: String?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     var pendingSelectedContext: String?
@@ -166,6 +167,8 @@ final class DictationPipeline: ObservableObject {
 
     func startRecording() {
         guard !isRecording else { return }
+        errorResetTask?.cancel()
+        errorResetTask = nil
 
         // Guard: STT model must be downloaded first
         if !whisperModelStore.downloadedModelIds.contains(settings.sttModelId) {
@@ -337,11 +340,14 @@ private extension DictationPipeline {
         dlog("[Dictum] ERROR: \(error)")
         FloatingIndicatorPanelController.shared.hide()
         runtimeState.appState = .error(error.localizedDescription)
-        Task { [weak self] in
+        errorResetTask?.cancel()
+        errorResetTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(3))
-            if case .error = self?.runtimeState.appState {
-                self?.runtimeState.appState = .idle
+            guard !Task.isCancelled, let self else { return }
+            if case .error = self.runtimeState.appState {
+                self.runtimeState.appState = .idle
             }
+            self.errorResetTask = nil
         }
     }
 }

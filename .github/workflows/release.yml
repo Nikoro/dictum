@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-26
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +20,18 @@ jobs:
 
       - name: Generate Xcode project
         run: xcodegen generate
+
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages/checkouts
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages/repositories
+            build/SourcePackages/checkouts
+            build/SourcePackages/repositories
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved', 'project.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
 
       - name: Import signing certificate
         env:

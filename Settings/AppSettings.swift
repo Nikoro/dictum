@@ -3,7 +3,7 @@ import AppKit
 
 // MARK: - STT Language
 
-enum STTLanguage: String, CaseIterable, Codable {
+enum STTLanguage: String, CaseIterable, Codable, Sendable {
     case auto
     case pl
     case en
@@ -77,7 +77,7 @@ struct AppPrompt: Identifiable, Codable, Equatable {
 
 }
 
-enum RecordingMode: String, CaseIterable {
+enum RecordingMode: String, CaseIterable, Sendable {
     case hold
     case toggle
 

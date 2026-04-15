@@ -39,7 +39,7 @@ final class HuggingFaceModelSearch: ObservableObject {
                 self.searchResults = models
             } catch {
                 if !Task.isCancelled {
-                    print("HF API error: \(error)")
+                    dlog("[HF] search error: \(error)")
                 }
             }
         }

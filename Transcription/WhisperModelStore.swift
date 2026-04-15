@@ -151,7 +151,10 @@ final class WhisperModelStore: ObservableObject {
             .appendingPathComponent("Library/Caches/huggingface/hub")
     }
 
-    func deleteModel(_ modelId: String) {
+    func deleteModel(_ modelId: String) async {
+        if activeModelId == modelId {
+            await TranscriptionEngine.shared.unloadModel()
+        }
         downloadedModelIds.remove(modelId)
         if activeModelId == modelId {
             activeModelId = Self.defaultModels.first?.id ?? ""

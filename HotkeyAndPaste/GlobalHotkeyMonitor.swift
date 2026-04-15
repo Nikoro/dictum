@@ -97,7 +97,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
             },
             userInfo: refcon
         ) else {
-            print("Failed to create event tap. Accessibility permission required.")
+            dlog("[Hotkey] failed to create event tap — accessibility permission required")
             return
         }
 

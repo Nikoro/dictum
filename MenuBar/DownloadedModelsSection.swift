@@ -54,7 +54,7 @@ struct DownloadedModelsSection: View {
                 pipeline.downloadedLLMModelStore.scanDownloadedModels()
             }
             .whisperModelDeletionAlert(model: $modelToDeleteSTT) { model in
-                pipeline.whisperModelStore.deleteModel(model.id)
+                Task { await pipeline.whisperModelStore.deleteModel(model.id) }
             }
             .llmModelDeletionAlert(
                 model: $modelToDeleteLLM,

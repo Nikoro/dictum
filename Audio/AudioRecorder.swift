@@ -1,3 +1,4 @@
+import Accelerate
 import AVFoundation
 import Combine
 
@@ -8,10 +9,13 @@ final class AudioRecorder: ObservableObject {
     private var engine: AVAudioEngine?
     private var audioBuffer: [Float] = []
     private let bufferLock = NSLock()
+    private let expectedRecordingSeconds = 60
+    private let targetSampleRate = 16000
 
     @MainActor
     func startRecording() throws {
         audioBuffer = []
+        audioBuffer.reserveCapacity(targetSampleRate * expectedRecordingSeconds)
         let engine = AVAudioEngine()
         self.engine = engine
 
@@ -45,13 +49,15 @@ final class AudioRecorder: ObservableObject {
     }
 
     private func makeAudioProcessingContext(hardwareFormat: AVAudioFormat) -> AudioProcessingContext {
-        let desiredSampleRate: Double = 16000
-        let desiredFormat = AVAudioFormat(
+        let desiredSampleRate = Double(targetSampleRate)
+        guard let desiredFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: desiredSampleRate,
             channels: 1,
             interleaved: false
-        )!
+        ) else {
+            fatalError("internal: failed to create 16kHz mono Float32 format")
+        }
 
         let converter: AVAudioConverter?
         if hardwareFormat.sampleRate != desiredSampleRate || hardwareFormat.channelCount != 1 {
@@ -80,8 +86,8 @@ final class AudioRecorder: ObservableObject {
             }
 
             let frameLength = Int(samplesBuffer.frameLength)
-            let samples = Array(UnsafeBufferPointer(start: channelData, count: frameLength))
-            self.appendSamples(samples, frameLength: frameLength)
+            let samples = UnsafeBufferPointer(start: channelData, count: frameLength)
+            self.appendSamples(samples)
         }
     }
 
@@ -116,14 +122,18 @@ final class AudioRecorder: ObservableObject {
         return convertedBuffer
     }
 
-    private func appendSamples(_ samples: [Float], frameLength: Int) {
-        let rms = sqrt(samples.map { $0 * $0 }.reduce(0, +) / Float(frameLength))
+    private func appendSamples(_ samples: UnsafeBufferPointer<Float>) {
+        guard let baseAddress = samples.baseAddress, samples.count > 0 else { return }
+        var sumOfSquares: Float = 0
+        vDSP_svesq(baseAddress, 1, &sumOfSquares, vDSP_Length(samples.count))
+        let rms = sqrt(sumOfSquares / Float(samples.count))
 
         bufferLock.lock()
         audioBuffer.append(contentsOf: samples)
         bufferLock.unlock()
 
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.objectWillChange.send()
             self.audioLevel = rms
         }

@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppState: Equatable {
+enum AppState: Equatable, Sendable {
     case idle
     case warmingUp
     case recording

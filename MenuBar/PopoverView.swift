@@ -28,6 +28,9 @@ struct PopoverView: View {
                 permissionStore.startPolling()
             }
         }
+        .onDisappear {
+            permissionStore.stopPolling()
+        }
         .onChange(of: isSetupComplete) { _, complete in
             if complete {
                 settings.hasCompletedSetup = true

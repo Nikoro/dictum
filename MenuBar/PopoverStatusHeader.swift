@@ -62,7 +62,7 @@ struct PopoverStatusHeader: View {
         case .transcribing: return .yellow
         case .processingLLM: return .orange
         case .done: return .green
-        case .error: return .yellow
+        case .error: return .red
         default: return .secondary
         }
     }
