@@ -101,7 +101,10 @@ struct InstalledAppPickerSheet: View {
             var seen = Set<String>()
 
             for dir in appURLs {
-                guard let contents = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { continue }
+                guard let contents = try? FileManager.default.contentsOfDirectory(
+                    at: dir,
+                    includingPropertiesForKeys: nil
+                ) else { continue }
                 for url in contents where url.pathExtension == "app" {
                     guard let bundle = Bundle(url: url),
                           let bundleId = bundle.bundleIdentifier,

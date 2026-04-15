@@ -18,6 +18,7 @@
 		200F63A0D4D20E06828D80B7 /* AppRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D73DA7904B656F4B007FBBF /* AppRuntimeState.swift */; };
 		232CD2354F57771D17E6ADC7 /* SetupSpeechRecognitionModelStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = E780A227A7717A02ED290EE1 /* SetupSpeechRecognitionModelStep.swift */; };
 		24750D7B8C1F4B3FF88CCD87 /* DownloadedLLMModelsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46A60E678F33DF75DDBCA07 /* DownloadedLLMModelsList.swift */; };
+		25974FAC73CF068B2AE110A4 /* DictumLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E46877DDBBA828362F4B8C /* DictumLogger.swift */; };
 		2B77C3E1768A9CB079739A22 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07E3665429F23BECACE7B13 /* SetupView.swift */; };
 		4112D7017A2367BF3003A18D /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E5CBF2B2983E386301696F /* HotkeyRecorder.swift */; };
 		471AEC683BB3E6B99F5B4E20 /* SetupLLMOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16520F936EED37E7A877EB44 /* SetupLLMOptions.swift */; };
@@ -74,6 +75,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		01E46877DDBBA828362F4B8C /* DictumLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictumLogger.swift; sourceTree = "<group>"; };
 		02FFF3CDD5729042E95FECFC /* SystemPermissionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPermissionStore.swift; sourceTree = "<group>"; };
 		03A173B8F832A4075F91B646 /* HuggingFaceSearchResultsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceSearchResultsList.swift; sourceTree = "<group>"; };
 		06002033D3E05305CAEDAEA8 /* TextInputAnchorResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputAnchorResolver.swift; sourceTree = "<group>"; };
@@ -264,6 +266,7 @@
 			children = (
 				B01C9E7F7580F84F54A0C5ED /* DictationPipeline.swift */,
 				2829C2AB934DC89034609029 /* DictumApp.swift */,
+				01E46877DDBBA828362F4B8C /* DictumLogger.swift */,
 				4147A054DD14721EF52D30D2 /* Audio */,
 				AA941474FDB07153B69214B5 /* FloatingIndicator */,
 				10B08CB8D57A4DFB993E5B49 /* HotkeyAndPaste */,
@@ -397,6 +400,7 @@
 				0C6D9CC193D9C3086EC2C9F2 /* ClipboardPasteController.swift in Sources */,
 				52921AD405506412222A545B /* DictationPipeline.swift in Sources */,
 				61416821E500C2BA46767158 /* DictumApp.swift in Sources */,
+				25974FAC73CF068B2AE110A4 /* DictumLogger.swift in Sources */,
 				E2A4AAC21D295AFCFD5871D1 /* DownloadedLLMModelPicker.swift in Sources */,
 				1938DD390FAF5DE33FEF0A8C /* DownloadedLLMModelStore.swift in Sources */,
 				24750D7B8C1F4B3FF88CCD87 /* DownloadedLLMModelsList.swift in Sources */,

@@ -72,7 +72,7 @@ enum SelectedTextCapture {
             return nil
         }
 
-        return focusedElement as? AXUIElement
+        return axUIElement(from: focusedElement)
     }
 
     private static func selectedTextRange(for element: AXUIElement) -> CFRange? {
@@ -83,7 +83,7 @@ enum SelectedTextCapture {
         }
 
         var selectedRange = CFRange()
-        guard let selectedRangeAXValue = selectedRangeValue as? AXValue,
+                guard let selectedRangeAXValue = axValue(from: selectedRangeValue),
               AXValueGetValue(selectedRangeAXValue, .cfRange, &selectedRange) else {
             return nil
         }
@@ -98,5 +98,19 @@ enum SelectedTextCapture {
         }
 
         return selectedText as? String
+    }
+
+    private static func axUIElement(from object: AnyObject?) -> AXUIElement? {
+        guard let object, CFGetTypeID(object) == AXUIElementGetTypeID() else {
+            return nil
+        }
+        return unsafeBitCast(object, to: AXUIElement.self)
+    }
+
+    private static func axValue(from object: AnyObject?) -> AXValue? {
+        guard let object, CFGetTypeID(object) == AXValueGetTypeID() else {
+            return nil
+        }
+        return unsafeBitCast(object, to: AXValue.self)
     }
 }

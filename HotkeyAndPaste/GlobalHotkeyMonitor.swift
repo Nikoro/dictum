@@ -119,79 +119,126 @@ final class GlobalHotkeyMonitor: ObservableObject {
         let isModifierOnly = cachedIsModifierOnly
         let expectedKeyCode = Int64(cachedKeyCode)
 
-        // Escape key cancels current operation
-        if type == .keyDown && keyCode == 53 {
-            DispatchQueue.main.async { [weak self] in
-                self?.cancelHandler?()
-            }
+        if handleEscapeKey(type: type, keyCode: keyCode, event: event) != nil {
             return Unmanaged.passRetained(event)
         }
 
         if isModifierOnly {
-            // Modifier-only hotkey: listen to flagsChanged for the specific modifier keyCode
-            if type == .flagsChanged {
-                dlog("[Hotkey] flagsChanged: keyCode=\(keyCode), expected=\(expectedKeyCode), flags=\(flags.rawValue)")
-            }
-            guard type == .flagsChanged && keyCode == expectedKeyCode else {
-                return Unmanaged.passRetained(event)
-            }
-
-            let modifierFlag = Self.modifierFlag(forKeyCode: Int(expectedKeyCode))
-            let isPressed = flags.contains(modifierFlag)
-            dlog("[Hotkey] modifier match! isPressed=\(isPressed)")
-
-            if isPressed {
-                // Capture selected text on a background thread —
-                // can't do it here because Thread.sleep blocks the event tap run loop,
-                // preventing the synthetic Cmd+C from being delivered.
-                DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                    let selectedText = SelectedTextCapture.readSelectedText()
-                    DispatchQueue.main.async {
-                        guard let self else { return }
-                        DictationPipeline.shared.pendingSelectedContext = selectedText
-                        self.modifierKeyDown = true
-                        self.keyDownHandler?()
-                    }
-                }
-                return nil
-            } else {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
-                    if self.modifierKeyDown {
-                        self.modifierKeyDown = false
-                        self.keyUpHandler?()
-                    }
-                }
-                return nil
-            }
+            return handleModifierOnlyEvent(
+                type: type,
+                keyCode: keyCode,
+                expectedKeyCode: expectedKeyCode,
+                flags: flags,
+                event: event
+            )
         } else {
-            // Key + modifier combo
-            let expectedModifiers = CGEventFlags(rawValue: UInt64(cachedModifiers))
-            let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
-            let currentModifiers = flags.intersection(modifierMask)
-            let expectedMods = expectedModifiers.intersection(modifierMask)
+            return handleKeyComboEvent(
+                type: type,
+                keyCode: keyCode,
+                expectedKeyCode: expectedKeyCode,
+                flags: flags,
+                event: event
+            )
+        }
+    }
 
-            guard keyCode == expectedKeyCode && currentModifiers == expectedMods else {
-                return Unmanaged.passRetained(event)
-            }
+    private nonisolated func handleEscapeKey(
+        type: CGEventType,
+        keyCode: Int64,
+        event: CGEvent
+    ) -> Unmanaged<CGEvent>? {
+        guard type == .keyDown, keyCode == 53 else {
+            return nil
+        }
 
-            if type == .keyDown {
-                DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-                    let selectedText = SelectedTextCapture.readSelectedText()
-                    DispatchQueue.main.async {
-                        DictationPipeline.shared.pendingSelectedContext = selectedText
-                        self?.keyDownHandler?()
-                    }
-                }
-                return nil
-            } else if type == .keyUp {
-                DispatchQueue.main.async { [weak self] in
-                    self?.keyUpHandler?()
-                }
-                return nil
-            }
+        DispatchQueue.main.async { [weak self] in
+            self?.cancelHandler?()
+        }
+        return Unmanaged.passRetained(event)
+    }
 
+    private nonisolated func handleModifierOnlyEvent(
+        type: CGEventType,
+        keyCode: Int64,
+        expectedKeyCode: Int64,
+        flags: CGEventFlags,
+        event: CGEvent
+    ) -> Unmanaged<CGEvent>? {
+        if type == .flagsChanged {
+            dlog("[Hotkey] flagsChanged: keyCode=\(keyCode), expected=\(expectedKeyCode), flags=\(flags.rawValue)")
+        }
+
+        guard type == .flagsChanged, keyCode == expectedKeyCode else {
             return Unmanaged.passRetained(event)
+        }
+
+        let modifierFlag = Self.modifierFlag(forKeyCode: Int(expectedKeyCode))
+        let isPressed = flags.contains(modifierFlag)
+        dlog("[Hotkey] modifier match! isPressed=\(isPressed)")
+
+        if isPressed {
+            captureSelectedText { [weak self] selectedText in
+                Task { @MainActor in
+                    guard let self else { return }
+                    DictationPipeline.shared.pendingSelectedContext = selectedText
+                    self.modifierKeyDown = true
+                    self.keyDownHandler?()
+                }
+            }
+            return nil
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.modifierKeyDown else { return }
+            self.modifierKeyDown = false
+            self.keyUpHandler?()
+        }
+        return nil
+    }
+
+    private nonisolated func handleKeyComboEvent(
+        type: CGEventType,
+        keyCode: Int64,
+        expectedKeyCode: Int64,
+        flags: CGEventFlags,
+        event: CGEvent
+    ) -> Unmanaged<CGEvent>? {
+        let expectedModifiers = CGEventFlags(rawValue: UInt64(cachedModifiers))
+        let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
+        let currentModifiers = flags.intersection(modifierMask)
+        let expectedMods = expectedModifiers.intersection(modifierMask)
+
+        guard keyCode == expectedKeyCode, currentModifiers == expectedMods else {
+            return Unmanaged.passRetained(event)
+        }
+
+        switch type {
+        case .keyDown:
+            captureSelectedText { [weak self] selectedText in
+                Task { @MainActor in
+                    DictationPipeline.shared.pendingSelectedContext = selectedText
+                    self?.keyDownHandler?()
+                }
+            }
+            return nil
+        case .keyUp:
+            DispatchQueue.main.async { [weak self] in
+                self?.keyUpHandler?()
+            }
+            return nil
+        default:
+            return Unmanaged.passRetained(event)
+        }
+    }
+
+    private nonisolated func captureSelectedText(
+        completion: @escaping (String?) -> Void
+    ) {
+        DispatchQueue.global(qos: .userInteractive).async {
+            let selectedText = SelectedTextCapture.readSelectedText()
+            DispatchQueue.main.async {
+                completion(selectedText)
+            }
         }
     }
 

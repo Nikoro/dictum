@@ -3,42 +3,6 @@ import SwiftUI
 import AppKit
 import Combine
 
-private let _logger = DictumLogger()
-
-func dlog(_ msg: String) {
-    _logger.log(msg)
-}
-
-private final class DictumLogger: @unchecked Sendable {
-    private let lock = NSLock()
-    private var handle: FileHandle?
-    private let path: String
-
-    init() {
-        let logsDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Logs/Dictum")
-        try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
-        self.path = logsDir.appendingPathComponent("dictum.log").path
-        if !FileManager.default.fileExists(atPath: path) {
-            FileManager.default.createFile(atPath: path, contents: nil)
-        }
-        self.handle = FileHandle(forWritingAtPath: path)
-        self.handle?.seekToEndOfFile()
-    }
-
-    func log(_ msg: String) {
-        let line = "[\(Date())] \(msg)\n"
-        let data = Data(line.utf8)
-        lock.lock()
-        defer { lock.unlock() }
-        if handle == nil {
-            handle = FileHandle(forWritingAtPath: path)
-            handle?.seekToEndOfFile()
-        }
-        handle?.write(data)
-    }
-}
-
 @MainActor
 final class DictationPipeline: ObservableObject {
     static let shared = DictationPipeline()
@@ -70,17 +34,9 @@ final class DictationPipeline: ObservableObject {
         set { llmModelDownloadController.downloadError = newValue }
     }
 
-    var llmIsDownloading: Bool {
-        llmModelDownloadController.isDownloading
-    }
-
-    var llmDownloadingModelId: String? {
-        llmModelDownloadController.downloadingModelId
-    }
-
-    var llmDownloadProgress: Double {
-        llmModelDownloadController.downloadProgress
-    }
+    var llmIsDownloading: Bool { llmModelDownloadController.isDownloading }
+    var llmDownloadingModelId: String? { llmModelDownloadController.downloadingModelId }
+    var llmDownloadProgress: Double { llmModelDownloadController.downloadProgress }
 
     private init() {
         whisperSink = whisperModelStore.objectWillChange.sink { [weak self] _ in
@@ -234,122 +190,23 @@ final class DictationPipeline: ObservableObject {
             isRecording = true
             runtimeState.appState = .recording
             targetBundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-            dlog("[Dictum] recording started, target app: \(targetBundleId ?? "nil"), showing floating indicator")
+            dlog(
+                "[Dictum] recording started, target app: \(targetBundleId ?? "nil"), " +
+                "showing floating indicator"
+            )
             FloatingIndicatorPanelController.shared.captureTargetApp()
             FloatingIndicatorPanelController.shared.show(audioRecorder: audioRecorder)
         } catch {
             dlog("[Dictum] startRecording error: \(error)")
-            runtimeState.appState = .error("\(String(localized: "error.mic", defaultValue: "Cannot start microphone:")) \(error.localizedDescription)")
+            runtimeState.appState = .error(
+                "\(String(localized: "error.mic", defaultValue: "Cannot start microphone:")) " +
+                error.localizedDescription
+            )
         }
     }
 
     func stopRecordingAndProcess() async {
-        guard isRecording else { return }
-        isCancelled = false
-        let samples = audioRecorder.stopRecording()
-        isRecording = false
-        // Don't hide pill — it stays visible showing pipeline status
-        dlog("[Dictum] stopRecording, samples=\(samples.count)")
-
-        // Wait for warmup to finish if still running
-        if !isWarmedUp, let task = warmupTask {
-            dlog("[Dictum] waiting for warmup to finish...")
-            runtimeState.appState = .warmingUp
-            FloatingIndicatorPanelController.shared.captureTargetApp()
-            FloatingIndicatorPanelController.shared.show(audioRecorder: audioRecorder)
-            await task.value
-        }
-
-        guard !samples.isEmpty else {
-            dlog("[Dictum] no samples, going idle")
-            runtimeState.appState = .idle
-            FloatingIndicatorPanelController.shared.hide()
-            return
-        }
-
-        // Transcribe
-        runtimeState.appState = .transcribing
-        do {
-            // Lazy load STT model if needed
-            let sttLoaded = await TranscriptionEngine.shared.isModelLoaded
-            if !sttLoaded {
-                dlog("[Dictum] loading STT model: \(settings.sttModelId)")
-                try await TranscriptionEngine.shared.loadModel(settings.sttModelId)
-                dlog("[Dictum] STT model loaded")
-            }
-
-            guard !isCancelled else { return }
-            let sttLanguage = settings.resolveSTTLanguage(for: targetBundleId)
-            dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
-            let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
-            guard !isCancelled else { return }
-            dlog("[Dictum] transcription result: '\(rawText)'")
-            runtimeState.lastTranscription = rawText
-
-            guard !rawText.isEmpty else {
-                runtimeState.appState = .idle
-                FloatingIndicatorPanelController.shared.hide()
-                return
-            }
-
-            // LLM cleanup (if enabled and a prompt resolves)
-            let finalText: String
-            let resolvedPrompt = settings.llmCleanupEnabled ? settings.resolvePrompt(for: targetBundleId) : nil
-            if settings.llmCleanupEnabled, let prompt = resolvedPrompt {
-                runtimeState.appState = .processingLLM
-                do {
-                    // Lazy load LLM if needed
-                    let llmLoaded = await LLMProcessor.shared.isModelLoaded
-                    if !llmLoaded {
-                        try await LLMProcessor.shared.loadModel(settings.llmModelId)
-                    }
-
-                    dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(prompt)'")
-                    dlog("[Dictum] LLM input: '\(rawText)', context: \(selectedContext != nil ? "yes" : "none")")
-                    finalText = try await LLMProcessor.shared.cleanText(
-                        rawText: rawText,
-                        prompt: prompt,
-                        context: selectedContext
-                    )
-                    dlog("[Dictum] LLM raw output: '\(finalText)'")
-                } catch {
-                    dlog("[Dictum] LLM cleanup failed, using raw text: \(error)")
-                    finalText = rawText
-                }
-            } else {
-                finalText = rawText
-            }
-
-            guard !isCancelled else { return }
-            runtimeState.lastCleanedText = finalText
-
-            if selectedContext != nil {
-                // Context mode: put result in clipboard, user pastes manually
-                dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(finalText, forType: .string)
-            } else {
-                // Normal mode: auto-paste
-                dlog("[Dictum] final text: '\(finalText)', pasting...")
-                ClipboardPasteController.shared.pasteText(finalText)
-            }
-
-            FloatingIndicatorPanelController.shared.hide()
-            selectedContext = nil
-            runtimeState.appState = .idle
-            dlog("[Dictum] done!")
-        } catch {
-            dlog("[Dictum] ERROR: \(error)")
-            FloatingIndicatorPanelController.shared.hide()
-            runtimeState.appState = .error(error.localizedDescription)
-            // Clear error after 3s
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(3))
-                if case .error = self?.runtimeState.appState {
-                    self?.runtimeState.appState = .idle
-                }
-            }
-        }
+        try? await processStoppedRecording()
     }
 
     // MARK: - LLM Download
@@ -360,5 +217,132 @@ final class DictationPipeline: ObservableObject {
 
     func cancelLLMDownload() {
         llmModelDownloadController.cancelDownload()
+    }
+
+    private func processStoppedRecording() async throws {
+        guard isRecording else { return }
+        isCancelled = false
+        let samples = audioRecorder.stopRecording()
+        isRecording = false
+        dlog("[Dictum] stopRecording, samples=\(samples.count)")
+        await waitForWarmupIfNeeded()
+        guard !samples.isEmpty else {
+            transitionToIdleAfterEmptyRecording()
+            return
+        }
+        do {
+            let rawText = try await transcribe(samples: samples)
+            guard !rawText.isEmpty else {
+                transitionToIdleAfterEmptyRecording()
+                return
+            }
+            let finalText = await finalizeText(from: rawText)
+            guard !isCancelled else { return }
+            runtimeState.lastCleanedText = finalText
+            deliverFinalText(finalText)
+            finishProcessing()
+        } catch {
+            handleProcessingError(error)
+            throw error
+        }
+    }
+}
+
+@MainActor
+private extension DictationPipeline {
+    func waitForWarmupIfNeeded() async {
+        guard !isWarmedUp, let task = warmupTask else { return }
+        dlog("[Dictum] waiting for warmup to finish...")
+        runtimeState.appState = .warmingUp
+        FloatingIndicatorPanelController.shared.captureTargetApp()
+        FloatingIndicatorPanelController.shared.show(audioRecorder: audioRecorder)
+        await task.value
+    }
+
+    func transcribe(samples: [Float]) async throws -> String {
+        runtimeState.appState = .transcribing
+        try await ensureSTTModelLoaded()
+        guard !isCancelled else { return "" }
+        let sttLanguage = settings.resolveSTTLanguage(for: targetBundleId)
+        dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
+        let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
+        guard !isCancelled else { return "" }
+        dlog("[Dictum] transcription result: '\(rawText)'")
+        runtimeState.lastTranscription = rawText
+        return rawText
+    }
+
+    func ensureSTTModelLoaded() async throws {
+        let sttLoaded = await TranscriptionEngine.shared.isModelLoaded
+        guard !sttLoaded else { return }
+        dlog("[Dictum] loading STT model: \(settings.sttModelId)")
+        try await TranscriptionEngine.shared.loadModel(settings.sttModelId)
+        dlog("[Dictum] STT model loaded")
+    }
+
+    func finalizeText(from rawText: String) async -> String {
+        guard settings.llmCleanupEnabled,
+              let prompt = settings.resolvePrompt(for: targetBundleId) else {
+            return rawText
+        }
+        runtimeState.appState = .processingLLM
+        do {
+            try await ensureLLMModelLoaded()
+            dlog("[Dictum] LLM prompt for \(targetBundleId ?? "general"): '\(prompt)'")
+            dlog("[Dictum] LLM input: '\(rawText)', context: \(selectedContext != nil ? "yes" : "none")")
+            let cleanedText = try await LLMProcessor.shared.cleanText(
+                rawText: rawText,
+                prompt: prompt,
+                context: selectedContext
+            )
+            dlog("[Dictum] LLM raw output: '\(cleanedText)'")
+            return cleanedText
+        } catch {
+            dlog("[Dictum] LLM cleanup failed, using raw text: \(error)")
+            return rawText
+        }
+    }
+
+    func ensureLLMModelLoaded() async throws {
+        let llmLoaded = await LLMProcessor.shared.isModelLoaded
+        guard !llmLoaded else { return }
+        try await LLMProcessor.shared.loadModel(settings.llmModelId)
+    }
+
+    func deliverFinalText(_ finalText: String) {
+        if selectedContext != nil {
+            dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(finalText, forType: .string)
+            return
+        }
+
+        dlog("[Dictum] final text: '\(finalText)', pasting...")
+        ClipboardPasteController.shared.pasteText(finalText)
+    }
+
+    func finishProcessing() {
+        FloatingIndicatorPanelController.shared.hide()
+        selectedContext = nil
+        runtimeState.appState = .idle
+        dlog("[Dictum] done!")
+    }
+
+    func transitionToIdleAfterEmptyRecording() {
+        dlog("[Dictum] no samples, going idle")
+        runtimeState.appState = .idle
+        FloatingIndicatorPanelController.shared.hide()
+    }
+
+    func handleProcessingError(_ error: Error) {
+        dlog("[Dictum] ERROR: \(error)")
+        FloatingIndicatorPanelController.shared.hide()
+        runtimeState.appState = .error(error.localizedDescription)
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            if case .error = self?.runtimeState.appState {
+                self?.runtimeState.appState = .idle
+            }
+        }
     }
 }
