@@ -47,6 +47,11 @@ struct PopoverView: View {
                 HeaderSection()
                 Divider()
                 RecordingSettingsSection()
+                if settings.llmCleanupEnabled {
+                    UnifiedPromptSection()
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                }
                 Divider()
                 STTModelSection()
                 Divider()

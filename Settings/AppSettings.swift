@@ -144,7 +144,7 @@ final class AppSettings: ObservableObject {
     @AppStorage("smartContextEnabled") var smartContextEnabled: Bool = true
     @AppStorage("contextScreenshot") var contextScreenshot: Bool = true
     @AppStorage("contextSelectedText") var contextSelectedText: Bool = true
-    @AppStorage("contextClipboard") var contextClipboard: Bool = false
+    @AppStorage("contextClipboard") var contextClipboard: Bool = true
 
     var sttLanguage: STTLanguage {
         get { STTLanguage(rawValue: sttLanguageRaw) ?? .auto }

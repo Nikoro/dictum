@@ -181,7 +181,6 @@ struct LLMModelSection: View {
             }
 
             // Prompts
-            UnifiedPromptSection()
             InstructionsSection(hasDownloadedModels: !downloadedModels.isEmpty)
         }
         .padding()
@@ -199,7 +198,7 @@ struct LLMModelSection: View {
 
 // MARK: - Unified System Prompt
 
-private struct UnifiedPromptSection: View {
+struct UnifiedPromptSection: View {
     @EnvironmentObject var settings: AppSettings
     @State private var localPrompt: String = ""
     @State private var isExpanded: Bool = false
@@ -207,27 +206,20 @@ private struct UnifiedPromptSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Header — always visible, acts as toggle
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "brain.head.profile")
-                        .frame(width: 18, height: 18)
+            HStack(spacing: 6) {
+                Image(systemName: "brain.head.profile")
+                    .frame(width: 18, height: 18)
 
-                    Text(String(localized: "section.prompt.unified", defaultValue: "System prompt"))
-                        .font(.caption)
-                        .fontWeight(.medium)
+                Text(String(localized: "section.prompt.unified", defaultValue: "System prompt"))
+                    .font(.caption)
+                    .fontWeight(.medium)
 
-                    Spacer()
+                Spacer()
 
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
 
             // Expanded content
             if isExpanded {
@@ -258,6 +250,12 @@ private struct UnifiedPromptSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isExpanded.toggle()
+            }
+        }
         .onAppear {
             localPrompt = settings.unifiedSystemPrompt.isEmpty
                 ? AppSettings.defaultUnifiedPrompt
