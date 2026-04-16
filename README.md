@@ -31,7 +31,7 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 ## Stack
 
 - **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.18.0 — large-v3-turbo, CoreML on Neural Engine
-- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 2.30.6 — Gemma 4 E2B (default), any mlx-community model
+- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 3.31.3 — Gemma 4 E4B (default), any mlx-community model
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API
 - **Updates:** [Sparkle](https://github.com/sparkle-project/Sparkle) 2.7+ — automatic updates from GitHub Releases
