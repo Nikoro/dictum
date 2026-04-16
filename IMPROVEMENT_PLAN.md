@@ -228,7 +228,7 @@
 - **Recommendation**: Store as `private var errorResetTask: Task<Void, Never>?`; `.cancel()` in `startRecording`.
 - **Effort**: Quick Win
 
-### [ ] [M5] `GlobalHotkeyMonitor` duplicates `accessibilityGranted`/`requestAccessibility` from `SystemPermissionStore` `[T1]`
+### [x] [M5] `GlobalHotkeyMonitor` duplicates `accessibilityGranted`/`requestAccessibility` from `SystemPermissionStore` `[T1]`
 - **File**: `HotkeyAndPaste/GlobalHotkeyMonitor.swift:29`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: Remove duplicates; call `SystemPermissionStore.shared` or accept a param.
@@ -266,7 +266,7 @@
 - **Recommendation**: Inject `SystemPermissionStore.shared` and `HuggingFaceModelSearch.shared` via `.environmentObject` from `MenuBarController.setupPopover`.
 - **Effort**: Quick Win
 
-### [ ] [M12] `ClipboardPasteController` uses nested `asyncAfter` with uncancellable timers `[T3]`
+### [x] [M12] `ClipboardPasteController` uses nested `asyncAfter` with uncancellable timers `[T3]`
 - **File**: `HotkeyAndPaste/ClipboardPasteController.swift:32-45`
 - **Auditor**: macos-auditor, swift-auditor
 - **Recommendation**: Rewrite as cancellable `Task` chain; back-to-back dictations currently overwrite each other's clipboard restoration.
@@ -278,7 +278,7 @@
 - **Recommendation**: Guard on `DictationPipeline.shared.isRecording` before dispatching cancel.
 - **Effort**: Quick Win
 
-### [ ] [M14] `SelectedTextReader` double AX IPC for role lookup per ancestor element `[T3]`
+### [x] [M14] `SelectedTextReader` double AX IPC for role lookup per ancestor element `[T3]`
 - **File**: `FloatingIndicator/TextInputAnchorResolver.swift:69-78,135`
 - **Auditor**: performance-auditor
 - **Recommendation**: Pass already-fetched role string into `caretRect(for:role:)`.
@@ -290,7 +290,7 @@
 - **Recommendation**: Extract `AXBridge` namespace with `axUIElement(from:)` / `axValue(from:)` helpers.
 - **Effort**: Quick Win
 
-### [ ] [M16] `AppSettings.saveAppPrompts` JSON-encodes on every keystroke `[T2]`
+### [x] [M16] `AppSettings.saveAppPrompts` JSON-encodes on every keystroke `[T2]`
 - **File**: `Settings/AppSettings.swift:195,239`
 - **Auditor**: performance-auditor, swift-auditor
 - **Recommendation**: Cache encoder/decoder as `private let`; debounce saves (500ms). Also replace `try?` with `do/catch` + `dlog`.
@@ -356,7 +356,7 @@
 - **Recommendation**: Declare `com.apple.security.device.microphone` explicitly. Research AX entitlement for CGEvent tap.
 - **Effort**: Moderate
 
-### [ ] [M28] SetupView "Skip" button is a no-op — no visual confirmation `[T3]`
+### [x] [M28] SetupView "Skip" button is a no-op — no visual confirmation `[T3]`
 - **File**: `MenuBar/SetupLLMProcessingStep.swift:42-44`
 - **Auditor**: ux-auditor
 - **Recommendation**: `@State var isSkipped`; mark step as done/skipped; update `isUnlocked` gate in `SetupView.swift:24`.
@@ -416,7 +416,7 @@
 - **Recommendation**: Existing `onAppear` sync is adequate; polish only.
 - **Effort**: Quick Win
 
-### [ ] [L11] `NSPopover.contentSize` hardcoded to 640pt height `[T3]`
+### [x] [L11] `NSPopover.contentSize` hardcoded to 640pt height `[T3]`
 - **File**: `MenuBar/MenuBarController.swift:38`
 - **Recommendation**: Reduce to 560pt or use `preferredContentSize` from `sizeThatFits`.
 - **Effort**: Quick Win

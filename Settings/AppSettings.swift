@@ -111,6 +111,11 @@ enum UserDefaultsKey: String {
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    private var savePromptsTask: Task<Void, Never>?
+    private var saveLanguagesTask: Task<Void, Never>?
+
     static let defaultPrompt = """
     Popraw tekst dyktowany po polsku. Zasady:
     1. Usuń wyrazy-wypełniacze: yyy, eee, hmm, no, więc, tak jakby, w sumie, powiedzmy, że tak powiem
@@ -195,14 +200,19 @@ final class AppSettings: ObservableObject {
     }
 
     private func saveAppPrompts() {
-        if let data = try? JSONEncoder().encode(appPrompts) {
-            UserDefaults.standard.set(data, forKey: UserDefaultsKey.appPrompts.rawValue)
+        savePromptsTask?.cancel()
+        savePromptsTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            if let data = try? encoder.encode(appPrompts) {
+                UserDefaults.standard.set(data, forKey: UserDefaultsKey.appPrompts.rawValue)
+            }
         }
     }
 
     private func loadAppPrompts() {
         if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appPrompts.rawValue),
-           let prompts = try? JSONDecoder().decode([AppPrompt].self, from: data) {
+           let prompts = try? decoder.decode([AppPrompt].self, from: data) {
             appPrompts = prompts
         }
     }
@@ -239,14 +249,19 @@ final class AppSettings: ObservableObject {
     }
 
     private func saveAppSTTLanguages() {
-        if let data = try? JSONEncoder().encode(appSTTLanguages) {
-            UserDefaults.standard.set(data, forKey: UserDefaultsKey.appSTTLanguages.rawValue)
+        saveLanguagesTask?.cancel()
+        saveLanguagesTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            if let data = try? encoder.encode(appSTTLanguages) {
+                UserDefaults.standard.set(data, forKey: UserDefaultsKey.appSTTLanguages.rawValue)
+            }
         }
     }
 
     private func loadAppSTTLanguages() {
         if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appSTTLanguages.rawValue),
-           let langs = try? JSONDecoder().decode([AppSTTLanguage].self, from: data) {
+           let langs = try? decoder.decode([AppSTTLanguage].self, from: data) {
             appSTTLanguages = langs
         }
     }

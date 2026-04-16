@@ -37,14 +37,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
 
     private init() {}
 
-    var accessibilityGranted: Bool {
-        AXIsProcessTrusted()
-    }
-
-    func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
-        AXIsProcessTrustedWithOptions(options)
-    }
+    private var permissionStore: SystemPermissionStore { SystemPermissionStore.shared }
 
     func start(onKeyDown: @escaping () -> Void, onKeyUp: @escaping () -> Void, onCancel: @escaping () -> Void) {
         // Tear down any existing event tap before creating a new one
@@ -55,7 +48,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
         self.cancelHandler = onCancel
 
         dlog(
-            "[Hotkey] start() called, accessibility=\(accessibilityGranted), " +
+            "[Hotkey] start() called, accessibility=\(permissionStore.accessibilityGranted), " +
             "keyCode=\(settings.hotkeyKeyCode), " +
             "isModifierOnly=\(settings.hotkeyIsModifierOnly)"
         )
@@ -70,9 +63,9 @@ final class GlobalHotkeyMonitor: ObservableObject {
             config.modifiers = mods
         }
 
-        guard accessibilityGranted else {
+        guard permissionStore.accessibilityGranted else {
             dlog("[Hotkey] accessibility NOT granted, requesting...")
-            requestAccessibility()
+            permissionStore.requestAccessibility()
             return
         }
 

@@ -1,17 +1,22 @@
 import AppKit
 import CoreGraphics
 
+@MainActor
 final class ClipboardPasteController {
     static let shared = ClipboardPasteController()
 
     /// Delay before simulating Cmd+V to ensure clipboard is ready
-    private let clipboardSettleDelay: TimeInterval = 0.15
+    private let clipboardSettleDelay: Duration = .milliseconds(150)
     /// Delay before restoring original clipboard after paste is processed by target app
-    private let clipboardRestoreDelay: TimeInterval = 0.5
+    private let clipboardRestoreDelay: Duration = .milliseconds(500)
+
+    private var pasteTask: Task<Void, Never>?
 
     private init() {}
 
     func pasteText(_ text: String) {
+        pasteTask?.cancel()
+
         let pasteboard = NSPasteboard.general
 
         // 1. Save current clipboard
@@ -28,18 +33,21 @@ final class ClipboardPasteController {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        // 3. Simulate Cmd+V after short delay (ensure clipboard is ready)
-        DispatchQueue.main.asyncAfter(deadline: .now() + clipboardSettleDelay) { [weak self] in
+        // 3. Simulate Cmd+V after short delay, then restore
+        pasteTask = Task { [weak self] in
             guard let self else { return }
-            self.simulatePaste()
+            try? await Task.sleep(for: clipboardSettleDelay)
+            guard !Task.isCancelled else { return }
 
-            // 4. Restore clipboard after paste completes
-            DispatchQueue.main.asyncAfter(deadline: .now() + self.clipboardRestoreDelay) {
-                if !savedContents.isEmpty {
-                    pasteboard.clearContents()
-                    for (type, data) in savedContents {
-                        pasteboard.setData(data, forType: type)
-                    }
+            simulatePaste()
+
+            try? await Task.sleep(for: clipboardRestoreDelay)
+            guard !Task.isCancelled else { return }
+
+            if !savedContents.isEmpty {
+                pasteboard.clearContents()
+                for (type, data) in savedContents {
+                    pasteboard.setData(data, forType: type)
                 }
             }
         }

@@ -6,8 +6,10 @@ struct SetupLLMProcessingStep: View {
     @EnvironmentObject var pipeline: DictationPipeline
     @Binding var downloadedLLMId: String?
     let isUnlocked: Bool
+    @State private var isSkipped = false
 
     private var isDone: Bool {
+        if isSkipped { return true }
         guard let downloadedLLMId else { return false }
         return pipeline.downloadedLLMModelStore.downloadedModels.contains { $0.id == downloadedLLMId }
     }
@@ -47,6 +49,7 @@ struct SetupLLMProcessingStep: View {
 
                     Button(String(localized: "setup.step3.skip", defaultValue: "Skip \u{2014} use transcription only")) {
                         settings.llmCleanupEnabled = false
+                        isSkipped = true
                     }
                     .buttonStyle(.plain)
                     .font(.caption)

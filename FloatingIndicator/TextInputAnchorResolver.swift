@@ -67,7 +67,7 @@ enum TextInputAnchorResolver {
     private static func resolve(from startingElement: AXUIElement) -> Anchor? {
         for element in ancestorChain(startingAt: startingElement, limit: 8) {
             let elementRole = role(of: element)
-            if let caretRect = caretRect(for: element) {
+            if let caretRect = caretRect(for: element, role: elementRole) {
                 return Anchor(rect: caretRect, role: elementRole, kind: .caret)
             }
             if isTextInputElement(element, role: elementRole), let elementRect = frame(of: element) {
@@ -131,9 +131,7 @@ enum TextInputAnchorResolver {
         return value as? Bool
     }
 
-    private static func caretRect(for element: AXUIElement) -> CGRect? {
-        let roleStr = role(of: element)
-
+    private static func caretRect(for element: AXUIElement, role roleStr: String) -> CGRect? {
         guard isTextInputElement(element, role: roleStr) else {
             return nil
         }
