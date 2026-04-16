@@ -121,6 +121,8 @@ final class AppSettings: ObservableObject {
     6. Zwróć TYLKO poprawiony tekst, bez komentarzy
     """
 
+    // @AppStorage is used for scalar/String prefs; Codable arrays (appPrompts, appSTTLanguages)
+    // use manual UserDefaults + @Published because @AppStorage doesn't support Codable.
     @AppStorage(UserDefaultsKey.llmPrompt.rawValue) var llmPrompt: String = ""
     @AppStorage(UserDefaultsKey.sttModelId.rawValue) var sttModelId: String = "openai_whisper-large-v3_turbo"
     @AppStorage(UserDefaultsKey.llmModelId.rawValue) var llmModelId: String = "mlx-community/gemma-4-e2b-it-4bit"

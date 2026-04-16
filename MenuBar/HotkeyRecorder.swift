@@ -17,7 +17,7 @@ final class HotkeyRecorderModel: ObservableObject {
             guard let self else { return event }
             let keyCode = Int(event.keyCode)
 
-            if keyCode == 53 {
+            if keyCode == Int(KeyCode.escape) {
                 self.stopRecording()
                 return nil
             }

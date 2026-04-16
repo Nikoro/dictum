@@ -33,6 +33,7 @@
 		6812C3ABA68A294B600B8615 /* DownloadedModelsStorageSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F56F836FC92EBF622EF210B /* DownloadedModelsStorageSummary.swift */; };
 		6F7CA5A1A478C5CE0F3106F5 /* DownloadedModelsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B2A2988C55FEB038221C1A /* DownloadedModelsSection.swift */; };
 		73B342021605945264103AFD /* GlobalHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99DA622EA107C648E99591AF /* GlobalHotkeyMonitor.swift */; };
+		7E992920B22A76EAA3742385 /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B566A97E91345AA148E33FC4 /* KeyCodes.swift */; };
 		85307B583B87772BA97F4F55 /* SetupStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD77D307B5E3CBB22A23CB4 /* SetupStepViews.swift */; };
 		8B77F2E873CBC4F744B5E58A /* LLMPromptSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E41FEB5C84276EF88CDD181 /* LLMPromptSections.swift */; };
 		909FAAC91EC06E629C857C86 /* TranscriptionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE5AC13A5691AB92D2AB3D9E /* TranscriptionEngine.swift */; };
@@ -49,6 +50,7 @@
 		ACDD1CF32D67CBB054723332 /* PermissionsNeededView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9ADDCC870D4AC19668533B /* PermissionsNeededView.swift */; };
 		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
 		B0578B6F865BFD55D14EDA50 /* ModelConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94311C67794F81EA38163D4 /* ModelConstants.swift */; };
+		B29EF9646B65DED90F17DCAB /* AXBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 656D64CE29A4BB9FEA417E82 /* AXBridge.swift */; };
 		B9BCA055FDE683A13603BDCD /* LLMModelDownloadErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577A5FA9781033417802E848 /* LLMModelDownloadErrorView.swift */; };
 		BD320A2312C3EC52DBC58AAF /* InstalledAppPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9094E6BCE4A56C8E69DFE7D3 /* InstalledAppPickerSheet.swift */; };
 		BE785DB68A0093B107B78457 /* SparkleUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345D7F910BFCE134A0685129 /* SparkleUpdateController.swift */; };
@@ -110,6 +112,7 @@
 		577A5FA9781033417802E848 /* LLMModelDownloadErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModelDownloadErrorView.swift; sourceTree = "<group>"; };
 		591F0AE9F267C1F81BDF94BF /* HuggingFaceModelSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceModelSearch.swift; sourceTree = "<group>"; };
 		61E9081CC024C85E472A3DD8 /* HuggingFaceModelInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceModelInfo.swift; sourceTree = "<group>"; };
+		656D64CE29A4BB9FEA417E82 /* AXBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXBridge.swift; sourceTree = "<group>"; };
 		70179FE96D00CDD9CFBD5240 /* LLMModelDownloadController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModelDownloadController.swift; sourceTree = "<group>"; };
 		7060A523AAD5A977384A9261 /* Dictum.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dictum.entitlements; sourceTree = "<group>"; };
 		7D64D52A6BC9423550A9C437 /* SetupPermissionStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupPermissionStep.swift; sourceTree = "<group>"; };
@@ -124,6 +127,7 @@
 		AD5BF4975870CB0F2CE12D0D /* SetupStepContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupStepContent.swift; sourceTree = "<group>"; };
 		B01C9E7F7580F84F54A0C5ED /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		B46A60E678F33DF75DDBCA07 /* DownloadedLLMModelsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedLLMModelsList.swift; sourceTree = "<group>"; };
+		B566A97E91345AA148E33FC4 /* KeyCodes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodes.swift; sourceTree = "<group>"; };
 		B91AD4C8A35DBD67C4C171BE /* FloatingIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIndicatorView.swift; sourceTree = "<group>"; };
 		B94311C67794F81EA38163D4 /* ModelConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelConstants.swift; sourceTree = "<group>"; };
 		C099A922CCE27613ADF0DB83 /* WhisperModelStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelStore.swift; sourceTree = "<group>"; };
@@ -165,8 +169,10 @@
 		10B08CB8D57A4DFB993E5B49 /* HotkeyAndPaste */ = {
 			isa = PBXGroup;
 			children = (
+				656D64CE29A4BB9FEA417E82 /* AXBridge.swift */,
 				E01BE4EC740130FDCCA7C321 /* ClipboardPasteController.swift */,
 				99DA622EA107C648E99591AF /* GlobalHotkeyMonitor.swift */,
+				B566A97E91345AA148E33FC4 /* KeyCodes.swift */,
 				1EFF0037BD4FCDC1860AA689 /* SelectedTextCapture.swift */,
 			);
 			path = HotkeyAndPaste;
@@ -399,6 +405,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B29EF9646B65DED90F17DCAB /* AXBridge.swift in Sources */,
 				0C84269D7FCC838785FCC3E0 /* AppMetadata.swift in Sources */,
 				200F63A0D4D20E06828D80B7 /* AppRuntimeState.swift in Sources */,
 				CDC7AF5AD6A513AAC5A21DFE /* AppSettings.swift in Sources */,
@@ -425,6 +432,7 @@
 				549D99FAF5A8E4131AD45188 /* HuggingFaceSearchField.swift in Sources */,
 				9C7456A91F071A05B361B620 /* HuggingFaceSearchResultsList.swift in Sources */,
 				BD320A2312C3EC52DBC58AAF /* InstalledAppPickerSheet.swift in Sources */,
+				7E992920B22A76EAA3742385 /* KeyCodes.swift in Sources */,
 				E85CC4733F41A097341632A1 /* LLMModelDownloadController.swift in Sources */,
 				B9BCA055FDE683A13603BDCD /* LLMModelDownloadErrorView.swift in Sources */,
 				C88577A1662A8EE7D5771C2A /* LLMModelDownloadStatusView.swift in Sources */,

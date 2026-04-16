@@ -147,7 +147,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
         keyCode: Int64,
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
-        guard type == .keyDown, keyCode == 53 else {
+        guard type == .keyDown, keyCode == Int64(KeyCode.escape) else {
             return nil
         }
 

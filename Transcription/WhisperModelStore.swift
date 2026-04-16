@@ -29,6 +29,7 @@ final class WhisperModelStore: ObservableObject {
     @Published var downloadingModelId: String?
     @Published var downloadProgress: Double = 0
     @Published var downloadError: String?
+    @Published var cachedTotalSizeOnDisk: Int64 = 0
 
     private var downloadTask: Task<Void, Never>?
     private static let downloadedKey = UserDefaultsKey.whisperDownloadedModelIds.rawValue
@@ -75,6 +76,7 @@ final class WhisperModelStore: ObservableObject {
 
     private init() {
         loadPersistedIds()
+        refreshTotalSize()
     }
 
     private func loadPersistedIds() {
@@ -123,6 +125,7 @@ final class WhisperModelStore: ObservableObject {
                 activeModelId = modelId
                 AppSettings.shared.sttModelId = modelId
                 persistIds()
+                refreshTotalSize()
                 DictationPipeline.shared.warmUpModels()
             } catch is CancellationError {
                 dlog("[STT] download cancelled")
@@ -173,9 +176,14 @@ final class WhisperModelStore: ObservableObject {
                 }
             }
         }
+        refreshTotalSize()
     }
 
-    func totalSizeOnDisk() -> Int64 {
+    func refreshTotalSize() {
+        cachedTotalSizeOnDisk = computeTotalSizeOnDisk()
+    }
+
+    private func computeTotalSizeOnDisk() -> Int64 {
         var total: Int64 = 0
         let cacheDir = whisperCacheDir
         for model in Self.defaultModels where downloadedModelIds.contains(model.id) {

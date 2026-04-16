@@ -35,46 +35,50 @@ final class FloatingIndicatorPanelController {
     }
 
     func show(audioRecorder: AudioRecorder) {
-        guard panel == nil else { return }
-
         let icon = targetAppIcon ?? NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
         dlog("[Pill] showing with icon size: \(icon.size), reps: \(icon.representations.count)")
         let view = FloatingIndicatorView(audioRecorder: audioRecorder, runtimeState: AppRuntimeState.shared, appIcon: icon)
+
+        if let panel, let hostingView {
+            hostingView.rootView = view
+            let origin = caretOrigin(panelSize: panel.frame.size)
+            panel.setFrameOrigin(origin)
+            panel.orderFrontRegardless()
+            return
+        }
+
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = [.intrinsicContentSize]
 
         let panelSize = NSSize(width: 210, height: 44)
 
-        let panel = NSPanel(
+        let newPanel = NSPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.level = .floating
-        panel.hasShadow = true
-        panel.ignoresMouseEvents = true
-        panel.isMovableByWindowBackground = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        newPanel.isOpaque = false
+        newPanel.backgroundColor = .clear
+        newPanel.level = .floating
+        newPanel.hasShadow = true
+        newPanel.ignoresMouseEvents = true
+        newPanel.isMovableByWindowBackground = false
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         hosting.frame = NSRect(origin: .zero, size: panelSize)
-        panel.contentView = hosting
+        newPanel.contentView = hosting
 
         let origin = caretOrigin(panelSize: panelSize)
-        panel.setFrameOrigin(origin)
+        newPanel.setFrameOrigin(origin)
 
-        panel.orderFrontRegardless()
-        self.panel = panel
+        newPanel.orderFrontRegardless()
+        self.panel = newPanel
         self.hostingView = hosting
     }
 
     func hide() {
-        guard let panel else { return }
-        panel.orderOut(nil)
-        self.panel = nil
-        self.hostingView = nil
+        panel?.orderOut(nil)
         self.targetAnchor = nil
     }
 

@@ -103,14 +103,14 @@
 - **Recommendation**: `reserveCapacity(16000 * estimatedDurationSeconds)` in `startRecording`; append directly from `UnsafeBufferPointer` without intermediate Array; compute RMS with `Accelerate.vDSP_svesq` (zero-allocation sum-of-squares).
 - **Effort**: Quick Win
 
-### [ ] [H5] App icons fetched synchronously from disk on every SwiftUI re-render `[T3]`
+### [x] [H5] App icons fetched synchronously from disk on every SwiftUI re-render `[T3]`
 - **File**: `MenuBar/AppMetadata.swift:5-8` called from `LLMPromptSections.swift:155`, `STTLanguageSection.swift:89`
 - **Auditor**: performance-auditor
 - **Issue**: `applicationIcon(forBundleId:)` calls `NSWorkspace.urlForApplication` + `NSWorkspace.icon(forFile:)` synchronously from `body`. SwiftUI re-evaluates rows on every `AppSettings.objectWillChange`, which fires on every keystroke in any prompt text editor due to `saveAppPrompts` → dozens of disk stats per second on main thread.
 - **Recommendation**: Cache in `AppSettings` as `[String: NSImage]`, or load into `@State` inside the row via `task(id: bundleId)`.
 - **Effort**: Moderate
 
-### [ ] [H6] `WhisperModelStore.totalSizeOnDisk()` walks filesystem from inside computed property `[T3]`
+### [x] [H6] `WhisperModelStore.totalSizeOnDisk()` walks filesystem from inside computed property `[T3]`
 - **File**: `Transcription/WhisperModelStore.swift:172`, used at `MenuBar/DownloadedModelsSection.swift:20`
 - **Auditor**: performance-auditor
 - **Issue**: Called from a SwiftUI computed property during render. Walks `~/.cache/huggingface/hub/` (thousands of files) on every view update, including 2Hz updates during download progress.
@@ -134,7 +134,7 @@
 - **Recommendation**: Use `.onChange(of: pipeline.llmIsDownloading)` or a `Combine` sink on `llmModelDownloadController.objectWillChange`. Use `.task` modifier so SwiftUI owns the lifecycle.
 - **Effort**: Moderate
 
-### [ ] [H12] `InstalledAppPickerSheet` mutates `NSImage` from `Task.detached` (off-main) `[T2]`
+### [x] [H12] `InstalledAppPickerSheet` mutates `NSImage` from `Task.detached` (off-main) `[T2]`
 - **File**: `MenuBar/InstalledAppPickerSheet.swift:115`
 - **Auditor**: swift-auditor
 - **Issue**: `icon.size = NSSize(...)` inside a `Task.detached` closure. `NSImage` is not documented as thread-safe for mutation; this is a data race.
@@ -142,7 +142,7 @@
 - **Recommendation**: Move mutation to `@MainActor` or produce a properly downsampled bitmap via `lockFocus`.
 - **Effort**: Moderate
 
-### [ ] [H13] `TranscriptionEngine.loadWhisperKit` has racy `loadingTask` lifecycle `[T2]`
+### [x] [H13] `TranscriptionEngine.loadWhisperKit` has racy `loadingTask` lifecycle `[T2]`
 - **File**: `Transcription/TranscriptionEngine.swift:57-68`
 - **Auditor**: swift-auditor
 - **Issue**: Inner `Task` sets `loadingTask = nil` in its `defer`, racing with the outer assignment. The pattern is hard to reason about and the guard only holds by coincidence.
@@ -186,7 +186,7 @@
 - **Recommendation**: Change `case .error: return .red` in `stateColor`. Add a `⚠` glyph prefix to `stateDescription` for the error case.
 - **Effort**: Quick Win
 
-### [ ] [H20] Preloaded STT/LLM via fire-and-forget `Task` with swallowed errors `[T2]`
+### [x] [H20] Preloaded STT/LLM via fire-and-forget `Task` with swallowed errors `[T2]`
 - **File**: `DictationPipeline.swift:56-76`
 - **Auditor**: swift-auditor
 - **Issue**: `preloadSTTModel`'s `Task { ... }` is discarded; `try?` swallows errors silently. Races with `warmupTask` — both can concurrently call `loadModel`.
@@ -242,7 +242,7 @@
 
 
 
-### [ ] [M8] `InstalledAppPickerSheet.loadInstalledApps` duplicate scan loops `[T1]`
+### [x] [M8] `InstalledAppPickerSheet.loadInstalledApps` duplicate scan loops `[T1]`
 - **File**: `MenuBar/InstalledAppPickerSheet.swift:94-131`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: Extract `scanApps(in:seen:)` helper.
@@ -254,7 +254,7 @@
 - **Recommendation**: Clean once at storage time in `InstalledAppPickerSheet`.
 - **Effort**: Quick Win
 
-### [ ] [M10] `NSPanel` + `NSHostingView` recreated on every dictation start `[T3]`
+### [x] [M10] `NSPanel` + `NSHostingView` recreated on every dictation start `[T3]`
 - **File**: `FloatingIndicator/FloatingIndicatorPanelController.swift:37-79`
 - **Auditor**: macos-auditor, performance-auditor
 - **Recommendation**: Lazy-create once, `orderFrontRegardless` / `orderOut` for show/hide.
@@ -284,7 +284,7 @@
 - **Recommendation**: Pass already-fetched role string into `caretRect(for:role:)`.
 - **Effort**: Quick Win
 
-### [ ] [M15] `unsafeBitCast` CF bridging duplicated in two files `[T2]`
+### [x] [M15] `unsafeBitCast` CF bridging duplicated in two files `[T2]`
 - **File**: `SelectedTextCapture.swift:107,114`, `TextInputAnchorResolver.swift:230,237`
 - **Auditor**: swift-auditor
 - **Recommendation**: Extract `AXBridge` namespace with `axUIElement(from:)` / `axValue(from:)` helpers.
@@ -296,7 +296,7 @@
 - **Recommendation**: Cache encoder/decoder as `private let`; debounce saves (500ms). Also replace `try?` with `do/catch` + `dlog`.
 - **Effort**: Moderate
 
-### [ ] [M17] `FloatingIndicatorView.sampleLevel` uses `removeFirst()` on 16-element buffer at 60fps `[T3]`
+### [x] [M17] `FloatingIndicatorView.sampleLevel` uses `removeFirst()` on 16-element buffer at 60fps `[T3]`
 - **File**: `FloatingIndicator/FloatingIndicatorView.swift:91`
 - **Auditor**: performance-auditor
 - **Recommendation**: Ring buffer with head index.
@@ -308,7 +308,7 @@
 - **Recommendation**: Static `ISO8601DateFormatter` or switch to `os.Logger`.
 - **Effort**: Quick Win
 
-### [ ] [M19] `@AppStorage` + manual UserDefaults mix in `AppSettings` `[T2]`
+### [x] [M19] `@AppStorage` + manual UserDefaults mix in `AppSettings` `[T2]`
 - **File**: `Settings/AppSettings.swift:124-148`
 - **Auditor**: code-quality-auditor, swift-auditor
 - **Recommendation**: Add a comment explaining `@AppStorage` doesn't support `Codable`.
@@ -366,7 +366,7 @@
 
 ## Low Priority Findings
 
-### [ ] [L1] Magic keycodes (53, 54, 0x08, 0x09, 0x37) scattered `[T1]`
+### [x] [L1] Magic keycodes (53, 54, 0x08, 0x09, 0x37) scattered `[T1]`
 - **File**: `GlobalHotkeyMonitor.swift:150`, `HotkeyRecorder.swift:20`, `SelectedTextCapture.swift`, `ClipboardPasteController.swift`
 - **Recommendation**: `KeyCodes` enum.
 - **Effort**: Quick Win
@@ -421,7 +421,7 @@
 - **Recommendation**: Reduce to 560pt or use `preferredContentSize` from `sizeThatFits`.
 - **Effort**: Quick Win
 
-### [ ] [L12] No `applicationWillTerminate` cleanup of hotkey tap/audio `[T3]`
+### [x] [L12] No `applicationWillTerminate` cleanup of hotkey tap/audio `[T3]`
 - **File**: `DictumApp.swift`
 - **Recommendation**: `AppDelegate.applicationWillTerminate(_:)` → `DictationPipeline.cancelOperation()` + `GlobalHotkeyMonitor.shared.stop()`.
 - **Effort**: Quick Win
@@ -441,7 +441,7 @@
 - **Recommendation**: Show "Type at least 2 characters" when query length == 1.
 - **Effort**: Quick Win
 
-### [ ] [L16] LLM model deletion error swallowed with `try?` `[T3]`
+### [x] [L16] LLM model deletion error swallowed with `try?` `[T3]`
 - **File**: `MenuBar/DownloadedModelDeletionAlerts.swift:58-65`
 - **Recommendation**: Surface failure inline.
 - **Effort**: Quick Win

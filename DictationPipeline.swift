@@ -20,6 +20,7 @@ final class DictationPipeline: ObservableObject {
     private var isCancelled = false
     private(set) var isWarmedUp = false
     private var warmupTask: Task<Void, Never>?
+    private var preloadTask: Task<Void, Never>?
     private var errorResetTask: Task<Void, Never>?
     private var targetBundleId: String?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
@@ -60,23 +61,27 @@ final class DictationPipeline: ObservableObject {
 
     private func preloadSTTModel() {
         guard whisperModelStore.downloadedModelIds.contains(settings.sttModelId) else { return }
-        Task {
-            let loaded = await TranscriptionEngine.shared.isModelLoaded
-            if !loaded {
-                dlog("[Dictum] preloading STT model: \(settings.sttModelId)")
-                try? await TranscriptionEngine.shared.loadModel(settings.sttModelId)
-                dlog("[Dictum] STT model preloaded")
-            }
-            // Also preload LLM if enabled and downloaded
-            if settings.llmCleanupEnabled {
-                let llmLoaded = await LLMProcessor.shared.isModelLoaded
-                if !llmLoaded {
-                    dlog("[Dictum] preloading LLM model: \(settings.llmModelId)")
-                    try? await LLMProcessor.shared.loadModel(settings.llmModelId)
-                    dlog("[Dictum] LLM model preloaded")
+        preloadTask = Task {
+            do {
+                let loaded = await TranscriptionEngine.shared.isModelLoaded
+                if !loaded {
+                    dlog("[Dictum] preloading STT model: \(settings.sttModelId)")
+                    try await TranscriptionEngine.shared.loadModel(settings.sttModelId)
+                    dlog("[Dictum] STT model preloaded")
                 }
+                // Also preload LLM if enabled and downloaded
+                if settings.llmCleanupEnabled {
+                    let llmLoaded = await LLMProcessor.shared.isModelLoaded
+                    if !llmLoaded {
+                        dlog("[Dictum] preloading LLM model: \(settings.llmModelId)")
+                        try await LLMProcessor.shared.loadModel(settings.llmModelId)
+                        dlog("[Dictum] LLM model preloaded")
+                    }
+                }
+                warmUpModels()
+            } catch {
+                dlog("[Dictum] preload failed: \(error)")
             }
-            warmUpModels()
         }
     }
 

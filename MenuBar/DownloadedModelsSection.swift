@@ -17,7 +17,7 @@ struct DownloadedModelsSection: View {
     }
 
     private var totalDiskUsage: Int64 {
-        pipeline.downloadedLLMModelStore.totalSizeOnDisk + pipeline.whisperModelStore.totalSizeOnDisk()
+        pipeline.downloadedLLMModelStore.totalSizeOnDisk + pipeline.whisperModelStore.cachedTotalSizeOnDisk
     }
 
     var body: some View {
@@ -63,7 +63,12 @@ struct DownloadedModelsSection: View {
                     Task { await LLMProcessor.shared.unloadModel() }
                 },
                 onConfirmDeletion: { model in
-                    try? pipeline.downloadedLLMModelStore.deleteModel(model.id)
+                    do {
+                        try pipeline.downloadedLLMModelStore.deleteModel(model.id)
+                    } catch {
+                        dlog("[LLM] delete failed: \(error)")
+                        pipeline.llmDownloadError = error.localizedDescription
+                    }
                 }
             )
         }

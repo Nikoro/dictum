@@ -54,10 +54,10 @@ final class ClipboardPasteController {
         let source = CGEventSource(stateID: .privateState)
 
         // Send all 4 events: Cmd↓, V↓, V↑, Cmd↑
-        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true) // Cmd
-        let vDown   = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true) // V
-        let vUp     = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
-        let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.command, keyDown: true)
+        let vDown   = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.v, keyDown: true)
+        let vUp     = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.v, keyDown: false)
+        let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.command, keyDown: false)
 
         cmdDown?.flags = .maskCommand
         vDown?.flags   = .maskCommand

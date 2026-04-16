@@ -18,4 +18,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         menuBarController = MenuBarController()
     }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        DictationPipeline.shared.cancelOperation()
+        GlobalHotkeyMonitor.shared.stop()
+    }
 }

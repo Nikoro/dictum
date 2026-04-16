@@ -32,8 +32,8 @@ enum SelectedTextCapture {
 
         // Simulate Cmd+C
         let src = CGEventSource(stateID: .privateState)
-        guard let keyDown = CGEvent(keyboardEventSource: src, virtualKey: 0x08, keyDown: true),
-              let keyUp = CGEvent(keyboardEventSource: src, virtualKey: 0x08, keyDown: false) else {
+        guard let keyDown = CGEvent(keyboardEventSource: src, virtualKey: KeyCode.c, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: src, virtualKey: KeyCode.c, keyDown: false) else {
             dlog("[SelectedText] failed to create CGEvent")
             return nil
         }
@@ -72,7 +72,7 @@ enum SelectedTextCapture {
             return nil
         }
 
-        return axUIElement(from: focusedElement)
+        return AXBridge.axUIElement(from: focusedElement)
     }
 
     private static func selectedTextRange(for element: AXUIElement) -> CFRange? {
@@ -83,7 +83,7 @@ enum SelectedTextCapture {
         }
 
         var selectedRange = CFRange()
-                guard let selectedRangeAXValue = axValue(from: selectedRangeValue),
+                guard let selectedRangeAXValue = AXBridge.axValue(from: selectedRangeValue),
               AXValueGetValue(selectedRangeAXValue, .cfRange, &selectedRange) else {
             return nil
         }
@@ -100,17 +100,4 @@ enum SelectedTextCapture {
         return selectedText as? String
     }
 
-    private static func axUIElement(from object: AnyObject?) -> AXUIElement? {
-        guard let object, CFGetTypeID(object) == AXUIElementGetTypeID() else {
-            return nil
-        }
-        return unsafeBitCast(object, to: AXUIElement.self)
-    }
-
-    private static func axValue(from object: AnyObject?) -> AXValue? {
-        guard let object, CFGetTypeID(object) == AXValueGetTypeID() else {
-            return nil
-        }
-        return unsafeBitCast(object, to: AXValue.self)
-    }
 }

@@ -57,7 +57,7 @@ enum TextInputAnchorResolver {
             return nil
         }
 
-        return axUIElement(from: focusedElement)
+        return AXBridge.axUIElement(from: focusedElement)
     }
 
     private static func systemWideFocusedElement() -> AXUIElement? {
@@ -96,7 +96,7 @@ enum TextInputAnchorResolver {
             return nil
         }
 
-        return axUIElement(from: parent)
+        return AXBridge.axUIElement(from: parent)
     }
 
     private static func role(of element: AXUIElement) -> String {
@@ -156,7 +156,7 @@ enum TextInputAnchorResolver {
         }
 
         var rect = CGRect.zero
-                guard let caretBoundsValue = axValue(from: caretBounds),
+                guard let caretBoundsValue = AXBridge.axValue(from: caretBounds),
               AXValueGetValue(caretBoundsValue, .cgRect, &rect) else {
             return nil
         }
@@ -179,8 +179,8 @@ enum TextInputAnchorResolver {
             return nil
         }
 
-                  guard let positionAXValue = axValue(from: positionValue),
-                      let sizeAXValue = axValue(from: sizeValue) else {
+                  guard let positionAXValue = AXBridge.axValue(from: positionValue),
+                      let sizeAXValue = AXBridge.axValue(from: sizeValue) else {
                         return nil
                 }
         var origin = CGPoint.zero
@@ -223,17 +223,4 @@ enum TextInputAnchorResolver {
         } ?? NSScreen.main
     }
 
-    private static func axUIElement(from object: AnyObject?) -> AXUIElement? {
-        guard let object, CFGetTypeID(object) == AXUIElementGetTypeID() else {
-            return nil
-        }
-        return unsafeBitCast(object, to: AXUIElement.self)
-    }
-
-    private static func axValue(from object: AnyObject?) -> AXValue? {
-        guard let object, CFGetTypeID(object) == AXValueGetTypeID() else {
-            return nil
-        }
-        return unsafeBitCast(object, to: AXValue.self)
-    }
 }

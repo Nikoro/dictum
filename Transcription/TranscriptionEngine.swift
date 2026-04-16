@@ -27,37 +27,43 @@ actor TranscriptionEngine {
     func loadModel(_ modelName: String = "openai_whisper-large-v3_turbo") async throws {
         if let existingTask = loadingTask { return try await existingTask.value }
 
-        let config = WhisperKitConfig(model: modelName)
-        dlog("[STT] loading model: \(modelName)")
-        try await loadWhisperKit(config, modelId: modelName)
-        dlog("[STT] model loaded successfully")
+        let task = Task {
+            let config = WhisperKitConfig(model: modelName)
+            dlog("[STT] loading model: \(modelName)")
+            try await loadWhisperKit(config, modelId: modelName)
+            dlog("[STT] model loaded successfully")
+        }
+        loadingTask = task
+        defer { loadingTask = nil }
+        try await task.value
     }
 
     func loadModel(fromFolder folder: String) async throws {
         if let existingTask = loadingTask { return try await existingTask.value }
 
-        let startTime = CFAbsoluteTimeGetCurrent()
-        dlog("[STT] loading model from folder: \(folder)")
-        let config = WhisperKitConfig(modelFolder: folder)
-        let modelId = URL(fileURLWithPath: folder).lastPathComponent
-        try await loadWhisperKit(config, modelId: modelId)
-        let loadTime = CFAbsoluteTimeGetCurrent() - startTime
-        dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
+        let task = Task {
+            let startTime = CFAbsoluteTimeGetCurrent()
+            dlog("[STT] loading model from folder: \(folder)")
+            let config = WhisperKitConfig(modelFolder: folder)
+            let modelId = URL(fileURLWithPath: folder).lastPathComponent
+            try await loadWhisperKit(config, modelId: modelId)
+            let loadTime = CFAbsoluteTimeGetCurrent() - startTime
+            dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
+        }
+        loadingTask = task
+        defer { loadingTask = nil }
+        try await task.value
     }
 
     private func loadWhisperKit(_ config: WhisperKitConfig, modelId: String) async throws {
-        let task = Task {
-            whisperKit = nil
-            isModelLoaded = false
-            isLoading = true
-            defer { isLoading = false; loadingTask = nil }
+        whisperKit = nil
+        isModelLoaded = false
+        isLoading = true
+        defer { isLoading = false }
 
-            whisperKit = try await WhisperKit(config)
-            isModelLoaded = true
-            currentModelId = modelId
-        }
-        loadingTask = task
-        try await task.value
+        whisperKit = try await WhisperKit(config)
+        isModelLoaded = true
+        currentModelId = modelId
     }
 
     func transcribe(audioSamples: [Float], language: String? = nil) async throws -> String {

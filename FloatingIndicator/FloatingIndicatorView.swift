@@ -8,6 +8,7 @@ struct FloatingIndicatorView: View {
     let appIcon: NSImage
 
     @State private var levels: [Float] = Array(repeating: 0, count: 16)
+    @State private var levelsHead: Int = 0
     @State private var smoothedLevel: Float = 0
     @State private var dotCount: Int = 0
     @State private var dotTimer: Timer?
@@ -46,7 +47,7 @@ struct FloatingIndicatorView: View {
 
     private func recordingContent(time: Double) -> some View {
         HStack(spacing: 2.5) {
-            ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
+            ForEach(Array(orderedLevels.enumerated()), id: \.offset) { index, level in
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(.white)
                     .frame(width: 3, height: barHeight(for: level, index: index, time: time))
@@ -80,14 +81,18 @@ struct FloatingIndicatorView: View {
         dotTimer = nil
     }
 
+    private var orderedLevels: [Float] {
+        Array(levels[levelsHead...]) + Array(levels[..<levelsHead])
+    }
+
     private func sampleLevel() {
         let raw = audioRecorder.audioLevel
         let decibels = 20 * log10(max(raw, 0.0001))
         let normalized = max(0, (decibels + 50) / 50)
         let boosted = pow(normalized, 0.7)
         smoothedLevel = smoothedLevel * 0.5 + Float(boosted) * 0.5
-        levels.removeFirst()
-        levels.append(smoothedLevel)
+        levels[levelsHead] = smoothedLevel
+        levelsHead = (levelsHead + 1) % levels.count
     }
 
     private func barHeight(for level: Float, index: Int, time: Double) -> CGFloat {

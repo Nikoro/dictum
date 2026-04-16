@@ -94,17 +94,14 @@ struct InstalledAppPickerSheet: View {
     private func loadInstalledApps() async {
         let found: [InstalledAppInfo] = await Task.detached {
             let workspace = NSWorkspace.shared
-            let appURLs = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
-                + FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
-
             var result: [InstalledAppInfo] = []
             var seen = Set<String>()
 
-            for dir in appURLs {
+            func scanApps(in directory: URL) {
                 guard let contents = try? FileManager.default.contentsOfDirectory(
-                    at: dir,
+                    at: directory,
                     includingPropertiesForKeys: nil
-                ) else { continue }
+                ) else { return }
                 for url in contents where url.pathExtension == "app" {
                     guard let bundle = Bundle(url: url),
                           let bundleId = bundle.bundleIdentifier,
@@ -112,24 +109,16 @@ struct InstalledAppPickerSheet: View {
                     seen.insert(bundleId)
                     let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
                     let icon = workspace.icon(forFile: url.path)
-                    icon.size = NSSize(width: 24, height: 24)
                     result.append(InstalledAppInfo(bundleId: bundleId, appName: name, icon: icon))
                 }
             }
 
+            let appDirs = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
+                + FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
+            for dir in appDirs { scanApps(in: dir) }
+
             let userApps = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
-            if let contents = try? FileManager.default.contentsOfDirectory(at: userApps, includingPropertiesForKeys: nil) {
-                for url in contents where url.pathExtension == "app" {
-                    guard let bundle = Bundle(url: url),
-                          let bundleId = bundle.bundleIdentifier,
-                          !seen.contains(bundleId) else { continue }
-                    seen.insert(bundleId)
-                    let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
-                    let icon = workspace.icon(forFile: url.path)
-                    icon.size = NSSize(width: 24, height: 24)
-                    result.append(InstalledAppInfo(bundleId: bundleId, appName: name, icon: icon))
-                }
-            }
+            scanApps(in: userApps)
 
             return result.sorted {
                 $0.appName.localizedCaseInsensitiveCompare($1.appName) == .orderedAscending
