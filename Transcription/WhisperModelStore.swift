@@ -19,18 +19,20 @@ struct WhisperModelInfo: Identifiable {
 }
 
 @MainActor
-final class WhisperModelManager: ObservableObject {
-    static let shared = WhisperModelManager()
+final class WhisperModelStore: ObservableObject {
+    static let shared = WhisperModelStore()
 
-    @Published var availableModels: [WhisperModelInfo] = WhisperModelManager.defaultModels
+    @Published var availableModels: [WhisperModelInfo] = WhisperModelStore.defaultModels
     @Published var downloadedModelIds: Set<String> = []
     @Published var activeModelId: String = "openai_whisper-large-v3_turbo"
     @Published var isDownloading = false
     @Published var downloadingModelId: String?
     @Published var downloadProgress: Double = 0
+    @Published var downloadError: String?
+    @Published var cachedTotalSizeOnDisk: Int64 = 0
 
     private var downloadTask: Task<Void, Never>?
-    private static let downloadedKey = "whisperDownloadedModelIds"
+    private static let downloadedKey = UserDefaultsKey.whisperDownloadedModelIds.rawValue
 
     static let defaultModels: [WhisperModelInfo] = [
         WhisperModelInfo(
@@ -69,11 +71,12 @@ final class WhisperModelManager: ObservableObject {
             displayName: "Base",
             sizeBytes: 150_000_000,
             descriptionKey: "stt.base.desc"
-        ),
+        )
     ]
 
     private init() {
         loadPersistedIds()
+        refreshTotalSize()
     }
 
     private func loadPersistedIds() {
@@ -89,6 +92,7 @@ final class WhisperModelManager: ObservableObject {
         isDownloading = true
         downloadingModelId = modelId
         downloadProgress = 0
+        downloadError = nil
 
         downloadTask = Task {
             do {
@@ -104,10 +108,12 @@ final class WhisperModelManager: ObservableObject {
                 // Simulate loading progress from 50% to 99% over ~120s
                 downloadProgress = 0.5
                 let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
-                    guard let self else { timer.invalidate(); return }
-                    if self.downloadProgress < 0.99 {
-                        // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
-                        self.downloadProgress += 0.002
+                    Task { @MainActor in
+                        guard let self else { timer.invalidate(); return }
+                        if self.downloadProgress < 0.99 {
+                            // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
+                            self.downloadProgress += 0.002
+                        }
                     }
                 }
                 defer { loadingTimer.invalidate() }
@@ -119,11 +125,13 @@ final class WhisperModelManager: ObservableObject {
                 activeModelId = modelId
                 AppSettings.shared.sttModelId = modelId
                 persistIds()
+                refreshTotalSize()
                 DictationPipeline.shared.warmUpModels()
             } catch is CancellationError {
                 dlog("[STT] download cancelled")
             } catch {
                 dlog("[STT] download failed: \(error)")
+                downloadError = error.localizedDescription
             }
             isDownloading = false
             downloadingModelId = nil
@@ -146,7 +154,10 @@ final class WhisperModelManager: ObservableObject {
             .appendingPathComponent("Library/Caches/huggingface/hub")
     }
 
-    func deleteModel(_ modelId: String) {
+    func deleteModel(_ modelId: String) async {
+        if activeModelId == modelId {
+            await TranscriptionEngine.shared.unloadModel()
+        }
         downloadedModelIds.remove(modelId)
         if activeModelId == modelId {
             activeModelId = Self.defaultModels.first?.id ?? ""
@@ -165,9 +176,14 @@ final class WhisperModelManager: ObservableObject {
                 }
             }
         }
+        refreshTotalSize()
     }
 
-    func totalSizeOnDisk() -> Int64 {
+    func refreshTotalSize() {
+        cachedTotalSizeOnDisk = computeTotalSizeOnDisk()
+    }
+
+    private func computeTotalSizeOnDisk() -> Int64 {
         var total: Int64 = 0
         let cacheDir = whisperCacheDir
         for model in Self.defaultModels where downloadedModelIds.contains(model.id) {
@@ -191,12 +207,6 @@ final class WhisperModelManager: ObservableObject {
     }
 
     private func directorySize(_ url: URL) -> Int64 {
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
-        var total: Int64 = 0
-        while let fileURL = enumerator.nextObject() as? URL {
-            let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            total += Int64(size)
-        }
-        return total
+        FileManager.default.directorySize(at: url)
     }
 }

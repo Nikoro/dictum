@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct DownloadedModel: Identifiable {
+struct DownloadedLLMModel: Identifiable {
     let id: String
     let sizeOnDisk: Int64
     var isActive: Bool
@@ -11,15 +11,15 @@ struct DownloadedModel: Identifiable {
     }
 
     var shortName: String {
-        id.replacingOccurrences(of: "mlx-community/", with: "")
+        ModelConstants.shortModelName(id)
     }
 }
 
 @MainActor
-final class DownloadedModelsManager: ObservableObject {
-    static let shared = DownloadedModelsManager()
+final class DownloadedLLMModelStore: ObservableObject {
+    static let shared = DownloadedLLMModelStore()
 
-    @Published var downloadedModels: [DownloadedModel] = []
+    @Published var downloadedModels: [DownloadedLLMModel] = []
 
     /// MLX Swift downloads to ~/Library/Caches/models/
     private var mlxCacheDir: URL {
@@ -44,12 +44,12 @@ final class DownloadedModelsManager: ObservableObject {
 
         downloadedModels = contents
             .filter { $0.hasDirectoryPath }
-            .compactMap { url -> DownloadedModel? in
+            .compactMap { url -> DownloadedLLMModel? in
                 let folderName = url.lastPathComponent
-                let modelId = "mlx-community/\(folderName)"
+                let modelId = ModelConstants.mlxCommunityPrefix + folderName
                 let size = directorySize(url)
                 guard size > 0 else { return nil }
-                return DownloadedModel(
+                return DownloadedLLMModel(
                     id: modelId,
                     sizeOnDisk: size,
                     isActive: modelId == activeModelId
@@ -59,9 +59,18 @@ final class DownloadedModelsManager: ObservableObject {
     }
 
     func deleteModel(_ modelId: String) throws {
-        let folderName = modelId.replacingOccurrences(of: "mlx-community/", with: "")
+        let folderName = ModelConstants.shortModelName(modelId)
         let modelDir = mlxCacheDir.appendingPathComponent(folderName)
-        try FileManager.default.removeItem(at: modelDir)
+        let resolved = modelDir.standardizedFileURL
+        let cacheRoot = mlxCacheDir.standardizedFileURL.path + "/"
+        guard resolved.path.hasPrefix(cacheRoot) else {
+            throw NSError(
+                domain: "DownloadedLLMModelStore",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid model id: \(modelId)"]
+            )
+        }
+        try FileManager.default.removeItem(at: resolved)
         scanDownloadedModels()
     }
 
@@ -74,15 +83,6 @@ final class DownloadedModelsManager: ObservableObject {
     }
 
     private func directorySize(_ url: URL) -> Int64 {
-        let enumerator = FileManager.default.enumerator(
-            at: url,
-            includingPropertiesForKeys: [.fileSizeKey]
-        )
-        var total: Int64 = 0
-        while let fileURL = enumerator?.nextObject() as? URL {
-            let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            total += Int64(size)
-        }
-        return total
+        FileManager.default.directorySize(at: url)
     }
 }

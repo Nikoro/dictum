@@ -3,28 +3,28 @@ import AppKit
 
 // MARK: - STT Language
 
-enum STTLanguage: String, CaseIterable, Codable {
-    case auto = "auto"
-    case pl = "pl"
-    case en = "en"
-    case de = "de"
-    case fr = "fr"
-    case es = "es"
-    case it = "it"
-    case pt = "pt"
-    case uk = "uk"
-    case cs = "cs"
-    case nl = "nl"
-    case ja = "ja"
-    case ko = "ko"
-    case zh = "zh"
-    case ru = "ru"
-    case sv = "sv"
-    case tr = "tr"
+enum STTLanguage: String, CaseIterable, Codable, Sendable {
+    case auto
+    case pl
+    case en
+    case de
+    case fr
+    case es
+    case it
+    case pt
+    case uk
+    case cs
+    case nl
+    case ja
+    case ko
+    case zh
+    case ru
+    case sv
+    case tr
 
     var displayName: String {
         switch self {
-        case .auto: return String(localized: "language.auto", defaultValue: "Automatycznie")
+        case .auto: return String(localized: "language.auto", defaultValue: "Automatic")
         case .pl: return "Polski"
         case .en: return "English"
         case .de: return "Deutsch"
@@ -64,6 +64,8 @@ struct AppSTTLanguage: Identifiable, Codable, Equatable {
     var appName: String
     var language: STTLanguage
     var enabled: Bool = true
+
+    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
 }
 
 // MARK: - App Prompt (per-app LLM prompt)
@@ -75,11 +77,12 @@ struct AppPrompt: Identifiable, Codable, Equatable {
     var prompt: String
     var enabled: Bool = true
 
+    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
 }
 
-enum RecordingMode: String, CaseIterable {
-    case hold = "hold"
-    case toggle = "toggle"
+enum RecordingMode: String, CaseIterable, Sendable {
+    case hold
+    case toggle
 
     var displayName: String {
         switch self {
@@ -89,19 +92,37 @@ enum RecordingMode: String, CaseIterable {
     }
 }
 
-enum AppState: Equatable {
-    case idle
-    case warmingUp
-    case recording
-    case transcribing
-    case processingLLM
-    case done
-    case error(String)
+enum UserDefaultsKey: String {
+    case llmPrompt
+    case unifiedSystemPrompt
+    case sttModelId
+    case llmModelId
+    case recordingMode
+    case llmCleanupEnabled
+    case llmGeneralPromptEnabled
+    case hotkeyKeyCode
+    case hotkeyModifiers
+    case hotkeyIsModifierOnly
+    case sttLanguage
+    case hasCompletedSetup
+    case appPrompts
+    case appSTTLanguages
+    case whisperDownloadedModelIds
+    case llmDownloadedModelId
+    case smartContextEnabled
+    case contextScreenshot
+    case contextSelectedText
+    case contextClipboard
 }
 
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
+
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    private var savePromptsTask: Task<Void, Never>?
+    private var saveLanguagesTask: Task<Void, Never>?
 
     static let defaultPrompt = """
     Popraw tekst dyktowany po polsku. Zasady:
@@ -129,22 +150,24 @@ final class AppSettings: ObservableObject {
     - Always return just the final text. Nothing else.
     """
 
-    @AppStorage("llmPrompt") var llmPrompt: String = ""
-    @AppStorage("unifiedSystemPrompt") var unifiedSystemPrompt: String = ""
-    @AppStorage("sttModelId") var sttModelId: String = "openai_whisper-large-v3_turbo"
-    @AppStorage("llmModelId") var llmModelId: String = "mlx-community/gemma-4-e4b-it-4bit"
-    @AppStorage("recordingMode") var recordingModeRaw: String = RecordingMode.hold.rawValue
-    @AppStorage("llmCleanupEnabled") var llmCleanupEnabled: Bool = false
-    @AppStorage("llmGeneralPromptEnabled") var llmGeneralPromptEnabled: Bool = true
-    @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 54 // Right Command
-    @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0 // none (modifier-only)
-    @AppStorage("hotkeyIsModifierOnly") var hotkeyIsModifierOnly: Bool = true
-    @AppStorage("sttLanguage") var sttLanguageRaw: String = STTLanguage.systemDefault.rawValue
-    @AppStorage("hasCompletedSetup") var hasCompletedSetup: Bool = false
-    @AppStorage("smartContextEnabled") var smartContextEnabled: Bool = true
-    @AppStorage("contextScreenshot") var contextScreenshot: Bool = true
-    @AppStorage("contextSelectedText") var contextSelectedText: Bool = true
-    @AppStorage("contextClipboard") var contextClipboard: Bool = true
+    // @AppStorage is used for scalar/String prefs; Codable arrays (appPrompts, appSTTLanguages)
+    // use manual UserDefaults + @Published because @AppStorage doesn't support Codable.
+    @AppStorage(UserDefaultsKey.llmPrompt.rawValue) var llmPrompt: String = ""
+    @AppStorage(UserDefaultsKey.unifiedSystemPrompt.rawValue) var unifiedSystemPrompt: String = ""
+    @AppStorage(UserDefaultsKey.sttModelId.rawValue) var sttModelId: String = "openai_whisper-large-v3_turbo"
+    @AppStorage(UserDefaultsKey.llmModelId.rawValue) var llmModelId: String = "mlx-community/gemma-4-e4b-it-4bit"
+    @AppStorage(UserDefaultsKey.recordingMode.rawValue) var recordingModeRaw: String = RecordingMode.hold.rawValue
+    @AppStorage(UserDefaultsKey.llmCleanupEnabled.rawValue) var llmCleanupEnabled: Bool = false
+    @AppStorage(UserDefaultsKey.llmGeneralPromptEnabled.rawValue) var llmGeneralPromptEnabled: Bool = true
+    @AppStorage(UserDefaultsKey.hotkeyKeyCode.rawValue) var hotkeyKeyCode: Int = 54 // Right Command
+    @AppStorage(UserDefaultsKey.hotkeyModifiers.rawValue) var hotkeyModifiers: Int = 0 // none (modifier-only)
+    @AppStorage(UserDefaultsKey.hotkeyIsModifierOnly.rawValue) var hotkeyIsModifierOnly: Bool = true
+    @AppStorage(UserDefaultsKey.sttLanguage.rawValue) var sttLanguageRaw: String = STTLanguage.systemDefault.rawValue
+    @AppStorage(UserDefaultsKey.hasCompletedSetup.rawValue) var hasCompletedSetup: Bool = false
+    @AppStorage(UserDefaultsKey.smartContextEnabled.rawValue) var smartContextEnabled: Bool = true
+    @AppStorage(UserDefaultsKey.contextScreenshot.rawValue) var contextScreenshot: Bool = true
+    @AppStorage(UserDefaultsKey.contextSelectedText.rawValue) var contextSelectedText: Bool = true
+    @AppStorage(UserDefaultsKey.contextClipboard.rawValue) var contextClipboard: Bool = true
 
     var sttLanguage: STTLanguage {
         get { STTLanguage(rawValue: sttLanguageRaw) ?? .auto }
@@ -163,10 +186,6 @@ final class AppSettings: ObservableObject {
         get { RecordingMode(rawValue: recordingModeRaw) ?? .hold }
         set { recordingModeRaw = newValue.rawValue }
     }
-
-    @Published var appState: AppState = .idle
-    @Published var lastTranscription: String = ""
-    @Published var lastCleanedText: String = ""
 
     private init() {
         loadAppPrompts()
@@ -221,14 +240,19 @@ final class AppSettings: ObservableObject {
     }
 
     private func saveAppPrompts() {
-        if let data = try? JSONEncoder().encode(appPrompts) {
-            UserDefaults.standard.set(data, forKey: "appPrompts")
+        savePromptsTask?.cancel()
+        savePromptsTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            if let data = try? encoder.encode(appPrompts) {
+                UserDefaults.standard.set(data, forKey: UserDefaultsKey.appPrompts.rawValue)
+            }
         }
     }
 
     private func loadAppPrompts() {
-        if let data = UserDefaults.standard.data(forKey: "appPrompts"),
-           let prompts = try? JSONDecoder().decode([AppPrompt].self, from: data) {
+        if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appPrompts.rawValue),
+           let prompts = try? decoder.decode([AppPrompt].self, from: data) {
             appPrompts = prompts
         }
     }
@@ -265,14 +289,19 @@ final class AppSettings: ObservableObject {
     }
 
     private func saveAppSTTLanguages() {
-        if let data = try? JSONEncoder().encode(appSTTLanguages) {
-            UserDefaults.standard.set(data, forKey: "appSTTLanguages")
+        saveLanguagesTask?.cancel()
+        saveLanguagesTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            if let data = try? encoder.encode(appSTTLanguages) {
+                UserDefaults.standard.set(data, forKey: UserDefaultsKey.appSTTLanguages.rawValue)
+            }
         }
     }
 
     private func loadAppSTTLanguages() {
-        if let data = UserDefaults.standard.data(forKey: "appSTTLanguages"),
-           let langs = try? JSONDecoder().decode([AppSTTLanguage].self, from: data) {
+        if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appSTTLanguages.rawValue),
+           let langs = try? decoder.decode([AppSTTLanguage].self, from: data) {
             appSTTLanguages = langs
         }
     }

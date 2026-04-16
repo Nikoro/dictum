@@ -31,7 +31,7 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 ## Stack
 
 - **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.18.0 — large-v3-turbo, CoreML on Neural Engine
-- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 3.31.3 — Gemma 4 E4B (default), any mlx-community model; VLM support for vision-aware context
+- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 2.30.6 — Gemma 4 E2B (default), any mlx-community model
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API
 - **Updates:** [Sparkle](https://github.com/sparkle-project/Sparkle) 2.7+ — automatic updates from GitHub Releases
@@ -77,8 +77,9 @@ On first launch, the onboarding flow guides you through:
 
 - **On-device pipeline** — WhisperKit STT + MLX LLM, no network required
 - **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
-- **Context-aware dictation** — screenshot, selected text, and clipboard are captured as context for the LLM; result is copied to clipboard when selected text was captured, otherwise auto-pasted
-- **Per-app instructions** — custom LLM instructions per application (matched by bundle ID), layered on top of the unified system prompt
+- **Context-aware dictation** — select text before dictating to use it as LLM context; result is copied to clipboard instead of auto-pasted
+- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
+- **General prompt toggle** — enable/disable the default system prompt independently
 - **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
 - **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
 - **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
@@ -90,9 +91,11 @@ On first launch, the onboarding flow guides you through:
 
 ## Architecture
 
-Hotkey press → audio capture (AVAudioEngine) → speech-to-text (WhisperKit on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into active window. A floating indicator pill tracks recording state at the text cursor. All processing runs on-device with no network calls.
+Dictum uses a layered macOS utility-app architecture, not DDD. `DictationPipeline` is the central orchestrator for recording, transcription, optional LLM cleanup, and output, while focused modules handle audio capture, model management, floating-indicator placement, menu bar UI, hotkeys, and settings.
 
-See [CLAUDE.md](CLAUDE.md) for the full layer-by-layer code reference.
+Runtime flow remains straightforward: hotkey press → audio capture (AVAudioEngine) → speech-to-text (WhisperKit on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into the active app or copy to clipboard in context mode. A floating indicator pill tracks recording state near the text cursor.
+
+See [CLAUDE.md](CLAUDE.md) for concise contributor/agent context and `findings/` for non-obvious implementation gotchas.
 
 ## Download
 

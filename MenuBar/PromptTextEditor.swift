@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// NSTextView that draws placeholder when empty and ghost completion after `{{`
+@MainActor
 class GhostTextView: NSTextView {
     var placeholder: String = ""
 
@@ -38,22 +39,22 @@ class GhostTextView: NSTextView {
         }
 
         // Draw ghost suffix inline at cursor position
-        if let ghost = computedGhostSuffix, let lm = layoutManager {
+        if let ghost = computedGhostSuffix, let layoutManager = layoutManager {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize),
                 .foregroundColor: ghostColor
             ]
             let cursorLocation = selectedRange().location
-            let glyphIndex = lm.glyphIndexForCharacter(at: max(cursorLocation - 1, 0))
-            let lineRect = lm.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
-            let locInLine = lm.location(forGlyphAt: glyphIndex)
+            let glyphIndex = layoutManager.glyphIndexForCharacter(at: max(cursorLocation - 1, 0))
+            let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            let locationInLine = layoutManager.location(forGlyphAt: glyphIndex)
             let charBeforeCursor = (string as NSString).substring(with: NSRange(location: cursorLocation - 1, length: 1))
             let charSize = (charBeforeCursor as NSString).size(withAttributes: [
                 .font: font ?? NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
             ])
-            let x = lineRect.origin.x + locInLine.x + charSize.width + textContainerInset.width
-            let y = lineRect.origin.y + textContainerInset.height
-            (ghost as NSString).draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
+            let drawX = lineRect.origin.x + locationInLine.x + charSize.width + textContainerInset.width
+            let drawY = lineRect.origin.y + textContainerInset.height
+            (ghost as NSString).draw(at: NSPoint(x: drawX, y: drawY), withAttributes: attrs)
         }
     }
 

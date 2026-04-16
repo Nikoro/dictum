@@ -3,8 +3,8 @@ import AppKit
 import Combine
 
 @MainActor
-final class PermissionsManager: ObservableObject {
-    static let shared = PermissionsManager()
+final class SystemPermissionStore: ObservableObject {
+    static let shared = SystemPermissionStore()
 
     @Published var accessibilityGranted = false
     @Published var microphoneGranted = false

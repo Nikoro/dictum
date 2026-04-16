@@ -2,8 +2,8 @@ import Foundation
 import Sparkle
 
 @MainActor
-final class UpdaterManager: ObservableObject {
-    static let shared = UpdaterManager()
+final class SparkleUpdateController: ObservableObject {
+    static let shared = SparkleUpdateController()
 
     private let updaterController: SPUStandardUpdaterController
 

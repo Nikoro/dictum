@@ -6,12 +6,12 @@ struct STTLanguageSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "section.stt.language", defaultValue: "Język rozpoznawania"))
+            Text(String(localized: "section.stt.language", defaultValue: "Recognition language"))
                 .font(.headline)
 
             // General language picker
             HStack {
-                Text(String(localized: "section.stt.language.general", defaultValue: "Ogólny"))
+                Text(String(localized: "section.stt.language.general", defaultValue: "General"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -29,7 +29,7 @@ struct STTLanguageSection: View {
 
             // Per-app languages
             HStack {
-                Text(String(localized: "section.stt.language.perapp", defaultValue: "Język per aplikacja"))
+                Text(String(localized: "section.stt.language.perapp", defaultValue: "Language per app"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -43,7 +43,7 @@ struct STTLanguageSection: View {
             }
 
             if settings.appSTTLanguages.isEmpty {
-                Text(String(localized: "section.stt.language.perapp.empty", defaultValue: "Brak — używany będzie język ogólny"))
+                Text(String(localized: "section.stt.language.perapp.empty", defaultValue: "None — general language will be used"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -55,7 +55,7 @@ struct STTLanguageSection: View {
         .padding()
         .sheet(isPresented: $showingAppPicker) {
             InstalledAppPickerSheet(
-                title: String(localized: "section.stt.language.picker.title", defaultValue: "Wybierz aplikację"),
+                title: String(localized: "section.stt.language.picker.title", defaultValue: "Choose application"),
                 excludedBundleIds: Set(settings.appSTTLanguages.map(\.bundleId))
             ) { bundleId, appName in
                 settings.addAppSTTLanguage(AppSTTLanguage(
@@ -72,10 +72,6 @@ private struct AppSTTLanguageRow: View {
     let appLang: AppSTTLanguage
     @EnvironmentObject var settings: AppSettings
 
-    private var cleanAppName: String {
-        appLang.appName.replacingOccurrences(of: ".app", with: "")
-    }
-
     var body: some View {
         HStack(spacing: 6) {
             Toggle("", isOn: Binding(
@@ -86,7 +82,7 @@ private struct AppSTTLanguageRow: View {
             .labelsHidden()
             .controlSize(.mini)
 
-            if let icon = appIcon(forBundleId: appLang.bundleId) {
+            if let icon = applicationIcon(forBundleId: appLang.bundleId) {
                 Image(nsImage: icon)
                     .resizable()
                     .interpolation(.high)
@@ -97,7 +93,7 @@ private struct AppSTTLanguageRow: View {
                     .frame(width: 18, height: 18)
                     .foregroundStyle(.secondary)
             }
-            Text(cleanAppName)
+            Text(appLang.displayName)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(appLang.enabled ? .primary : .secondary)

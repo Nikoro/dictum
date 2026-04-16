@@ -25,19 +25,19 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: .
-        excludes:
-          - "*.xcodeproj"
-          - "*.yml"
-          - "*.md"
-          - ".git"
-          - ".gitignore"
-          - ".DS_Store"
-          - ".claude"
-          - ".github"
-          - ".vscode"
-          - "build"
-          - "website"
+      - path: DictumLogger.swift
+      - path: DictationPipeline.swift
+      - path: DictumApp.swift
+      - path: Audio
+      - path: Context
+      - path: FloatingIndicator
+      - path: HotkeyAndPaste
+      - path: MenuBar
+      - path: ModelBrowser
+      - path: Resources
+      - path: Settings
+      - path: TextProcessing
+      - path: Transcription
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum
@@ -69,3 +69,5 @@ targets:
       - package: Sparkle
     entitlements:
       path: Resources/Dictum.entitlements
+      properties:
+        com.apple.security.device.microphone: true

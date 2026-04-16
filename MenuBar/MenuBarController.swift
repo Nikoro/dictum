@@ -3,8 +3,8 @@ import SwiftUI
 import Combine
 
 @MainActor
-final class MenuBarManager: ObservableObject {
-    static var shared: MenuBarManager?
+final class MenuBarController: ObservableObject {
+    static var shared: MenuBarController?
 
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
@@ -12,10 +12,11 @@ final class MenuBarManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private let settings = AppSettings.shared
+    private let runtimeState = AppRuntimeState.shared
     private let pipeline = DictationPipeline.shared
 
     init() {
-        MenuBarManager.shared = self
+        MenuBarController.shared = self
         setupStatusItem()
         setupPopover()
         setupEventMonitor()
@@ -34,14 +35,17 @@ final class MenuBarManager: ObservableObject {
 
     private func setupPopover() {
         let popover = NSPopover()
-        popover.contentSize = NSSize(width: 360, height: 640)
+        popover.contentSize = NSSize(width: 360, height: 560)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
             rootView: PopoverView()
                 .tint(Color("AccentColor"))
                 .environmentObject(settings)
+                .environmentObject(runtimeState)
                 .environmentObject(pipeline)
-                .environmentObject(UpdaterManager.shared)
+                .environmentObject(SparkleUpdateController.shared)
+                .environmentObject(SystemPermissionStore.shared)
+                .environmentObject(HuggingFaceModelSearch.shared)
         )
         self.popover = popover
     }
@@ -53,7 +57,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     private func observeState() {
-        settings.$appState
+        runtimeState.$appState
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.updateIcon(for: state)
@@ -66,15 +70,7 @@ final class MenuBarManager: ObservableObject {
 
         switch state {
         case .recording:
-            // Kolorowa ikona z czerwoną kropką REC
             button.image = MenuBarIcon.recording()
-        case .done:
-            button.image = MenuBarIcon.microphone()
-            // Flash back to idle after 1s
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
-                self?.settings.appState = .idle
-            }
         default:
             // Template image — system automatycznie dopasuje do light/dark mode
             button.image = MenuBarIcon.microphone()
