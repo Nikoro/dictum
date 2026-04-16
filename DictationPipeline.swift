@@ -273,13 +273,20 @@ final class DictationPipeline: ObservableObject {
                 return
             }
 
-            // Gather context (screenshot + selected text + app info)
-            let context = await ContextGatherer.gather(
-                selectedText: pendingSelectedContext,
-                frontmostApp: frontmostApp
-            )
+            // Gather context (screenshot + selected text + app info) — skip if smart context disabled
+            let context: DictationContext?
+            if settings.smartContextEnabled {
+                let gathered = await ContextGatherer.gather(
+                    selectedText: pendingSelectedContext,
+                    frontmostApp: frontmostApp
+                )
+                context = gathered
+                dlog("[Dictum] context: app=\(gathered.appName ?? "nil"), selectedText=\(gathered.selectedText != nil ? "yes" : "no"), screenshot=\(gathered.screenshot != nil ? "yes" : "no")")
+            } else {
+                context = nil
+                dlog("[Dictum] smart context disabled, skipping screenshot/context")
+            }
             pendingSelectedContext = nil
-            dlog("[Dictum] context: app=\(context.appName ?? "nil"), selectedText=\(context.selectedText != nil ? "yes" : "no"), screenshot=\(context.screenshot != nil ? "yes" : "no")")
 
             // LLM cleanup (if enabled)
             let finalText: String
@@ -294,7 +301,7 @@ final class DictationPipeline: ObservableObject {
                     }
 
                     dlog("[Dictum] LLM prompt for \(frontmostApp?.bundleIdentifier ?? "general")")
-                    dlog("[Dictum] LLM input: '\(rawText)', context: \(context.selectedText != nil ? "yes" : "none")")
+                    dlog("[Dictum] LLM input: '\(rawText)', context: \(context?.selectedText != nil ? "yes" : "none")")
                     finalText = try await LLMProcessor.shared.cleanText(
                         rawText: rawText,
                         prompt: prompt,
@@ -312,7 +319,7 @@ final class DictationPipeline: ObservableObject {
             guard !isCancelled else { return }
             settings.lastCleanedText = finalText
 
-            if context.selectedText != nil {
+            if context?.selectedText != nil {
                 // Context mode: put result in clipboard, user pastes manually
                 dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
                 NSPasteboard.general.clearContents()

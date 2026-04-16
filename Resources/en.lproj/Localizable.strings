@@ -83,7 +83,7 @@
 "hotkey.enter" = "Enter";
 
 /* Per-app prompts */
-"section.prompt.general" = "General prompt";
+"section.prompt.general" = "Additional instructions";
 "section.prompt.placeholder.hint" = "Insert {{text}} to specify where transcribed text goes";
 "section.prompt.perapp" = "Per-app prompts";
 "section.prompt.perapp.empty" = "None — general prompt will be used";
@@ -104,3 +104,11 @@
 "permissions.needed.title" = "Permissions needed";
 "permissions.needed.desc" = "After the update, macOS requires you to re-enable permissions.";
 
+
+/* Smart Context */
+"setup.step1.screen.title" = "Screen Recording";
+"setup.step1.screen.desc" = "Capture window for smart context";
+"section.prompt.unified" = "System prompt";
+"section.prompt.unified.reset" = "Reset";
+"section.smartContext" = "Smart Context";
+"section.smartContext.toggle" = "Use screenshot for context";

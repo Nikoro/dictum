@@ -170,6 +170,29 @@ struct LLMModelSection: View {
                 }
             }
 
+            // Smart Context toggle
+            HStack(spacing: 6) {
+                Toggle("", isOn: Binding(
+                    get: { settings.smartContextEnabled },
+                    set: { settings.smartContextEnabled = $0 }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .controlSize(.mini)
+
+                Image(systemName: "eye")
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(settings.smartContextEnabled ? .primary : .secondary)
+
+                Text(String(localized: "section.smartContext.toggle", defaultValue: "Use screenshot for context"))
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(settings.smartContextEnabled ? .primary : .secondary)
+            }
+            .padding(8)
+            .background(.quaternary.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
             // Prompts
             UnifiedPromptSection()
             GeneralPromptSection(hasDownloadedModels: !downloadedModels.isEmpty)

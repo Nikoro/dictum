@@ -83,7 +83,7 @@
 "hotkey.enter" = "Enter";
 
 /* Per-app prompts */
-"section.prompt.general" = "Prompt ogólny";
+"section.prompt.general" = "Dodatkowe instrukcje";
 "section.prompt.placeholder.hint" = "Wstaw {{text}} aby określić miejsce wklejenia tekstu";
 "section.prompt.perapp" = "Prompty per aplikacja";
 "section.prompt.perapp.empty" = "Brak — używany będzie prompt ogólny";
@@ -104,3 +104,11 @@
 "permissions.needed.title" = "Wymagane uprawnienia";
 "permissions.needed.desc" = "Po aktualizacji macOS wymaga ponownego przyznania uprawnień.";
 
+
+/* Smart Context */
+"setup.step1.screen.title" = "Nagrywanie ekranu";
+"setup.step1.screen.desc" = "Zrzut okna dla inteligentnego kontekstu";
+"section.prompt.unified" = "Prompt systemowy";
+"section.prompt.unified.reset" = "Resetuj";
+"section.smartContext" = "Inteligentny kontekst";
+"section.smartContext.toggle" = "Używaj zrzutu ekranu jako kontekst";

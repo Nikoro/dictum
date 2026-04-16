@@ -19,8 +19,14 @@ enum ScreenshotCapture {
 
             let filter = SCContentFilter(desktopIndependentWindow: window)
             let config = SCStreamConfiguration()
-            config.width = Int(window.frame.width * 2) // Retina
-            config.height = Int(window.frame.height * 2)
+
+            // Downscale for VLM: cap longest side at 1024px, preserve aspect ratio
+            let maxDimension: CGFloat = 1024
+            let w = window.frame.width
+            let h = window.frame.height
+            let scale = min(maxDimension / max(w, h), 1.0)
+            config.width = Int(w * scale)
+            config.height = Int(h * scale)
             config.captureResolution = .best
             config.showsCursor = false
 
