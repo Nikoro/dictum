@@ -8,6 +8,7 @@ struct DownloadedModelsStorageSummary: View {
         HStack {
             Image(systemName: "internaldrive")
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text(String(localized: "section.downloaded.total", defaultValue: "Total on disk:"))
                 .font(.caption)
                 .foregroundStyle(.secondary)

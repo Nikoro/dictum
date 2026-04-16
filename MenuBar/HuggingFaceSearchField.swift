@@ -11,6 +11,7 @@ struct HuggingFaceSearchField: View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             TextField(
                 String(localized: "section.llm.search", defaultValue: "Search models (e.g. qwen, gemma, llama)..."),
                 text: $searchQuery

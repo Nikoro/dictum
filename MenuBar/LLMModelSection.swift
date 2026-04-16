@@ -42,6 +42,12 @@ struct LLMModelSection: View {
                 onClear: modelSearch.clearSearch
             )
 
+            if modelSearch.searchQuery.count == 1 {
+                Text(String(localized: "search.minChars", defaultValue: "Type at least 2 characters"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             if let searchError = modelSearch.searchError {
                 Text(searchError)
                     .font(.caption)

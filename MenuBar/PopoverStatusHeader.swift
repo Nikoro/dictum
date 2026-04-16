@@ -13,6 +13,7 @@ struct PopoverStatusHeader: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 24, height: 24)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .accessibilityHidden(true)
                 Text("Dictum")
                     .font(.title2.bold())
                 Spacer()

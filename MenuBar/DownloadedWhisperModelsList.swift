@@ -36,6 +36,9 @@ struct DownloadedWhisperModelsList: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(model.id == activeModelId)
+                    .help(model.id == activeModelId
+                        ? String(localized: "help.switchModelFirst", defaultValue: "Switch to another model first to delete this one")
+                        : "")
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)

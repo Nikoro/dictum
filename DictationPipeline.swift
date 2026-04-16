@@ -168,6 +168,7 @@ final class DictationPipeline: ObservableObject {
             _ = audioRecorder.stopRecording()
             isRecording = false
         }
+        hotkeyMonitor.isActive = false
         isCancelled = true
         selectedContext = nil
         runtimeState.appState = .idle
@@ -200,6 +201,7 @@ final class DictationPipeline: ObservableObject {
         do {
             try audioRecorder.startRecording()
             isRecording = true
+            hotkeyMonitor.isActive = true
             runtimeState.appState = .recording
             targetBundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
             dlog(
@@ -236,6 +238,7 @@ final class DictationPipeline: ObservableObject {
         isCancelled = false
         let samples = audioRecorder.stopRecording()
         isRecording = false
+        hotkeyMonitor.isActive = false
         dlog("[Dictum] stopRecording, samples=\(samples.count)")
         await waitForWarmupIfNeeded()
         guard !samples.isEmpty else {

@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import Combine
+import os
 
 @MainActor
 final class GlobalHotkeyMonitor: ObservableObject {
@@ -16,13 +17,23 @@ final class GlobalHotkeyMonitor: ObservableObject {
 
     private let settings = AppSettings.shared
 
-    /// Cached hotkey settings for safe access from nonisolated event tap callback
-    private nonisolated(unsafe) var cachedIsModifierOnly: Bool = true
-    private nonisolated(unsafe) var cachedKeyCode: Int = 54
-    private nonisolated(unsafe) var cachedModifiers: Int = 0
+    /// Thread-safe cached hotkey config, read from the CGEvent tap thread
+    private struct CachedHotkeyConfig: Sendable {
+        var isModifierOnly: Bool = true
+        var keyCode: Int = 54
+        var modifiers: Int = 0
+        var isActive: Bool = false
+    }
+
+    private let cachedConfig = OSAllocatedUnfairLock(initialState: CachedHotkeyConfig())
 
     /// Tracks whether a modifier-only hotkey is currently "pressed"
     private var modifierKeyDown = false
+
+    nonisolated var isActive: Bool {
+        get { cachedConfig.withLock { $0.isActive } }
+        set { cachedConfig.withLock { $0.isActive = newValue } }
+    }
 
     private init() {}
 
@@ -50,9 +61,14 @@ final class GlobalHotkeyMonitor: ObservableObject {
         )
 
         // Cache settings for safe access from nonisolated event tap callback
-        cachedIsModifierOnly = settings.hotkeyIsModifierOnly
-        cachedKeyCode = settings.hotkeyKeyCode
-        cachedModifiers = settings.hotkeyModifiers
+        let isModOnly = settings.hotkeyIsModifierOnly
+        let keyCode = settings.hotkeyKeyCode
+        let mods = settings.hotkeyModifiers
+        cachedConfig.withLock { config in
+            config.isModifierOnly = isModOnly
+            config.keyCode = keyCode
+            config.modifiers = mods
+        }
 
         guard accessibilityGranted else {
             dlog("[Hotkey] accessibility NOT granted, requesting...")
@@ -116,8 +132,9 @@ final class GlobalHotkeyMonitor: ObservableObject {
     private nonisolated func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
-        let isModifierOnly = cachedIsModifierOnly
-        let expectedKeyCode = Int64(cachedKeyCode)
+        let snapshot = cachedConfig.withLock { $0 }
+        let isModifierOnly = snapshot.isModifierOnly
+        let expectedKeyCode = Int64(snapshot.keyCode)
 
         if handleEscapeKey(type: type, keyCode: keyCode, event: event) != nil {
             return Unmanaged.passRetained(event)
@@ -136,6 +153,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
                 type: type,
                 keyCode: keyCode,
                 expectedKeyCode: expectedKeyCode,
+                expectedModifiers: snapshot.modifiers,
                 flags: flags,
                 event: event
             )
@@ -147,7 +165,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
         keyCode: Int64,
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
-        guard type == .keyDown, keyCode == Int64(KeyCode.escape) else {
+        guard type == .keyDown, keyCode == Int64(KeyCode.escape), isActive else {
             return nil
         }
 
@@ -200,10 +218,11 @@ final class GlobalHotkeyMonitor: ObservableObject {
         type: CGEventType,
         keyCode: Int64,
         expectedKeyCode: Int64,
+        expectedModifiers modifiersRaw: Int,
         flags: CGEventFlags,
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
-        let expectedModifiers = CGEventFlags(rawValue: UInt64(cachedModifiers))
+        let expectedModifiers = CGEventFlags(rawValue: UInt64(modifiersRaw))
         let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
         let currentModifiers = flags.intersection(modifierMask)
         let expectedMods = expectedModifiers.intersection(modifierMask)

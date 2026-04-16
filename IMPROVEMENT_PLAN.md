@@ -75,7 +75,7 @@
 
 ## High Priority Findings
 
-### [ ] [H1] Data race on `nonisolated(unsafe)` cached hotkey config `[T2]`
+### [x] [H1] Data race on `nonisolated(unsafe)` cached hotkey config `[T2]`
 - **File**: `HotkeyAndPaste/GlobalHotkeyMonitor.swift:20-22,53-55,119-120`
 - **Auditor**: swift-auditor
 - **Issue**: `cachedIsModifierOnly`, `cachedKeyCode`, `cachedModifiers` are written on `@MainActor` and read from the CGEvent tap thread with no synchronization. Benign on Apple Silicon today, formally UB under Swift concurrency model, will trip Swift 6 strict concurrency.
@@ -272,7 +272,7 @@
 - **Recommendation**: Rewrite as cancellable `Task` chain; back-to-back dictations currently overwrite each other's clipboard restoration.
 - **Effort**: Moderate
 
-### [ ] [M13] Escape key unconditionally intercepts even when not recording `[T3]`
+### [x] [M13] Escape key unconditionally intercepts even when not recording `[T3]`
 - **File**: `HotkeyAndPaste/GlobalHotkeyMonitor.swift:145-158`
 - **Auditor**: macos-auditor
 - **Recommendation**: Guard on `DictationPipeline.shared.isRecording` before dispatching cancel.
@@ -431,12 +431,12 @@
 - **Recommendation**: Test `com.apple.SystemPreferences.PrivacySettings?Privacy_Accessibility` under macOS 26 with legacy fallback.
 - **Effort**: Quick Win
 
-### [ ] [L14] Per-app trash button explanation missing on active STT model `[T3]`
+### [x] [L14] Per-app trash button explanation missing on active STT model `[T3]`
 - **File**: `MenuBar/DownloadedWhisperModelsList.swift:38-39`
 - **Recommendation**: `.help("Switch to another model first to delete this one")`.
 - **Effort**: Quick Win
 
-### [ ] [L15] HF search min-chars hint missing `[T3]`
+### [x] [L15] HF search min-chars hint missing `[T3]`
 - **File**: `MenuBar/LLMModelSection.swift:45-53`
 - **Recommendation**: Show "Type at least 2 characters" when query length == 1.
 - **Effort**: Quick Win
@@ -451,7 +451,7 @@
 - **Recommendation**: Remove redundant dispatch.
 - **Effort**: Quick Win
 
-### [ ] [L18] Decorative SF Symbols not hidden from a11y tree + reduce-motion not respected `[T3]`
+### [x] [L18] Decorative SF Symbols not hidden from a11y tree + reduce-motion not respected `[T3]`
 - **File**: `DownloadedModelsStorageSummary.swift:9`, `HuggingFaceSearchField.swift:12`, `PermissionsNeededView.swift:13`, `SetupHeaderView.swift:7`, `PopoverStatusHeader.swift:12`, `FloatingIndicatorView.swift:16`
 - **Recommendation**: `.accessibilityHidden(true)` on decorative glyphs; read `@Environment(\.accessibilityReduceMotion)` and substitute static indicator in pill.
 - **Effort**: Quick Win
@@ -462,7 +462,7 @@
 - **Recommendation**: Add short CONTRIBUTING.md with Xcode 26 + XcodeGen + signing + dev cycle, bug_report.md template with OS version + model IDs + log snippet, Contributor Covenant 2.1.
 - **Effort**: Moderate
 
-### [ ] [L20] Missing `.xcuserstate` in `.gitignore` + no `.gitattributes` `[T1]`
+### [x] [L20] Missing `.xcuserstate` in `.gitignore` + no `.gitattributes` `[T1]`
 - **File**: `.gitignore`, `.gitattributes` (missing)
 - **Auditor**: git-historian
 - **Recommendation**: Add `*.xcuserstate` to `.gitignore`; add minimal `.gitattributes` with `* text=auto` + `*.png binary`.
