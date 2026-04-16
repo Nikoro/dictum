@@ -123,3 +123,4 @@
 "section.context.screenshot" = "Screenshot";
 "section.context.selectedText" = "Selected text";
 "section.context.clipboard" = "Clipboard";
+"section.instructions.addApp" = "Add app";

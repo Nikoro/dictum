@@ -273,18 +273,8 @@ private struct InstructionsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(String(localized: "section.instructions", defaultValue: "Instructions"))
-                    .font(.headline)
-                Spacer()
-                Button {
-                    showingAppPicker = true
-                } label: {
-                    Image(systemName: "plus.circle")
-                        .font(.body)
-                }
-                .buttonStyle(.plain)
-            }
+            Text(String(localized: "section.instructions", defaultValue: "Instructions"))
+                .font(.headline)
 
             // "All apps" — the default/fallback prompt
             AllAppsPromptRow(hasDownloadedModels: hasDownloadedModels)
@@ -293,6 +283,20 @@ private struct InstructionsSection: View {
             ForEach(settings.appPrompts) { appPrompt in
                 AppPromptRow(appPrompt: appPrompt, hasDownloadedModels: hasDownloadedModels)
             }
+
+            // Add per-app button
+            Button {
+                showingAppPicker = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "plus")
+                        .font(.caption2)
+                    Text(String(localized: "section.instructions.addApp", defaultValue: "Add app"))
+                        .font(.caption)
+                }
+                .foregroundStyle(Color("AccentColor"))
+            }
+            .buttonStyle(.plain)
         }
         .sheet(isPresented: $showingAppPicker) {
             InstalledAppPickerSheet(
@@ -319,6 +323,17 @@ private struct AllAppsPromptRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
+                Image(systemName: "macwindow")
+                    .frame(width: 16)
+                    .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+                    .font(.caption)
+
+                Text(String(localized: "section.instructions.allApps", defaultValue: "All apps"))
+                    .font(.caption)
+                    .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+
+                Spacer()
+
                 Toggle("", isOn: Binding(
                     get: { settings.llmGeneralPromptEnabled },
                     set: { newValue in
@@ -333,17 +348,6 @@ private struct AllAppsPromptRow: View {
                 .toggleStyle(.switch)
                 .labelsHidden()
                 .controlSize(.mini)
-
-                Image(systemName: "macwindow")
-                    .frame(width: 18, height: 18)
-                    .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
-
-                Text(String(localized: "section.instructions.allApps", defaultValue: "All apps"))
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
-
-                Spacer()
             }
 
             if showNoModelWarning {
@@ -390,6 +394,34 @@ private struct AppPromptRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
+                if let icon = appIcon(forBundleId: appPrompt.bundleId) {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
+                } else {
+                    Image(systemName: "app.fill")
+                        .frame(width: 16)
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+
+                Text(cleanAppName)
+                    .font(.caption)
+                    .foregroundStyle(appPrompt.enabled ? .primary : .secondary)
+
+                Spacer()
+
+                Button {
+                    settings.removeAppPrompt(bundleId: appPrompt.bundleId)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+
                 Toggle("", isOn: Binding(
                     get: { appPrompt.enabled },
                     set: { newValue in
@@ -404,31 +436,6 @@ private struct AppPromptRow: View {
                 .toggleStyle(.switch)
                 .labelsHidden()
                 .controlSize(.mini)
-
-                if let icon = appIcon(forBundleId: appPrompt.bundleId) {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 18, height: 18)
-                } else {
-                    Image(systemName: "app.fill")
-                        .frame(width: 18, height: 18)
-                        .foregroundStyle(.secondary)
-                }
-                Text(cleanAppName)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(appPrompt.enabled ? .primary : .secondary)
-                Spacer()
-                Button {
-                    settings.removeAppPrompt(bundleId: appPrompt.bundleId)
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                }
-                .buttonStyle(.plain)
             }
 
             if showNoModelWarning {

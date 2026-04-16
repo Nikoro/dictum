@@ -123,3 +123,4 @@
 "section.context.screenshot" = "Zrzut ekranu";
 "section.context.selectedText" = "Zaznaczony tekst";
 "section.context.clipboard" = "Schowek";
+"section.instructions.addApp" = "Dodaj aplikację";
