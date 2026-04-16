@@ -96,9 +96,19 @@ struct LLMModelSection: View {
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(model.shortName)
-                                            .font(.system(.body, design: .monospaced))
-                                            .fontWeight(isDownloaded ? .semibold : .regular)
+                                        HStack(spacing: 6) {
+                                            Text(model.shortName)
+                                                .font(.system(.body, design: .monospaced))
+                                                .fontWeight(isDownloaded ? .semibold : .regular)
+                                            if model.isRecommended {
+                                                Text(String(localized: "setup.recommended", defaultValue: "Recommended"))
+                                                    .font(.system(size: 9, weight: .semibold))
+                                                    .foregroundStyle(.white)
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 1)
+                                                    .background(Color("AccentColor"), in: Capsule())
+                                            }
+                                        }
                                         if model.totalSizeBytes > 0 {
                                             Text(model.formattedSize)
                                                 .font(.caption)
@@ -170,33 +180,9 @@ struct LLMModelSection: View {
                 }
             }
 
-            // Smart Context toggle
-            HStack(spacing: 6) {
-                Toggle("", isOn: Binding(
-                    get: { settings.smartContextEnabled },
-                    set: { settings.smartContextEnabled = $0 }
-                ))
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .controlSize(.mini)
-
-                Image(systemName: "eye")
-                    .frame(width: 18, height: 18)
-                    .foregroundStyle(settings.smartContextEnabled ? .primary : .secondary)
-
-                Text(String(localized: "section.smartContext.toggle", defaultValue: "Use screenshot for context"))
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(settings.smartContextEnabled ? .primary : .secondary)
-            }
-            .padding(8)
-            .background(.quaternary.opacity(0.5))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-
             // Prompts
             UnifiedPromptSection()
-            GeneralPromptSection(hasDownloadedModels: !downloadedModels.isEmpty)
-            AppPromptsSection(hasDownloadedModels: !downloadedModels.isEmpty)
+            InstructionsSection(hasDownloadedModels: !downloadedModels.isEmpty)
         }
         .padding()
     }
@@ -216,40 +202,60 @@ struct LLMModelSection: View {
 private struct UnifiedPromptSection: View {
     @EnvironmentObject var settings: AppSettings
     @State private var localPrompt: String = ""
+    @State private var isExpanded: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "brain.head.profile")
-                    .frame(width: 18, height: 18)
-
-                Text(String(localized: "section.prompt.unified", defaultValue: "System prompt"))
-                    .font(.caption)
-                    .fontWeight(.medium)
-
-                Spacer()
-
-                Button(String(localized: "section.prompt.unified.reset", defaultValue: "Reset")) {
-                    settings.resetUnifiedPrompt()
-                    localPrompt = settings.unifiedSystemPrompt
+            // Header — always visible, acts as toggle
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
                 }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundStyle(Color("AccentColor"))
-            }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "brain.head.profile")
+                        .frame(width: 18, height: 18)
 
-            PromptTextEditor(
-                text: $localPrompt,
-                placeholder: String(AppSettings.defaultUnifiedPrompt.prefix(100)) + "..."
-            )
-            .frame(minHeight: 100, maxHeight: 160)
-            .background(.quaternary)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .onChange(of: localPrompt) { _, newValue in
-                settings.unifiedSystemPrompt = newValue
+                    Text(String(localized: "section.prompt.unified", defaultValue: "System prompt"))
+                        .font(.caption)
+                        .fontWeight(.medium)
+
+                    Spacer()
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Expanded content
+            if isExpanded {
+                HStack {
+                    Spacer()
+                    Button(String(localized: "section.prompt.unified.reset", defaultValue: "Reset")) {
+                        settings.resetUnifiedPrompt()
+                        localPrompt = settings.unifiedSystemPrompt
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
+                    .foregroundStyle(Color("AccentColor"))
+                }
+
+                PromptTextEditor(
+                    text: $localPrompt,
+                    placeholder: String(AppSettings.defaultUnifiedPrompt.prefix(100)) + "..."
+                )
+                .frame(minHeight: 100, maxHeight: 160)
+                .background(.quaternary)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .onChange(of: localPrompt) { _, newValue in
+                    settings.unifiedSystemPrompt = newValue
+                }
             }
         }
         .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear {
@@ -260,9 +266,53 @@ private struct UnifiedPromptSection: View {
     }
 }
 
-// MARK: - General Prompt
+// MARK: - Instructions (All Apps + Per-App)
 
-private struct GeneralPromptSection: View {
+private struct InstructionsSection: View {
+    @EnvironmentObject var settings: AppSettings
+    @State private var showingAppPicker = false
+    let hasDownloadedModels: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(String(localized: "section.instructions", defaultValue: "Instructions"))
+                    .font(.headline)
+                Spacer()
+                Button {
+                    showingAppPicker = true
+                } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // "All apps" — the default/fallback prompt
+            AllAppsPromptRow(hasDownloadedModels: hasDownloadedModels)
+
+            // Per-app overrides
+            ForEach(settings.appPrompts) { appPrompt in
+                AppPromptRow(appPrompt: appPrompt, hasDownloadedModels: hasDownloadedModels)
+            }
+        }
+        .sheet(isPresented: $showingAppPicker) {
+            InstalledAppPickerSheet(
+                title: String(localized: "section.prompt.picker.title", defaultValue: "Wybierz aplikację"),
+                excludedBundleIds: Set(settings.appPrompts.map(\.bundleId))
+            ) { bundleId, appName in
+                settings.addAppPrompt(AppPrompt(
+                    bundleId: bundleId,
+                    appName: appName,
+                    prompt: "",
+                    enabled: hasDownloadedModels
+                ))
+            }
+        }
+    }
+}
+
+private struct AllAppsPromptRow: View {
     @EnvironmentObject var settings: AppSettings
     @State private var localPrompt: String = ""
     @State private var showNoModelWarning = false
@@ -286,14 +336,16 @@ private struct GeneralPromptSection: View {
                 .labelsHidden()
                 .controlSize(.mini)
 
-                Image(systemName: "text.bubble")
+                Image(systemName: "macwindow")
                     .frame(width: 18, height: 18)
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
 
-                Text(String(localized: "section.prompt.general", defaultValue: "Additional instructions"))
+                Text(String(localized: "section.instructions.allApps", defaultValue: "All apps"))
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(settings.llmGeneralPromptEnabled ? .primary : .secondary)
+
+                Spacer()
             }
 
             if showNoModelWarning {
@@ -305,80 +357,23 @@ private struct GeneralPromptSection: View {
             if settings.llmGeneralPromptEnabled {
                 PromptTextEditor(
                     text: $localPrompt,
-                    placeholder: String(localized: "section.prompt.general.placeholder", defaultValue: "Wpisz prompt ogólny...")
+                    placeholder: String(localized: "section.instructions.allApps.placeholder", defaultValue: "Instructions for all apps...")
                 )
-                .frame(minHeight: 80, maxHeight: 120)
+                .frame(minHeight: 60, maxHeight: 100)
                 .background(.quaternary)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .onChange(of: localPrompt) { _, newValue in
                     settings.llmPrompt = newValue
                 }
-
-                Button(String(localized: "section.prompt.example", defaultValue: "Przykładowy prompt")) {
-                    let example = "Usuń wypełniacze (yyy, eee, hmm). Popraw interpunkcję i literówki. Popraw zdania, które nie mają sensu. Nie zmieniaj stylu. Zwróć tylko poprawiony tekst."
-                    localPrompt = example
-                    settings.llmPrompt = example
-                }
-                .buttonStyle(.plain)
-                .font(.caption)
-                .foregroundStyle(Color("AccentColor"))
             }
         }
         .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { localPrompt = settings.llmPrompt }
         .onChange(of: hasDownloadedModels) { _, hasModels in
             if hasModels { showNoModelWarning = false }
-        }
-    }
-}
-
-// MARK: - Per-App Prompts
-
-private struct AppPromptsSection: View {
-    @EnvironmentObject var settings: AppSettings
-    @State private var showingAppPicker = false
-    let hasDownloadedModels: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(String(localized: "section.prompt.perapp", defaultValue: "Prompty per aplikacja"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button {
-                    showingAppPicker = true
-                } label: {
-                    Image(systemName: "plus.circle")
-                        .font(.body)
-                }
-                .buttonStyle(.plain)
-            }
-
-            if settings.appPrompts.isEmpty {
-                Text(String(localized: "section.prompt.perapp.empty", defaultValue: "Brak — używany będzie prompt ogólny"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            ForEach(settings.appPrompts) { appPrompt in
-                AppPromptRow(appPrompt: appPrompt, hasDownloadedModels: hasDownloadedModels)
-            }
-        }
-        .sheet(isPresented: $showingAppPicker) {
-            InstalledAppPickerSheet(
-                title: String(localized: "section.prompt.picker.title", defaultValue: "Wybierz aplikację"),
-                excludedBundleIds: Set(settings.appPrompts.map(\.bundleId))
-            ) { bundleId, appName in
-                settings.addAppPrompt(AppPrompt(
-                    bundleId: bundleId,
-                    appName: appName,
-                    prompt: "",
-                    enabled: hasDownloadedModels
-                ))
-            }
         }
     }
 }
@@ -458,6 +453,7 @@ private struct AppPromptRow: View {
             }
         }
         .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { localPrompt = appPrompt.prompt }

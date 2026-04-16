@@ -112,3 +112,14 @@
 "section.prompt.unified.reset" = "Resetuj";
 "section.smartContext" = "Inteligentny kontekst";
 "section.smartContext.toggle" = "Używaj zrzutu ekranu jako kontekst";
+
+/* Instructions */
+"section.instructions" = "Instrukcje";
+"section.instructions.allApps" = "Wszystkie aplikacje";
+"section.instructions.allApps.placeholder" = "Instrukcje dla wszystkich aplikacji...";
+
+/* Context sources */
+"section.context" = "Kontekst";
+"section.context.screenshot" = "Zrzut ekranu";
+"section.context.selectedText" = "Zaznaczony tekst";
+"section.context.clipboard" = "Schowek";

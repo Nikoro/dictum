@@ -23,6 +23,16 @@ struct HFModelInfo: Codable, Identifiable {
     var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: totalSizeBytes, countStyle: .file)
     }
+
+    var isRecommended: Bool {
+        HFModelInfo.recommendedModelIds.contains(id)
+    }
+
+    /// Model IDs that appear at the top of search results with a "Recommended" badge.
+    static let recommendedModelIds: Set<String> = [
+        "mlx-community/gemma-4-e4b-it-4bit",
+        "mlx-community/gemma-4-e2b-it-4bit",
+    ]
 }
 
 @MainActor
@@ -60,7 +70,10 @@ final class ModelBrowser: ObservableObject {
 
                 guard !Task.isCancelled else { return }
 
-                self.searchResults = models
+                // Sort recommended models to the top, preserve order within each group
+                let recommended = models.filter { HFModelInfo.recommendedModelIds.contains($0.id) }
+                let rest = models.filter { !HFModelInfo.recommendedModelIds.contains($0.id) }
+                self.searchResults = recommended + rest
             } catch {
                 if !Task.isCancelled {
                     print("HF API error: \(error)")

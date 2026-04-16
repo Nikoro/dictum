@@ -273,18 +273,25 @@ final class DictationPipeline: ObservableObject {
                 return
             }
 
-            // Gather context (screenshot + selected text + app info) — skip if smart context disabled
+            // Gather context — individual sources controlled by settings toggles
+            let options = ContextOptions(
+                screenshot: settings.contextScreenshot,
+                selectedText: settings.contextSelectedText,
+                clipboard: settings.contextClipboard
+            )
+            let hasAnyContextEnabled = options.screenshot || options.selectedText || options.clipboard
             let context: DictationContext?
-            if settings.smartContextEnabled {
+            if settings.smartContextEnabled && hasAnyContextEnabled {
                 let gathered = await ContextGatherer.gather(
                     selectedText: pendingSelectedContext,
-                    frontmostApp: frontmostApp
+                    frontmostApp: frontmostApp,
+                    options: options
                 )
                 context = gathered
-                dlog("[Dictum] context: app=\(gathered.appName ?? "nil"), selectedText=\(gathered.selectedText != nil ? "yes" : "no"), screenshot=\(gathered.screenshot != nil ? "yes" : "no")")
+                dlog("[Dictum] context: app=\(gathered.appName ?? "nil"), selectedText=\(gathered.selectedText != nil ? "yes" : "no"), screenshot=\(gathered.screenshot != nil ? "yes" : "no"), clipboard=\(gathered.clipboardText != nil || gathered.clipboardImage != nil ? "yes" : "no")")
             } else {
                 context = nil
-                dlog("[Dictum] smart context disabled, skipping screenshot/context")
+                dlog("[Dictum] smart context disabled, skipping")
             }
             pendingSelectedContext = nil
 

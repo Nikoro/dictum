@@ -129,7 +129,7 @@ actor LLMProcessor {
 
         let systemPrompt: String
         let userMessage: String
-        var image: UserInput.Image?
+        var images: [UserInput.Image] = []
 
         if let context {
             // Smart context mode: unified prompt as system, structured user message
@@ -142,9 +142,16 @@ actor LLMProcessor {
             if let selectedText = context.selectedText, !selectedText.isEmpty {
                 parts.append("Selected text:\n\(selectedText)")
             }
+            if let clipboardText = context.clipboardText, !clipboardText.isEmpty {
+                parts.append("Clipboard:\n\(clipboardText)")
+            }
             if let screenshot = context.screenshot, isVisionModel {
-                image = .ciImage(CIImage(cgImage: screenshot))
+                images.append(.ciImage(CIImage(cgImage: screenshot)))
                 dlog("[LLM] passing screenshot to vision model")
+            }
+            if let clipboardImage = context.clipboardImage, isVisionModel {
+                images.append(.ciImage(CIImage(cgImage: clipboardImage)))
+                dlog("[LLM] passing clipboard image to vision model")
             }
             parts.append("Spoken words: \(rawText)")
             userMessage = parts.joined(separator: "\n\n")
@@ -164,7 +171,7 @@ actor LLMProcessor {
             )
         )
 
-        var result = try await session.respond(to: userMessage, image: image)
+        var result = try await session.respond(to: userMessage, images: images, videos: [])
 
         // Strip thinking blocks (Qwen3, Gemma)
         if let thinkEnd = result.range(of: "</think>") {

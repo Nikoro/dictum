@@ -112,3 +112,14 @@
 "section.prompt.unified.reset" = "Reset";
 "section.smartContext" = "Smart Context";
 "section.smartContext.toggle" = "Use screenshot for context";
+
+/* Instructions */
+"section.instructions" = "Instructions";
+"section.instructions.allApps" = "All apps";
+"section.instructions.allApps.placeholder" = "Instructions for all apps...";
+
+/* Context sources */
+"section.context" = "Context";
+"section.context.screenshot" = "Screenshot";
+"section.context.selectedText" = "Selected text";
+"section.context.clipboard" = "Clipboard";
