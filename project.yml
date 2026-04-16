@@ -59,3 +59,5 @@ targets:
       - package: Sparkle
     entitlements:
       path: Resources/Dictum.entitlements
+      properties:
+        com.apple.security.device.microphone: true

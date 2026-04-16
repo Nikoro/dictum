@@ -28,6 +28,7 @@
 		549D99FAF5A8E4131AD45188 /* HuggingFaceSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20640DE623A01CDD134E4FF2 /* HuggingFaceSearchField.swift */; };
 		550016EEAA4F9D1D9B0DC919 /* LaunchAtLoginPreferenceToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF24FA3340D5BE3C3EDDF3F1 /* LaunchAtLoginPreferenceToggle.swift */; };
 		56A4BB4135CAA2E8CBF229CC /* LLMModelSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B269BB55AAE21D58EAE7B0E /* LLMModelSection.swift */; };
+		5D4FA29779C7D58BD1DCB1EB /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 8A5C4616B962C25470F8CAA8 /* Localizable.stringsdict */; };
 		61416821E500C2BA46767158 /* DictumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2829C2AB934DC89034609029 /* DictumApp.swift */; };
 		6236A1758388AAEB86CF3506 /* SetupStepContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5BF4975870CB0F2CE12D0D /* SetupStepContent.swift */; };
 		6812C3ABA68A294B600B8615 /* DownloadedModelsStorageSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F56F836FC92EBF622EF210B /* DownloadedModelsStorageSummary.swift */; };
@@ -90,6 +91,7 @@
 		16520F936EED37E7A877EB44 /* SetupLLMOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupLLMOptions.swift; sourceTree = "<group>"; };
 		18F65423401283C8A86A34D3 /* RecordingPreferencesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingPreferencesSection.swift; sourceTree = "<group>"; };
 		1A6325708BD691B1F0D20F61 /* AppMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMetadata.swift; sourceTree = "<group>"; };
+		1A8B30B6E190F1B26BB393EB /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		1B269BB55AAE21D58EAE7B0E /* LLMModelSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModelSection.swift; sourceTree = "<group>"; };
 		1E150E3539CCFB292B8B6D7E /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1EFF0037BD4FCDC1860AA689 /* SelectedTextCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectedTextCapture.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 		9094E6BCE4A56C8E69DFE7D3 /* InstalledAppPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAppPickerSheet.swift; sourceTree = "<group>"; };
 		99DA622EA107C648E99591AF /* GlobalHotkeyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyMonitor.swift; sourceTree = "<group>"; };
 		9D73DA7904B656F4B007FBBF /* AppRuntimeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeState.swift; sourceTree = "<group>"; };
+		A34285E1CEA89A1B5B73A474 /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = pl; path = pl.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		A52C02DC25B522AB15CF93A1 /* Dictum.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dictum.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB9ADDCC870D4AC19668533B /* PermissionsNeededView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsNeededView.swift; sourceTree = "<group>"; };
 		AD5BF4975870CB0F2CE12D0D /* SetupStepContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupStepContent.swift; sourceTree = "<group>"; };
@@ -238,6 +241,7 @@
 				3BFC03684CBEAD1175FE0A1A /* PrivacyInfo.xcprivacy */,
 				F6A0098EEE1CBAA022368CEF /* InfoPlist.strings */,
 				E52ADE98506F672EF2113869 /* Localizable.strings */,
+				8A5C4616B962C25470F8CAA8 /* Localizable.stringsdict */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -394,6 +398,7 @@
 				CEB52D817BD96AAC38C1134C /* Assets.xcassets in Resources */,
 				E6779B34C0860574FF8198D7 /* InfoPlist.strings in Resources */,
 				9DCDDFA938B581AC1C27FCEA /* Localizable.strings in Resources */,
+				5D4FA29779C7D58BD1DCB1EB /* Localizable.stringsdict in Resources */,
 				106ED1DB520DC96CD424EF0D /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -472,6 +477,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		8A5C4616B962C25470F8CAA8 /* Localizable.stringsdict */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1A8B30B6E190F1B26BB393EB /* en */,
+				A34285E1CEA89A1B5B73A474 /* pl */,
+			);
+			name = Localizable.stringsdict;
+			sourceTree = "<group>";
+		};
 		E52ADE98506F672EF2113869 /* Localizable.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
