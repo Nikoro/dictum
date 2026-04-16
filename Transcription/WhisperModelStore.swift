@@ -199,12 +199,6 @@ final class WhisperModelStore: ObservableObject {
     }
 
     private func directorySize(_ url: URL) -> Int64 {
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
-        var total: Int64 = 0
-        while let fileURL = enumerator.nextObject() as? URL {
-            let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            total += Int64(size)
-        }
-        return total
+        FileManager.default.directorySize(at: url)
     }
 }

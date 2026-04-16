@@ -7,7 +7,7 @@ struct LLMModelDownloadStatusView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        let shortModelId = modelId.replacingOccurrences(of: "mlx-community/", with: "")
+        let shortModelId = ModelConstants.shortModelName(modelId)
 
         VStack(spacing: 4) {
             HStack(spacing: 6) {

@@ -43,7 +43,6 @@ struct PopoverStatusHeader: View {
         case .recording: return String(localized: "header.recording", defaultValue: "Recording...")
         case .transcribing: return String(localized: "header.transcribing", defaultValue: "Transcribing...")
         case .processingLLM: return String(localized: "header.processingLLM", defaultValue: "Cleaning text with LLM...")
-        case .done: return String(localized: "header.done", defaultValue: "Done \u{2014} text pasted")
         case .error(let message): return message
         }
     }
@@ -61,7 +60,6 @@ struct PopoverStatusHeader: View {
         case .recording: return .red
         case .transcribing: return .yellow
         case .processingLLM: return .orange
-        case .done: return .green
         case .error: return .red
         default: return .secondary
         }

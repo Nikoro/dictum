@@ -6,7 +6,6 @@ enum AppState: Equatable, Sendable {
     case recording
     case transcribing
     case processingLLM
-    case done
     case error(String)
 }
 

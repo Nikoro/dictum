@@ -12,7 +12,7 @@ struct HuggingFaceModelInfo: Codable, Identifiable {
     let siblings: [HuggingFaceModelFile]?
 
     var shortName: String {
-        id.replacingOccurrences(of: "mlx-community/", with: "")
+        ModelConstants.shortModelName(id)
     }
 
     var totalSizeBytes: Int64 {

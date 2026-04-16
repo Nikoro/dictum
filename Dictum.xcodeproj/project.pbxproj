@@ -48,6 +48,7 @@
 		AA059B82D636C76F4101522E /* WhisperModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C099A922CCE27613ADF0DB83 /* WhisperModelStore.swift */; };
 		ACDD1CF32D67CBB054723332 /* PermissionsNeededView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9ADDCC870D4AC19668533B /* PermissionsNeededView.swift */; };
 		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
+		B0578B6F865BFD55D14EDA50 /* ModelConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94311C67794F81EA38163D4 /* ModelConstants.swift */; };
 		B9BCA055FDE683A13603BDCD /* LLMModelDownloadErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577A5FA9781033417802E848 /* LLMModelDownloadErrorView.swift */; };
 		BD320A2312C3EC52DBC58AAF /* InstalledAppPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9094E6BCE4A56C8E69DFE7D3 /* InstalledAppPickerSheet.swift */; };
 		BE785DB68A0093B107B78457 /* SparkleUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 345D7F910BFCE134A0685129 /* SparkleUpdateController.swift */; };
@@ -59,6 +60,7 @@
 		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
 		D41CC731CE2C127AAED6358E /* LLMProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C525FAE93A283BA56C776FE /* LLMProcessor.swift */; };
 		D5093BC118965B82B7CBF81F /* SelectedTextCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFF0037BD4FCDC1860AA689 /* SelectedTextCapture.swift */; };
+		D7F8C8224C8C5DF00CBA6AF8 /* FileManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08371418A419B5DAA01B37BC /* FileManagerExtensions.swift */; };
 		DE51961B99FE6CFF5E84AB21 /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099D120BC1892B2DA9EE4254 /* MenuBarIcon.swift */; };
 		DF07E7194BB43DAA3859A77F /* DownloadedWhisperModelsList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E372407663DD17EF44464FCA /* DownloadedWhisperModelsList.swift */; };
 		E2A4AAC21D295AFCFD5871D1 /* DownloadedLLMModelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334DAAE8180D51F8F2D1DCC4 /* DownloadedLLMModelPicker.swift */; };
@@ -79,6 +81,7 @@
 		02FFF3CDD5729042E95FECFC /* SystemPermissionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPermissionStore.swift; sourceTree = "<group>"; };
 		03A173B8F832A4075F91B646 /* HuggingFaceSearchResultsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceSearchResultsList.swift; sourceTree = "<group>"; };
 		06002033D3E05305CAEDAEA8 /* TextInputAnchorResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputAnchorResolver.swift; sourceTree = "<group>"; };
+		08371418A419B5DAA01B37BC /* FileManagerExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManagerExtensions.swift; sourceTree = "<group>"; };
 		099D120BC1892B2DA9EE4254 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
 		0C525FAE93A283BA56C776FE /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		0E340D8F1287ED5A113E6E80 /* PromptTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptTextEditor.swift; sourceTree = "<group>"; };
@@ -122,6 +125,7 @@
 		B01C9E7F7580F84F54A0C5ED /* DictationPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPipeline.swift; sourceTree = "<group>"; };
 		B46A60E678F33DF75DDBCA07 /* DownloadedLLMModelsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedLLMModelsList.swift; sourceTree = "<group>"; };
 		B91AD4C8A35DBD67C4C171BE /* FloatingIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIndicatorView.swift; sourceTree = "<group>"; };
+		B94311C67794F81EA38163D4 /* ModelConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelConstants.swift; sourceTree = "<group>"; };
 		C099A922CCE27613ADF0DB83 /* WhisperModelStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperModelStore.swift; sourceTree = "<group>"; };
 		C0D6B8BE9F43150FF0DFE1D8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C1B302278F7B67FB627B9CD5 /* SetupLLMProcessingStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupLLMProcessingStep.swift; sourceTree = "<group>"; };
@@ -246,6 +250,7 @@
 			children = (
 				9D73DA7904B656F4B007FBBF /* AppRuntimeState.swift */,
 				87B0FE6B5AEA20A9592F0565 /* AppSettings.swift */,
+				08371418A419B5DAA01B37BC /* FileManagerExtensions.swift */,
 				345D7F910BFCE134A0685129 /* SparkleUpdateController.swift */,
 				02FFF3CDD5729042E95FECFC /* SystemPermissionStore.swift */,
 			);
@@ -304,6 +309,7 @@
 				7F15772046408497D8188A64 /* DownloadedLLMModelStore.swift */,
 				61E9081CC024C85E472A3DD8 /* HuggingFaceModelInfo.swift */,
 				591F0AE9F267C1F81BDF94BF /* HuggingFaceModelSearch.swift */,
+				B94311C67794F81EA38163D4 /* ModelConstants.swift */,
 			);
 			path = ModelBrowser;
 			sourceTree = "<group>";
@@ -408,6 +414,7 @@
 				6F7CA5A1A478C5CE0F3106F5 /* DownloadedModelsSection.swift in Sources */,
 				6812C3ABA68A294B600B8615 /* DownloadedModelsStorageSummary.swift in Sources */,
 				DF07E7194BB43DAA3859A77F /* DownloadedWhisperModelsList.swift in Sources */,
+				D7F8C8224C8C5DF00CBA6AF8 /* FileManagerExtensions.swift in Sources */,
 				F71969334206AC1BB090CECA /* FloatingIndicatorPanelController.swift in Sources */,
 				A5A82CB7F5188858DA1927BB /* FloatingIndicatorView.swift in Sources */,
 				F44272132F60CB3E767B8DAA /* FooterSection.swift in Sources */,
@@ -427,6 +434,7 @@
 				550016EEAA4F9D1D9B0DC919 /* LaunchAtLoginPreferenceToggle.swift in Sources */,
 				D0DE5B891A1C3DAEBA99EDD4 /* MenuBarController.swift in Sources */,
 				DE51961B99FE6CFF5E84AB21 /* MenuBarIcon.swift in Sources */,
+				B0578B6F865BFD55D14EDA50 /* ModelConstants.swift in Sources */,
 				ACDD1CF32D67CBB054723332 /* PermissionsNeededView.swift in Sources */,
 				F3CD5357D69808466D16A732 /* PopoverStatusHeader.swift in Sources */,
 				9209EC46C4204C29D74EAC5B /* PopoverView.swift in Sources */,

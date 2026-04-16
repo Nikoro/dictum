@@ -11,7 +11,7 @@ struct DownloadedLLMModel: Identifiable {
     }
 
     var shortName: String {
-        id.replacingOccurrences(of: "mlx-community/", with: "")
+        ModelConstants.shortModelName(id)
     }
 }
 
@@ -46,7 +46,7 @@ final class DownloadedLLMModelStore: ObservableObject {
             .filter { $0.hasDirectoryPath }
             .compactMap { url -> DownloadedLLMModel? in
                 let folderName = url.lastPathComponent
-                let modelId = "mlx-community/\(folderName)"
+                let modelId = ModelConstants.mlxCommunityPrefix + folderName
                 let size = directorySize(url)
                 guard size > 0 else { return nil }
                 return DownloadedLLMModel(
@@ -59,7 +59,7 @@ final class DownloadedLLMModelStore: ObservableObject {
     }
 
     func deleteModel(_ modelId: String) throws {
-        let folderName = modelId.replacingOccurrences(of: "mlx-community/", with: "")
+        let folderName = ModelConstants.shortModelName(modelId)
         let modelDir = mlxCacheDir.appendingPathComponent(folderName)
         let resolved = modelDir.standardizedFileURL
         let cacheRoot = mlxCacheDir.standardizedFileURL.path + "/"
@@ -83,15 +83,6 @@ final class DownloadedLLMModelStore: ObservableObject {
     }
 
     private func directorySize(_ url: URL) -> Int64 {
-        let enumerator = FileManager.default.enumerator(
-            at: url,
-            includingPropertiesForKeys: [.fileSizeKey]
-        )
-        var total: Int64 = 0
-        while let fileURL = enumerator?.nextObject() as? URL {
-            let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            total += Int64(size)
-        }
-        return total
+        FileManager.default.directorySize(at: url)
     }
 }

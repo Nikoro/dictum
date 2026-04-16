@@ -42,6 +42,12 @@ struct LLMModelSection: View {
                 onClear: modelSearch.clearSearch
             )
 
+            if let searchError = modelSearch.searchError {
+                Text(searchError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
             if !modelSearch.searchResults.isEmpty {
                 HuggingFaceSearchResultsList(
                     results: modelSearch.searchResults,

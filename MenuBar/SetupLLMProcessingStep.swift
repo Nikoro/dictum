@@ -39,6 +39,12 @@ struct SetupLLMProcessingStep: View {
                         )
                     }
 
+                    if let error = pipeline.llmDownloadError {
+                        LLMModelDownloadErrorView(errorMessage: error) {
+                            pipeline.llmDownloadError = nil
+                        }
+                    }
+
                     Button(String(localized: "setup.step3.skip", defaultValue: "Skip \u{2014} use transcription only")) {
                         settings.llmCleanupEnabled = false
                     }
@@ -49,6 +55,9 @@ struct SetupLLMProcessingStep: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)
+                .onChange(of: pipeline.llmIsDownloading) { _, isDownloading in
+                    if !isDownloading { handleDownloadFinished() }
+                }
             } else {
                 Text(String(localized: "setup.step2.locked", defaultValue: "Download STT model first."))
                     .font(.caption)
@@ -61,16 +70,15 @@ struct SetupLLMProcessingStep: View {
     private func startDownload(for modelId: String) {
         settings.llmModelId = modelId
         pipeline.downloadLLMModel(modelId)
-        Task {
-            while pipeline.llmIsDownloading {
-                try? await Task.sleep(for: .milliseconds(200))
-            }
-            if pipeline.llmDownloadError == nil {
-                downloadedLLMId = modelId
-                settings.llmCleanupEnabled = true
-                UserDefaults.standard.set(modelId, forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
-                pipeline.warmUpModels()
-            }
-        }
+    }
+
+    private func handleDownloadFinished() {
+        guard !pipeline.llmIsDownloading, pipeline.llmDownloadError == nil else { return }
+        guard let modelId = settings.llmModelId as String?,
+              pipeline.downloadedLLMModelStore.downloadedModels.contains(where: { $0.id == modelId }) else { return }
+        downloadedLLMId = modelId
+        settings.llmCleanupEnabled = true
+        UserDefaults.standard.set(modelId, forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
+        pipeline.warmUpModels()
     }
 }

@@ -68,15 +68,7 @@ final class MenuBarController: ObservableObject {
 
         switch state {
         case .recording:
-            // Kolorowa ikona z czerwoną kropką REC
             button.image = MenuBarIcon.recording()
-        case .done:
-            button.image = MenuBarIcon.microphone()
-            // Flash back to idle after 1s
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(1))
-                self?.runtimeState.appState = .idle
-            }
         default:
             // Template image — system automatycznie dopasuje do light/dark mode
             button.image = MenuBarIcon.microphone()

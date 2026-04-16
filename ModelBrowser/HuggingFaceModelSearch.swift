@@ -7,8 +7,14 @@ final class HuggingFaceModelSearch: ObservableObject {
     @Published var searchQuery = ""
     @Published var searchResults: [HuggingFaceModelInfo] = []
     @Published var isSearching = false
+    @Published var searchError: String?
 
     private var searchTask: Task<Void, Never>?
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10
+        return URLSession(configuration: config)
+    }()
 
     func search() {
         searchTask?.cancel()
@@ -23,6 +29,7 @@ final class HuggingFaceModelSearch: ObservableObject {
             guard !Task.isCancelled else { return }
 
             isSearching = true
+            searchError = nil
             defer { isSearching = false }
 
             let query = searchQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
@@ -31,7 +38,10 @@ final class HuggingFaceModelSearch: ObservableObject {
             guard let url = URL(string: urlString) else { return }
 
             do {
-                let (data, _) = try await URLSession.shared.data(from: url)
+                let (data, response) = try await Self.session.data(from: url)
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                    throw URLError(.badServerResponse)
+                }
                 let models = try JSONDecoder().decode([HuggingFaceModelInfo].self, from: data)
 
                 guard !Task.isCancelled else { return }
@@ -40,6 +50,7 @@ final class HuggingFaceModelSearch: ObservableObject {
             } catch {
                 if !Task.isCancelled {
                     dlog("[HF] search error: \(error)")
+                    searchError = error.localizedDescription
                 }
             }
         }

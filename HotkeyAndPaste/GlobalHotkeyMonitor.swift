@@ -180,7 +180,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
             captureSelectedText { [weak self] selectedText in
                 Task { @MainActor in
                     guard let self else { return }
-                    DictationPipeline.shared.pendingSelectedContext = selectedText
+                    DictationPipeline.shared.setPendingContext(selectedText)
                     self.modifierKeyDown = true
                     self.keyDownHandler?()
                 }
@@ -216,7 +216,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
         case .keyDown:
             captureSelectedText { [weak self] selectedText in
                 Task { @MainActor in
-                    DictationPipeline.shared.pendingSelectedContext = selectedText
+                    DictationPipeline.shared.setPendingContext(selectedText)
                     self?.keyDownHandler?()
                 }
             }

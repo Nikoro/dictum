@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// NSTextView that draws placeholder when empty and ghost completion after `{{`
+@MainActor
 class GhostTextView: NSTextView {
     var placeholder: String = ""
 

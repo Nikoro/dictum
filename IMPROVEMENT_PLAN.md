@@ -127,7 +127,7 @@
 
 
 
-### [ ] [H11] `SetupLLMProcessingStep.startDownload` busy-waits on `pipeline.llmIsDownloading` `[T2]`
+### [x] [H11] `SetupLLMProcessingStep.startDownload` busy-waits on `pipeline.llmIsDownloading` `[T2]`
 - **File**: `MenuBar/SetupLLMProcessingStep.swift:61-74`
 - **Auditor**: code-quality-auditor, swift-auditor
 - **Issue**: `while pipeline.llmIsDownloading { try await Task.sleep(for: .milliseconds(200)) }` — polling loop on the main actor, no cancellation check, unstructured `Task` never cancelled on view disappear.
@@ -149,14 +149,14 @@
 - **Recommendation**: Remove the inner `Task` wrapper — actors already serialize method calls. Assign and await directly in the outer method.
 - **Effort**: Moderate
 
-### [ ] [H14] HuggingFace search failures silent — looks identical to "no results" `[T3]`
+### [x] [H14] HuggingFace search failures silent — looks identical to "no results" `[T3]`
 - **File**: `ModelBrowser/HuggingFaceModelSearch.swift:34,40-43`
 - **Auditor**: ux-auditor, security-auditor
 - **Issue**: `URLSession.shared.data(from:)` with no timeout + `catch` that only calls `print()`. Network errors → empty results → UI looks like "model not found". HTTP status never validated.
 - **Recommendation**: Dedicated `URLSession` with `timeoutIntervalForRequest: 10`, validate status code, `@Published var searchError: String?`, render under the search field as `.caption .foregroundStyle(.red)`.
 - **Effort**: Moderate
 
-### [ ] [H15] `SetupLLMProcessingStep` shows no error feedback on LLM download failure `[T3]`
+### [x] [H15] `SetupLLMProcessingStep` shows no error feedback on LLM download failure `[T3]`
 - **File**: `MenuBar/SetupLLMProcessingStep.swift`
 - **Auditor**: ux-auditor
 - **Issue**: `pipeline.llmDownloadError` is only rendered in `LLMModelSection` (post-setup). During setup, the row just resets silently.
@@ -204,19 +204,19 @@
 
 ## Medium Priority Findings
 
-### [ ] [M1] `directorySize` duplicated verbatim in two model stores `[T1]`
+### [x] [M1] `directorySize` duplicated verbatim in two model stores `[T1]`
 - **File**: `ModelBrowser/DownloadedLLMModelStore.swift:76`, `Transcription/WhisperModelStore.swift:195`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: Extract to `FileManager` extension or `FileSystemUtils.directorySize(_:)`. Also add `includingPropertiesForKeys: [.fileSizeKey]` to enumerator (batched `stat`).
 - **Effort**: Quick Win
 
-### [ ] [M2] `"mlx-community/"` prefix hardcoded in 6 sites `[T1]`
+### [x] [M2] `"mlx-community/"` prefix hardcoded in 6 sites `[T1]`
 - **File**: `DownloadedLLMModelStore.swift:26,49,62`, `HuggingFaceModelInfo.swift:15`, `LLMModelDownloadStatusView.swift:10`, `DownloadedLLMModelsList.swift:23`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: Single constant `ModelIDConstants.mlxCommunityPrefix`.
 - **Effort**: Quick Win
 
-### [ ] [M3] `pendingSelectedContext` is public `var` on singleton with external writers `[T1]`
+### [x] [M3] `pendingSelectedContext` is public `var` on singleton with external writers `[T1]`
 - **File**: `DictationPipeline.swift:25`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: `private(set)` + method `setPendingContext(_:)`.
@@ -302,7 +302,7 @@
 - **Recommendation**: Ring buffer with head index.
 - **Effort**: Quick Win
 
-### [ ] [M18] `DictumLogger.log` formats `Date()` via `description` per call `[T2]`
+### [x] [M18] `DictumLogger.log` formats `Date()` via `description` per call `[T2]`
 - **File**: `DictumLogger.swift:28`
 - **Auditor**: performance-auditor
 - **Recommendation**: Static `ISO8601DateFormatter` or switch to `os.Logger`.
@@ -376,7 +376,7 @@
 - **Recommendation**: Replace with `dlog`.
 - **Effort**: Quick Win
 
-### [ ] [L3] `AppState.done` case never assigned — dead code `[T1]`
+### [x] [L3] `AppState.done` case never assigned — dead code `[T1]`
 - **File**: `Settings/AppRuntimeState.swift:9`, `DictationPipeline.swift:324`, `MenuBarController.swift:73-79`
 - **Recommendation**: Either assign in `finishProcessing()` or remove enum case + switch arms.
 - **Effort**: Quick Win
@@ -391,7 +391,7 @@
 - **Recommendation**: Add `Sendable`.
 - **Effort**: Quick Win
 
-### [ ] [L6] `GhostTextView` (`NSTextView` subclass) not `@MainActor` `[T2]`
+### [x] [L6] `GhostTextView` (`NSTextView` subclass) not `@MainActor` `[T2]`
 - **File**: `MenuBar/PromptTextEditor.swift:4`
 - **Recommendation**: Annotate `@MainActor`.
 - **Effort**: Quick Win
@@ -401,12 +401,12 @@
 - **Recommendation**: `guard let else fatalError("internal: ...")`.
 - **Effort**: Quick Win
 
-### [ ] [L8] `KeyCodeMapping.keyName` rebuilds dictionary every call `[T2]`
+### [x] [L8] `KeyCodeMapping.keyName` rebuilds dictionary every call `[T2]`
 - **File**: `MenuBar/HotkeyRecorder.swift:109`
 - **Recommendation**: Hoist to `private static let`.
 - **Effort**: Quick Win
 
-### [ ] [L9] `MenuBarController.shared` assigned inside init, not atomically `[T3]`
+### [x] [L9] `MenuBarController.shared` assigned inside init, not atomically `[T3]`
 - **File**: `MenuBar/MenuBarController.swift:21`
 - **Recommendation**: Set `shared = self` as first line of `init`.
 - **Effort**: Quick Win
@@ -446,7 +446,7 @@
 - **Recommendation**: Surface failure inline.
 - **Effort**: Quick Win
 
-### [ ] [L17] `FloatingIndicatorView.dotTimer` `DispatchQueue.main.async` inside main-thread timer `[T3]`
+### [x] [L17] `FloatingIndicatorView.dotTimer` `DispatchQueue.main.async` inside main-thread timer `[T3]`
 - **File**: `FloatingIndicator/FloatingIndicatorView.swift:72-77`
 - **Recommendation**: Remove redundant dispatch.
 - **Effort**: Quick Win

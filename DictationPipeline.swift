@@ -23,7 +23,11 @@ final class DictationPipeline: ObservableObject {
     private var errorResetTask: Task<Void, Never>?
     private var targetBundleId: String?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
-    var pendingSelectedContext: String?
+    private(set) var pendingSelectedContext: String?
+
+    func setPendingContext(_ text: String?) {
+        pendingSelectedContext = text
+    }
     private var selectedContext: String?
     private var permissionsCancellable: AnyCancellable?
     private var whisperSink: AnyCancellable?
