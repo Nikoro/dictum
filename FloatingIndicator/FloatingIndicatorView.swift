@@ -27,8 +27,10 @@ struct FloatingIndicatorView: View {
                     recordingContent(time: context.date.timeIntervalSince1970)
                 case .warmingUp:
                     animatedTextContent(key: "pill.warmingUp")
-                case .transcribing, .processingLLM:
+                case .transcribing:
                     animatedTextContent(key: "pill.transcribing")
+                case .processingLLM:
+                    animatedTextContent(key: "pill.thinking")
                 default:
                     EmptyView()
                 }
