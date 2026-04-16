@@ -31,7 +31,7 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 ## Stack
 
 - **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.18.0 — large-v3-turbo, CoreML on Neural Engine
-- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 2.30.6 — Gemma 4 E2B (default), any mlx-community model
+- **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 3.31.3 — Gemma 4 E4B (default), any mlx-community model; VLM support for vision-aware context
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API
 - **Updates:** [Sparkle](https://github.com/sparkle-project/Sparkle) 2.7+ — automatic updates from GitHub Releases
@@ -77,9 +77,8 @@ On first launch, the onboarding flow guides you through:
 
 - **On-device pipeline** — WhisperKit STT + MLX LLM, no network required
 - **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
-- **Context-aware dictation** — select text before dictating to use it as LLM context; result is copied to clipboard instead of auto-pasted
-- **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
-- **General prompt toggle** — enable/disable the default system prompt independently
+- **Context-aware dictation** — screenshot, selected text, and clipboard are captured as context for the LLM; result is copied to clipboard when selected text was captured, otherwise auto-pasted
+- **Per-app instructions** — custom LLM instructions per application (matched by bundle ID), layered on top of the unified system prompt
 - **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
 - **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
 - **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
