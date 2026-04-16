@@ -11,30 +11,33 @@
 		03E225740534B98B26F65606 /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA6DC9E0F7F457CCDFB9E244 /* PermissionsManager.swift */; };
 		07090B31ACBECC4F3CB0299D /* screenshot-downscale-for-vlm.md in Resources */ = {isa = PBXBuildFile; fileRef = DA91067B25A08C495A54FD34 /* screenshot-downscale-for-vlm.md */; };
 		094130D98811BDD02D2A1555 /* LLMProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0883B8EE127B0560E01584 /* LLMProcessor.swift */; };
+		0A8B55270831D487640380A1 /* Hub in Frameworks */ = {isa = PBXBuildFile; productRef = C02E40E325D8D0E3358D7D4C /* Hub */; };
 		0E254EBBA921F84B3E41ED4E /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2276C69754697A5C25F690 /* AudioRecorder.swift */; };
 		1854AF4002726D6591402FE0 /* dependencies.md in Resources */ = {isa = PBXBuildFile; fileRef = CD30CE493D6C3D47BFB6F825 /* dependencies.md */; };
 		1CCC7DE6233407D1FC35BA35 /* DownloadedModelsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00967D4DF5585F152D3709 /* DownloadedModelsManager.swift */; };
 		25B00496BDEA0CFA03E9125A /* WhisperModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7E0E66F72A6D9F8106457B /* WhisperModelManager.swift */; };
 		2B78AEF64623D611F0C43C2D /* DownloadedModelsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B5B6F95105C182393956B0 /* DownloadedModelsSection.swift */; };
+		3B3CD6B6CC510E9C84875398 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 16EA661419C6FD118F438E78 /* Tokenizers */; };
 		3B970FB1993D02CE75C23202 /* DictationPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894B0245FC883E24EDFB48BB /* DictationPipeline.swift */; };
 		409764D750CA32FF7E320034 /* FloatingIndicatorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D98577BC75D1EED950058D /* FloatingIndicatorManager.swift */; };
 		4123E6AD17C92C167AE15105 /* DictationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = F132C13110836F99FC57FA43 /* DictationContext.swift */; };
 		4165825DDE17C5AE45C47E79 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FDFA3AA4494E3D128CBA26 /* PopoverView.swift */; };
 		4B5FB0A4BC57D7FB929901CE /* llm.md in Resources */ = {isa = PBXBuildFile; fileRef = 268344AA22CC584B1CE93D41 /* llm.md */; };
 		4E0EA3902E0CF1323675C2FC /* ScreenshotCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40EFA13BED48795E8E5BD2A9 /* ScreenshotCapture.swift */; };
-		53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 24108E4098C7D8A965EFAEEA /* MLXLMCommon */; };
+		53378C5D1934736E3738DC69 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 7DA13053973FFE210402E210 /* MLXVLM */; };
 		550579B1848549EC8E144A63 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F06C18B5AD9B65BD43EA8A /* SetupView.swift */; };
 		58A507C28BB6E800AD81DC82 /* STTLanguageSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD5E775E51B3F2701611B74E /* STTLanguageSection.swift */; };
 		615A589F9CB4723766FA37BB /* fast-path-toggle.md in Resources */ = {isa = PBXBuildFile; fileRef = 405A55C80E0A3BF6B39933AF /* fast-path-toggle.md */; };
 		660CA13916FD9EC8C5315362 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8757D9A3DC97433AB18E717 /* MenuBarManager.swift */; };
 		68C33B64925DFAFF1BF201BD /* ui.md in Resources */ = {isa = PBXBuildFile; fileRef = EB3D2BA0F81C80A948048ACC /* ui.md */; };
 		7862E0F271635B06695C06C3 /* LLMModelSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BE9F784CCA5F59D3FD8EAF /* LLMModelSection.swift */; };
+		7E6DEBEC1F7E395305ADA5A1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 161F1C9307FD19DA4C83CB5D /* Sparkle */; };
 		84B95C35E2815FA980949B42 /* UpdaterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4EFFAFAD88011544B6EA464 /* UpdaterManager.swift */; };
 		8A19028D5A4F72649B94A26B /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB24D1AC68890EF2E8F84A8F /* GlobalHotkeyManager.swift */; };
 		8B6B9B291A6027917BBBE2A6 /* InstalledAppPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC5884A7E39103240206B7F /* InstalledAppPickerSheet.swift */; };
 		8EAAAD41188C3E93A0D51066 /* mlx-vlm-vision-integration.md in Resources */ = {isa = PBXBuildFile; fileRef = 7909815427C457BFFADC871F /* mlx-vlm-vision-integration.md */; };
 		912381C1539D98E4C2ABF58C /* audio.md in Resources */ = {isa = PBXBuildFile; fileRef = 1906F6A4E4A904C89D557819 /* audio.md */; };
-		A305031B741D92C9703D1E75 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 161F1C9307FD19DA4C83CB5D /* Sparkle */; };
+		A305031B741D92C9703D1E75 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 24108E4098C7D8A965EFAEEA /* MLXLMCommon */; };
 		A8FB3C4839D1E0F7AE3AECD8 /* tooling.md in Resources */ = {isa = PBXBuildFile; fileRef = BAC22B5A9F095DE7040E20FC /* tooling.md */; };
 		A9B904AB69AB682ABEF2C5FF /* PasteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2490B7196B6C0D292B9AF54C /* PasteManager.swift */; };
 		B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 266F3D418D9459D6424F7AE7 /* MLXLLM */; };
@@ -119,8 +122,11 @@
 			files = (
 				D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */,
 				B012C437FF2C7D6B538A3C7C /* MLXLLM in Frameworks */,
-				53378C5D1934736E3738DC69 /* MLXLMCommon in Frameworks */,
-				A305031B741D92C9703D1E75 /* Sparkle in Frameworks */,
+				53378C5D1934736E3738DC69 /* MLXVLM in Frameworks */,
+				A305031B741D92C9703D1E75 /* MLXLMCommon in Frameworks */,
+				0A8B55270831D487640380A1 /* Hub in Frameworks */,
+				3B3CD6B6CC510E9C84875398 /* Tokenizers in Frameworks */,
+				7E6DEBEC1F7E395305ADA5A1 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -326,7 +332,10 @@
 			packageProductDependencies = (
 				A231C686F6E1BB95E9757D00 /* WhisperKit */,
 				266F3D418D9459D6424F7AE7 /* MLXLLM */,
+				7DA13053973FFE210402E210 /* MLXVLM */,
 				24108E4098C7D8A965EFAEEA /* MLXLMCommon */,
+				C02E40E325D8D0E3358D7D4C /* Hub */,
+				16EA661419C6FD118F438E78 /* Tokenizers */,
 				161F1C9307FD19DA4C83CB5D /* Sparkle */,
 			);
 			productName = Dictum;
@@ -362,6 +371,7 @@
 				AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */,
 				125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */,
 				C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				03FA1CB0B4BED92A5279D4BA /* XCRemoteSwiftPackageReference "swift-transformers" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C8222A1FA74A22D09DA6898F /* Products */;
@@ -655,6 +665,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		03FA1CB0B4BED92A5279D4BA /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 1.1.6;
+			};
+		};
 		125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/argmaxinc/whisperkit.git";
@@ -676,7 +694,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
 			requirement = {
 				kind = exactVersion;
-				version = 2.30.6;
+				version = 3.31.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -686,6 +704,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		16EA661419C6FD118F438E78 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 03FA1CB0B4BED92A5279D4BA /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
 		};
 		24108E4098C7D8A965EFAEEA /* MLXLMCommon */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -697,10 +720,20 @@
 			package = C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXLLM;
 		};
+		7DA13053973FFE210402E210 /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXVLM;
+		};
 		A231C686F6E1BB95E9757D00 /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */;
 			productName = WhisperKit;
+		};
+		C02E40E325D8D0E3358D7D4C /* Hub */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 03FA1CB0B4BED92A5279D4BA /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Hub;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

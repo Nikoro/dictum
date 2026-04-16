@@ -15,17 +15,17 @@ private struct LLMModelOption: Identifiable {
 
 private let llmModelOptions: [LLMModelOption] = [
     LLMModelOption(
-        id: "mlx-community/gemma-4-e2b-it-4bit",
-        displayName: "Gemma 4 E2B",
-        sizeGB: "~3 GB",
-        descriptionKey: "llm.gemma4_e2b.desc",
-        recommended: true
-    ),
-    LLMModelOption(
         id: "mlx-community/gemma-4-e4b-it-4bit",
         displayName: "Gemma 4 E4B",
         sizeGB: "~5 GB",
         descriptionKey: "llm.gemma4_e4b.desc",
+        recommended: true
+    ),
+    LLMModelOption(
+        id: "mlx-community/gemma-4-e2b-it-4bit",
+        displayName: "Gemma 4 E2B",
+        sizeGB: "~3 GB",
+        descriptionKey: "llm.gemma4_e2b.desc",
         recommended: false
     ),
     LLMModelOption(
