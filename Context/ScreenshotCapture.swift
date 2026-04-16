@@ -20,8 +20,8 @@ enum ScreenshotCapture {
             let filter = SCContentFilter(desktopIndependentWindow: window)
             let config = SCStreamConfiguration()
 
-            // Downscale for VLM: cap longest side at 1024px, preserve aspect ratio
-            let maxDimension: CGFloat = 1024
+            // Downscale for VLM: cap longest side at 2048px, preserve aspect ratio
+            let maxDimension: CGFloat = 2048
             let w = window.frame.width
             let h = window.frame.height
             let scale = min(maxDimension / max(w, h), 1.0)
