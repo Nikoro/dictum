@@ -72,10 +72,6 @@ private struct AppSTTLanguageRow: View {
     let appLang: AppSTTLanguage
     @EnvironmentObject var settings: AppSettings
 
-    private var cleanAppName: String {
-        appLang.appName.replacingOccurrences(of: ".app", with: "")
-    }
-
     var body: some View {
         HStack(spacing: 6) {
             Toggle("", isOn: Binding(
@@ -97,7 +93,7 @@ private struct AppSTTLanguageRow: View {
                     .frame(width: 18, height: 18)
                     .foregroundStyle(.secondary)
             }
-            Text(cleanAppName)
+            Text(appLang.displayName)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(appLang.enabled ? .primary : .secondary)

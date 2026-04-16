@@ -24,7 +24,7 @@ enum STTLanguage: String, CaseIterable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .auto: return String(localized: "language.auto", defaultValue: "Automatycznie")
+        case .auto: return String(localized: "language.auto", defaultValue: "Automatic")
         case .pl: return "Polski"
         case .en: return "English"
         case .de: return "Deutsch"
@@ -64,6 +64,8 @@ struct AppSTTLanguage: Identifiable, Codable, Equatable {
     var appName: String
     var language: STTLanguage
     var enabled: Bool = true
+
+    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
 }
 
 // MARK: - App Prompt (per-app LLM prompt)
@@ -75,6 +77,7 @@ struct AppPrompt: Identifiable, Codable, Equatable {
     var prompt: String
     var enabled: Bool = true
 
+    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
 }
 
 enum RecordingMode: String, CaseIterable, Sendable {

@@ -54,8 +54,7 @@ struct GeneralPromptSection: View {
                 }
 
                 Button(String(localized: "section.prompt.example", defaultValue: "Example prompt")) {
-                    let example = "Usuń wypełniacze (yyy, eee, hmm). Popraw interpunkcję i literówki. " +
-                        "Popraw zdania, które nie mają sensu. Nie zmieniaj stylu. Zwróć tylko poprawiony tekst."
+                    let example = String(localized: "prompt.example.content", defaultValue: "Remove fillers (uh, um, hmm). Fix punctuation and typos. Fix sentences that don't make sense. Don't change style. Return only corrected text.")
                     localPrompt = example
                     settings.llmPrompt = example
                 }
@@ -130,10 +129,6 @@ struct AppPromptRow: View {
     @State private var localPrompt: String = ""
     @State private var showNoModelWarning = false
 
-    private var cleanAppName: String {
-        appPrompt.appName.replacingOccurrences(of: ".app", with: "")
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
@@ -163,7 +158,7 @@ struct AppPromptRow: View {
                         .frame(width: 18, height: 18)
                         .foregroundStyle(.secondary)
                 }
-                Text(cleanAppName)
+                Text(appPrompt.displayName)
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundStyle(appPrompt.enabled ? .primary : .secondary)
@@ -187,7 +182,7 @@ struct AppPromptRow: View {
             if appPrompt.enabled {
                 PromptTextEditor(
                     text: $localPrompt,
-                    placeholder: String(localized: String.LocalizationValue("section.prompt.perapp.placeholder \(cleanAppName)"))
+                    placeholder: String(localized: String.LocalizationValue("section.prompt.perapp.placeholder \(appPrompt.displayName)"))
                 )
                 .frame(minHeight: 60, maxHeight: 100)
                 .background(.quaternary)

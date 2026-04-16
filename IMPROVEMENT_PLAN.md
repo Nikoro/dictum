@@ -56,7 +56,7 @@
 - **Effort**: Quick Win
 
 
-### [ ] [C6] 21 localization keys missing from both .strings files — UI renders in wrong language `[T3]`
+### [x] [C6] 21 localization keys missing from both .strings files — UI renders in wrong language `[T3]`
 - **File**: `MenuBar/STTLanguageSection.swift:9,14,32,46,58`; `MenuBar/DownloadedModelDeletionAlerts.swift:10-74`; `Settings/AppSettings.swift:27`; `Transcription/TranscriptionEngine.swift:11,13`; `TextProcessing/LLMProcessor.swift:13,15`; `MenuBar/InstalledAppPickerSheet.swift:44,57,58`; `MenuBar/FooterSection.swift:29,36`; `MenuBar/SetupFooterView.swift:16`
 - **Auditor**: i18n-auditor, macos-auditor, ux-auditor
 - **Issue**: ~21 keys used via `String(localized:defaultValue:)` are absent from both `en.lproj` and `pl.lproj`. Because `defaultValue` is whichever language the developer wrote (sometimes Polish, sometimes English), en users see Polish for STT language section, delete alerts, and "Wersja:" footer; pl users see English error messages for STT/LLM failures. Also, `header.processingLLM` `defaultValue` in code ("Cleaning text…") contradicts .strings value ("Processing text…").
@@ -172,7 +172,7 @@
 - **Recommendation**: Await unload first.
 - **Effort**: Quick Win
 
-### [ ] [H18] `DictumLogger` log file unbounded — no rotation `[T1]`
+### [x] [H18] `DictumLogger` log file unbounded — no rotation `[T1]`
 - **File**: `DictumLogger.swift:27`
 - **Auditor**: code-quality-auditor, performance-auditor
 - **Issue**: ~60 `dlog()` callsites per dictation, no size cap, no rotation. Daily users accumulate permanent ever-growing log.
@@ -248,7 +248,7 @@
 - **Recommendation**: Extract `scanApps(in:seen:)` helper.
 - **Effort**: Quick Win
 
-### [ ] [M9] `cleanAppName` computed in three places `[T1]`
+### [x] [M9] `cleanAppName` computed in three places `[T1]`
 - **File**: `LLMPromptSections.swift:133`, `STTLanguageSection.swift:76`, `InstalledAppPickerSheet.swift:113`
 - **Auditor**: code-quality-auditor
 - **Recommendation**: Clean once at storage time in `InstalledAppPickerSheet`.
@@ -260,7 +260,7 @@
 - **Recommendation**: Lazy-create once, `orderFrontRegardless` / `orderOut` for show/hide.
 - **Effort**: Moderate
 
-### [ ] [M11] `@ObservedObject` on singleton inside `PopoverView` and `LLMModelSection` `[T3]`
+### [x] [M11] `@ObservedObject` on singleton inside `PopoverView` and `LLMModelSection` `[T3]`
 - **File**: `MenuBar/PopoverView.swift:8`, `MenuBar/LLMModelSection.swift:10`
 - **Auditor**: macos-auditor
 - **Recommendation**: Inject `SystemPermissionStore.shared` and `HuggingFaceModelSearch.shared` via `.environmentObject` from `MenuBarController.setupPopover`.
@@ -314,13 +314,13 @@
 - **Recommendation**: Add a comment explaining `@AppStorage` doesn't support `Codable`.
 - **Effort**: Quick Win
 
-### [ ] [M20] `GlobalHotkeyMonitor.captureSelectedText` three-hop dispatch chain `[T2]`
+### [x] [M20] `GlobalHotkeyMonitor.captureSelectedText` three-hop dispatch chain `[T2]`
 - **File**: `HotkeyAndPaste/GlobalHotkeyMonitor.swift:234-243`
 - **Auditor**: swift-auditor
 - **Recommendation**: Convert to `async` function; single `Task.detached` + `await MainActor.run`.
 - **Effort**: Moderate
 
-### [ ] [M21] 9 dead i18n keys in both .strings files `[T3]`
+### [x] [M21] 9 dead i18n keys in both .strings files `[T3]`
 - **File**: `Resources/en.lproj/Localizable.strings`, `Resources/pl.lproj/Localizable.strings`
 - **Auditor**: i18n-auditor
 - **Issue**: `section.prompt`, `section.llm.prompt`, `section.llm.nomodel`, `section.llm.active`, `section.downloaded.llm`, `section.downloaded.whisper`, `section.prompt.placeholder.hint`, `section.prompt.reset`, `footer.quit` — never referenced in code.
@@ -335,7 +335,7 @@
 
 
 
-### [ ] [M24] Example prompt button injects hardcoded Polish content `[T3]`
+### [x] [M24] Example prompt button injects hardcoded Polish content `[T3]`
 - **File**: `MenuBar/LLMPromptSections.swift:57-59`
 - **Auditor**: i18n-auditor
 - **Recommendation**: Move content to `.strings` under `"prompt.example.content"`.
@@ -350,7 +350,7 @@
 - **Recommendation**: Re-generate: `curl -sL "https://github.com/sparkle-project/Sparkle/releases/download/2.7.0/Sparkle-2.7.0.tar.xz" | shasum -a 256`.
 - **Effort**: Quick Win
 
-### [ ] [M27] `Dictum.entitlements` is empty `<dict/>` `[T3]`
+### [x] [M27] `Dictum.entitlements` is empty `<dict/>` `[T3]`
 - **File**: `Resources/Dictum.entitlements:1-5`
 - **Auditor**: security-auditor
 - **Recommendation**: Declare `com.apple.security.device.microphone` explicitly. Research AX entitlement for CGEvent tap.

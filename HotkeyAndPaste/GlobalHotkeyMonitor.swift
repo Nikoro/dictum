@@ -188,8 +188,9 @@ final class GlobalHotkeyMonitor: ObservableObject {
         dlog("[Hotkey] modifier match! isPressed=\(isPressed)")
 
         if isPressed {
-            captureSelectedText { [weak self] selectedText in
-                Task { @MainActor in
+            Task.detached(priority: .userInitiated) { [weak self] in
+                let selectedText = SelectedTextCapture.readSelectedText()
+                await MainActor.run {
                     guard let self else { return }
                     DictationPipeline.shared.setPendingContext(selectedText)
                     self.modifierKeyDown = true
@@ -199,7 +200,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
             return nil
         }
 
-        DispatchQueue.main.async { [weak self] in
+        Task { @MainActor [weak self] in
             guard let self, self.modifierKeyDown else { return }
             self.modifierKeyDown = false
             self.keyUpHandler?()
@@ -226,31 +227,21 @@ final class GlobalHotkeyMonitor: ObservableObject {
 
         switch type {
         case .keyDown:
-            captureSelectedText { [weak self] selectedText in
-                Task { @MainActor in
+            Task.detached(priority: .userInitiated) { [weak self] in
+                let selectedText = SelectedTextCapture.readSelectedText()
+                await MainActor.run {
                     DictationPipeline.shared.setPendingContext(selectedText)
                     self?.keyDownHandler?()
                 }
             }
             return nil
         case .keyUp:
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
                 self?.keyUpHandler?()
             }
             return nil
         default:
             return Unmanaged.passRetained(event)
-        }
-    }
-
-    private nonisolated func captureSelectedText(
-        completion: @escaping (String?) -> Void
-    ) {
-        DispatchQueue.global(qos: .userInteractive).async {
-            let selectedText = SelectedTextCapture.readSelectedText()
-            DispatchQueue.main.async {
-                completion(selectedText)
-            }
         }
     }
 

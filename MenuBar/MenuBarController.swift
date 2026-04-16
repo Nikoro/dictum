@@ -44,6 +44,8 @@ final class MenuBarController: ObservableObject {
                 .environmentObject(runtimeState)
                 .environmentObject(pipeline)
                 .environmentObject(SparkleUpdateController.shared)
+                .environmentObject(SystemPermissionStore.shared)
+                .environmentObject(HuggingFaceModelSearch.shared)
         )
         self.popover = popover
     }

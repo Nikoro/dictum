@@ -5,7 +5,7 @@ struct PopoverView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var runtimeState: AppRuntimeState
     @EnvironmentObject var pipeline: DictationPipeline
-    @ObservedObject private var permissionStore = SystemPermissionStore.shared
+    @EnvironmentObject var permissionStore: SystemPermissionStore
 
     private var isSetupComplete: Bool {
         permissionStore.allGranted && pipeline.whisperModelStore.downloadedModelIds.contains(settings.sttModelId)

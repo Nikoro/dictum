@@ -4,11 +4,7 @@ import SwiftUI
 struct LLMModelSection: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var pipeline: DictationPipeline
-    @ObservedObject private var modelSearch: HuggingFaceModelSearch
-
-    init() {
-        _modelSearch = ObservedObject(wrappedValue: HuggingFaceModelSearch.shared)
-    }
+    @EnvironmentObject var modelSearch: HuggingFaceModelSearch
 
     private var isDownloading: Bool { pipeline.llmIsDownloading }
     private var downloadingModelId: String? { pipeline.llmDownloadingModelId }
