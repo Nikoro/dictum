@@ -148,8 +148,7 @@ actor LLMProcessor {
             if let screenshot = context.screenshot, isVisionModel {
                 images.append(.ciImage(CIImage(cgImage: screenshot)))
                 dlog("[LLM] passing screenshot to vision model")
-            }
-            if let clipboardImage = context.clipboardImage, isVisionModel {
+            } else if let clipboardImage = context.clipboardImage, isVisionModel {
                 images.append(.ciImage(CIImage(cgImage: clipboardImage)))
                 dlog("[LLM] passing clipboard image to vision model")
             }
