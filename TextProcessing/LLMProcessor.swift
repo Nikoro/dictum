@@ -152,6 +152,10 @@ actor LLMProcessor {
                 images.append(.ciImage(CIImage(cgImage: clipboardImage)))
                 dlog("[LLM] passing clipboard image to vision model")
             }
+            if let ocrText = context.ocrText, !ocrText.isEmpty {
+                parts.append("Screen text (OCR):\n\(ocrText)")
+                dlog("[LLM] attached OCR \(ocrText.count) chars")
+            }
             parts.append("Spoken words: \(rawText)")
             userMessage = parts.joined(separator: "\n\n")
         } else {

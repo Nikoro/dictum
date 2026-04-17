@@ -19,12 +19,16 @@ enum ContextGatherer {
         frontmostApp: NSRunningApplication?,
         options: ContextOptions
     ) async -> DictationContext {
-        // Screenshot — parallel capture
-        let screenshot: CGImage? = options.screenshot
+        // Screenshot + OCR — parallel capture, OCR runs sequentially after capture in same Task
+        let (screenshot, ocrText): (CGImage?, String?) = options.screenshot
             ? await Task.detached(priority: .userInitiated) {
-                await ScreenshotCapture.captureFrontmostWindow()
+                guard let img = await ScreenshotCapture.captureFrontmostWindow() else {
+                    return (nil, nil)
+                }
+                let text = await ScreenshotOCR.extractText(from: img)
+                return (img, text)
             }.value
-            : nil
+            : (nil, nil)
 
         // Clipboard — read before pipeline mutates it
         let (clipText, clipImage): (String?, CGImage?) = options.clipboard
@@ -36,6 +40,7 @@ enum ContextGatherer {
             bundleId: frontmostApp?.bundleIdentifier,
             selectedText: options.selectedText ? selectedText : nil,
             screenshot: screenshot,
+            ocrText: ocrText,
             clipboardText: clipText,
             clipboardImage: clipImage
         )
