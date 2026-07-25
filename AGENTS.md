@@ -25,7 +25,10 @@ on-device except HuggingFace model queries in `HuggingFaceModelSearch`.
   interactive trust (breaks CI) and `Encuda` does not compile under the current toolchain.
 - `swift-transformers` is held at 1.1.x. Version 1.2.0 removes the `Downloader` protocol and
   repoints `HubApi` at `swift-huggingface`, which is exactly what the `HubDownloader` bridge in
-  `LLMProcessor.swift` is built on.
+  `LLMProcessor.swift` is built on. It is only needed for that MLX bridge — WhisperKit vendors
+  its own copy of Hub and Tokenizers since 1.0.0.
+- WhisperKit lives at `argmaxinc/argmax-oss-swift` since 1.0.0; the `WhisperKit` library product
+  survived the rename, so the import stays the same.
 
 ## Architecture
 
@@ -36,6 +39,12 @@ on-device except HuggingFace model queries in `HuggingFaceModelSearch`.
   `FloatingIndicator/`, `MenuBar/`, `HotkeyAndPaste/`, `Settings/`.
 - `TranscriptionEngine` and `LLMProcessor` are actors. Both dedupe concurrent loads *per model
   id* — joining an in-flight load for a different model would silently hand back the wrong one.
+- The target builds in **Swift 6 language mode**. Two deliberate escape hatches remain, both in
+  `AudioRecorder`: `@preconcurrency import AVFoundation` (tap and converter callbacks are
+  `@Sendable` but vend non-Sendable buffers) and `@unchecked Sendable` on the class itself, whose
+  invariants are documented at the declaration. `Timer` callbacks must not capture their `Timer`
+  argument — it is not Sendable, so reaching it from a main-actor body is a cross-isolation send;
+  invalidate through the stored property instead.
 - Models load lazily and are warmed up after load.
 - Context mode (something was selected when dictation started) copies the result to the
   clipboard instead of auto-pasting.

@@ -74,13 +74,16 @@ final class SystemPermissionStore: ObservableObject {
 
     func startPolling() {
         guard pollingTimer == nil else { return }
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            Task { @MainActor in
-                guard let self else { timer.invalidate(); return }
+        // The block deliberately ignores its Timer argument: Timer is not Sendable, so handing
+        // it to the main-actor body would be a cross-isolation send. Invalidation goes through
+        // `pollingTimer` instead, which is the same object.
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            // Scheduled from the main actor, so the block fires on the main run loop.
+            MainActor.assumeIsolated {
+                guard let self else { return }
                 self.refresh()
                 if self.allGranted && self.screenRecordingGranted {
-                    timer.invalidate()
-                    self.pollingTimer = nil
+                    self.stopPolling()
                 }
             }
         }

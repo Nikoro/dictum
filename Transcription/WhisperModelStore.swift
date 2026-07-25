@@ -107,13 +107,15 @@ final class WhisperModelStore: ObservableObject {
 
                 // Simulate loading progress from 50% to 99% over ~120s
                 downloadProgress = 0.5
-                let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
-                    Task { @MainActor in
-                        guard let self else { timer.invalidate(); return }
-                        if self.downloadProgress < 0.99 {
-                            // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
-                            self.downloadProgress += 0.002
-                        }
+                // The block ignores its Timer argument — Timer is not Sendable, so passing it
+                // into the main-actor body would be a cross-isolation send. The defer below
+                // owns invalidation regardless of how this scope exits.
+                let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+                    // Scheduled from the main actor, so the block fires on the main run loop.
+                    MainActor.assumeIsolated {
+                        guard let self, self.downloadProgress < 0.99 else { return }
+                        // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
+                        self.downloadProgress += 0.002
                     }
                 }
                 defer { loadingTimer.invalidate() }

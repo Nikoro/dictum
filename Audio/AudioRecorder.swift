@@ -1,8 +1,15 @@
 import Accelerate
-import AVFoundation
+// AVFAudio predates strict concurrency: its tap and converter callbacks are @Sendable but hand
+// back non-Sendable AVAudioPCMBuffers. @preconcurrency keeps those unavoidable crossings as
+// warnings instead of errors.
+@preconcurrency import AVFoundation
 import Combine
 
-final class AudioRecorder: ObservableObject {
+/// - Note: `@unchecked Sendable` because the compiler cannot see the isolation discipline here:
+///   `engine` is only ever touched from `startRecording`/`stopRecording` on the main actor,
+///   `audioBuffer` is guarded by `bufferLock`, and the `@Published` properties are only written
+///   on the main actor. Everything else is immutable.
+final class AudioRecorder: ObservableObject, @unchecked Sendable {
     @Published var isRecording = false
     @Published var audioLevel: Float = 0
 
@@ -118,7 +125,9 @@ final class AudioRecorder: ObservableObject {
         // The converter calls this block repeatedly until the output buffer is full. Handing it
         // the same input buffer every time makes it consume the same audio twice; signal that
         // the single buffer we have is exhausted after the first call.
-        var consumed = false
+        // `convert(to:error:withInputFrom:)` invokes the block synchronously on this thread
+        // before returning, so this flag is never touched concurrently.
+        nonisolated(unsafe) var consumed = false
         var error: NSError?
         let status = converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
             if consumed {

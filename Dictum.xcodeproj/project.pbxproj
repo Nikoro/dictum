@@ -409,7 +409,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */,
-				125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */,
+				8A1A0EAD4D9511435B86BA8C /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
 				477DD02CFE77E514C184E144 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 				03FA1CB0B4BED92A5279D4BA /* XCRemoteSwiftPackageReference "swift-transformers" */,
@@ -620,11 +620,11 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.0;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
-				SWIFT_VERSION = 5.9;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -709,11 +709,11 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.0;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dominikkrajcer.dictum;
 				PRODUCT_NAME = Dictum;
 				SDKROOT = macosx;
-				SWIFT_VERSION = 5.9;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -749,20 +749,20 @@
 				minimumVersion = 1.1.6;
 			};
 		};
-		125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/argmaxinc/whisperkit.git";
-			requirement = {
-				kind = exactVersion;
-				version = 0.18.0;
-			};
-		};
 		477DD02CFE77E514C184E144 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ml-explore/mlx-swift.git";
 			requirement = {
 				kind = exactVersion;
 				version = 0.31.4;
+			};
+		};
+		8A1A0EAD4D9511435B86BA8C /* XCRemoteSwiftPackageReference "argmax-oss-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/argmax-oss-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.0;
 			};
 		};
 		AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */ = {
@@ -811,7 +811,7 @@
 		};
 		A231C686F6E1BB95E9757D00 /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */;
+			package = 8A1A0EAD4D9511435B86BA8C /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
 			productName = WhisperKit;
 		};
 		C02E40E325D8D0E3358D7D4C /* Hub */ = {

@@ -10,7 +10,7 @@
   <a href="https://github.com/Nikoro/dictum/releases/latest"><img src="https://img.shields.io/github/v/release/Nikoro/dictum?style=flat-square" alt="Release"></a>
   <a href="https://github.com/Nikoro/dictum"><img src="https://img.shields.io/badge/macOS-26.0+-black?style=flat-square&logo=apple" alt="macOS"></a>
   <!-- Keep Swift version in sync with SWIFT_VERSION in project.yml -->
-  <a href="https://github.com/Nikoro/dictum"><img src="https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift"></a>
+  <a href="https://github.com/Nikoro/dictum"><img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Nikoro/dictum?style=flat-square" alt="License"></a>
 </p>
 
@@ -30,7 +30,7 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 
 ## Stack
 
-- **STT:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) 0.18.0 — large-v3-turbo, CoreML on Neural Engine
+- **STT:** [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) 1.0.0 — large-v3-turbo, CoreML on Neural Engine
 - **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 3.31.4 — Gemma 4 E4B (default), any mlx-community model
 - **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API

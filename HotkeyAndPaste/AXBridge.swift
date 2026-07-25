@@ -6,13 +6,13 @@ enum AXBridge {
         guard let object, CFGetTypeID(object) == AXUIElementGetTypeID() else {
             return nil
         }
-        return unsafeBitCast(object, to: AXUIElement.self)
+        return unsafeDowncast(object, to: AXUIElement.self)
     }
 
     static func axValue(from object: AnyObject?) -> AXValue? {
         guard let object, CFGetTypeID(object) == AXValueGetTypeID() else {
             return nil
         }
-        return unsafeBitCast(object, to: AXValue.self)
+        return unsafeDowncast(object, to: AXValue.self)
     }
 }
