@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-26
+
+### Changed
+
+- Update WhisperKit to 1.0.0, now part of the Argmax OSS SDK
+- Build the app in Swift 6 language mode
+
+### Fixed
+
+- Opening the prompt settings once silently froze the system prompt on its wording at that moment, so later improvements never reached it. A prompt saved before OCR existed left the model with a large block of screen text it had no instructions for, making it reproduce that text instead of following a spoken command
+
 ## [0.8.0] - 2026-07-25
 
 ### Added
@@ -163,6 +174,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 100% on-device — no data leaves the device
 
 [Unreleased]: https://github.com/Nikoro/dictum/compare/v0.7.0...HEAD
+[0.9.0]: https://github.com/Nikoro/dictum/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Nikoro/dictum/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Nikoro/dictum/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Nikoro/dictum/compare/v0.6.0...v0.6.1
