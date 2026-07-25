@@ -72,7 +72,7 @@ final class MenuBarController: ObservableObject {
         case .recording:
             button.image = MenuBarIcon.recording()
         default:
-            // Template image — system automatycznie dopasuje do light/dark mode
+            // Template image — the system adapts it to light/dark mode automatically
             button.image = MenuBarIcon.microphone()
         }
     }
@@ -96,7 +96,8 @@ final class MenuBarController: ObservableObject {
         }
     }
 
-    deinit {
+    /// Isolated so it can touch main-actor state; the global monitor is not Sendable.
+    isolated deinit {
         if let eventMonitor {
             NSEvent.removeMonitor(eventMonitor)
         }

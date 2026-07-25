@@ -43,14 +43,16 @@ final class LLMModelDownloadController: ObservableObject {
                         self?.downloadProgress = progress.fractionCompleted
                     }
                 }
+                // Only adopt the model once it actually loaded, otherwise the user is left
+                // with a selected model that does not exist on disk.
+                settings.llmModelId = modelId
+                downloadedLLMModelStore.scanDownloadedModels()
+            } catch is CancellationError {
+                dlog("[LLM] download cancelled")
             } catch {
-                if !Task.isCancelled {
-                    dlog("[LLM] load after download failed: \(error.localizedDescription)")
-                }
+                dlog("[LLM] load after download failed: \(error.localizedDescription)")
+                downloadError = error.localizedDescription
             }
-
-            settings.llmModelId = modelId
-            downloadedLLMModelStore.scanDownloadedModels()
         }
     }
 

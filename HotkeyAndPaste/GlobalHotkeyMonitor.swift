@@ -78,11 +78,26 @@ final class GlobalHotkeyMonitor: ObservableObject {
             if let runLoopSource {
                 CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
             }
+            // Without this the mach port and its run loop source stay alive for the
+            // lifetime of the process — start() tears down and rebuilds the tap often.
+            CFMachPortInvalidate(eventTap)
         }
         eventTap = nil
         runLoopSource = nil
         isListening = false
         modifierKeyDown = false
+    }
+
+    /// macOS disables an event tap if its callback is too slow, or on certain user input.
+    /// Without re-enabling it here the hotkey silently stops working until the app restarts.
+    private func reenableTap(disabledBy type: CGEventType) {
+        guard let eventTap else { return }
+        let reason = type == .tapDisabledByTimeout ? "timeout" : "user input"
+        dlog("[Hotkey] tap disabled by \(reason), re-enabling")
+        // A missed key-up may have left the state machine mid-press.
+        modifierKeyDown = false
+        isActive = false
+        CGEvent.tapEnable(tap: eventTap, enable: true)
     }
 
     private func setupEventTap() {
@@ -123,13 +138,20 @@ final class GlobalHotkeyMonitor: ObservableObject {
     }
 
     private nonisolated func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            Task { @MainActor [weak self] in
+                self?.reenableTap(disabledBy: type)
+            }
+            return nil
+        }
+
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
         let snapshot = cachedConfig.withLock { $0 }
         let isModifierOnly = snapshot.isModifierOnly
         let expectedKeyCode = Int64(snapshot.keyCode)
 
-        if handleEscapeKey(type: type, keyCode: keyCode, event: event) != nil {
+        if handleEscapeKey(type: type, keyCode: keyCode) {
             return Unmanaged.passRetained(event)
         }
 
@@ -153,19 +175,17 @@ final class GlobalHotkeyMonitor: ObservableObject {
         }
     }
 
-    private nonisolated func handleEscapeKey(
-        type: CGEventType,
-        keyCode: Int64,
-        event: CGEvent
-    ) -> Unmanaged<CGEvent>? {
+    /// Returns true when the event was an Escape that cancelled an in-flight dictation.
+    /// The event is still passed through to the frontmost app by the caller.
+    private nonisolated func handleEscapeKey(type: CGEventType, keyCode: Int64) -> Bool {
         guard type == .keyDown, keyCode == Int64(KeyCode.escape), isActive else {
-            return nil
+            return false
         }
 
         DispatchQueue.main.async { [weak self] in
             self?.cancelHandler?()
         }
-        return Unmanaged.passRetained(event)
+        return true
     }
 
     private nonisolated func handleModifierOnlyEvent(
@@ -175,22 +195,18 @@ final class GlobalHotkeyMonitor: ObservableObject {
         flags: CGEventFlags,
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
-        if type == .flagsChanged {
-            dlog("[Hotkey] flagsChanged: keyCode=\(keyCode), expected=\(expectedKeyCode), flags=\(flags.rawValue)")
-        }
-
+        // Deliberately not logged: this runs for every modifier press system-wide.
         guard type == .flagsChanged, keyCode == expectedKeyCode else {
             return Unmanaged.passRetained(event)
         }
 
         let modifierFlag = Self.modifierFlag(forKeyCode: Int(expectedKeyCode))
         let isPressed = flags.contains(modifierFlag)
-        dlog("[Hotkey] modifier match! isPressed=\(isPressed)")
 
         if isPressed {
             Task.detached(priority: .userInitiated) { [weak self] in
                 let selectedText = SelectedTextCapture.readSelectedText()
-                await MainActor.run {
+                await MainActor.run { [weak self] in
                     guard let self else { return }
                     DictationPipeline.shared.setPendingContext(selectedText)
                     self.modifierKeyDown = true
@@ -229,7 +245,7 @@ final class GlobalHotkeyMonitor: ObservableObject {
         case .keyDown:
             Task.detached(priority: .userInitiated) { [weak self] in
                 let selectedText = SelectedTextCapture.readSelectedText()
-                await MainActor.run {
+                await MainActor.run { [weak self] in
                     DictationPipeline.shared.setPendingContext(selectedText)
                     self?.keyDownHandler?()
                 }

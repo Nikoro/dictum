@@ -148,12 +148,6 @@ final class WhisperModelStore: ObservableObject {
         downloadProgress = 0
     }
 
-    /// WhisperKit downloads models to ~/Library/Caches/huggingface/hub/
-    private var whisperCacheDir: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Caches/huggingface/hub")
-    }
-
     func deleteModel(_ modelId: String) async {
         if activeModelId == modelId {
             await TranscriptionEngine.shared.unloadModel()
@@ -164,49 +158,64 @@ final class WhisperModelStore: ObservableObject {
         }
         persistIds()
 
-        // Delete model files from disk
-        // WhisperKit stores models under models--argmaxinc--whisperkit-coreml/snapshots/*/modelId/
-        let cacheDir = whisperCacheDir
-        if let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) {
-            while let url = enumerator.nextObject() as? URL {
-                if url.lastPathComponent == modelId && url.hasDirectoryPath {
-                    try? FileManager.default.removeItem(at: url)
-                    dlog("[STT] deleted model files at \(url.path)")
-                    break
-                }
-            }
-        }
+        await Task.detached(priority: .utility) {
+            Self.removeModelFiles(modelId)
+        }.value
+
         refreshTotalSize()
     }
 
+    /// Recomputes the on-disk total in the background. Walking the HuggingFace cache means
+    /// enumerating multiple gigabytes of model files, which must not happen on the main actor.
     func refreshTotalSize() {
-        cachedTotalSizeOnDisk = computeTotalSizeOnDisk()
+        let entries = Self.defaultModels
+            .filter { downloadedModelIds.contains($0.id) }
+            .map { (id: $0.id, fallbackBytes: $0.sizeBytes) }
+
+        Task.detached(priority: .utility) { [weak self] in
+            let total = Self.totalSizeOnDisk(for: entries)
+            await MainActor.run { [weak self] in self?.cachedTotalSizeOnDisk = total }
+        }
     }
 
-    private func computeTotalSizeOnDisk() -> Int64 {
-        var total: Int64 = 0
+    // MARK: - Disk access (off the main actor)
+
+    /// WhisperKit downloads models to ~/Library/Caches/huggingface/hub/
+    private nonisolated static var whisperCacheDir: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Caches/huggingface/hub")
+    }
+
+    private nonisolated static func totalSizeOnDisk(for entries: [(id: String, fallbackBytes: Int64)]) -> Int64 {
         let cacheDir = whisperCacheDir
-        for model in Self.defaultModels where downloadedModelIds.contains(model.id) {
-            if let realSize = modelSizeOnDisk(model.id, cacheDir: cacheDir), realSize > 0 {
+        var total: Int64 = 0
+        for entry in entries {
+            if let realSize = modelDirectory(entry.id, cacheDir: cacheDir).map(FileManager.default.directorySize(at:)),
+               realSize > 0 {
                 total += realSize
             } else {
-                total += model.sizeBytes // fallback to estimate
+                total += entry.fallbackBytes // fallback to estimate
             }
         }
         return total
     }
 
-    private func modelSizeOnDisk(_ modelId: String, cacheDir: URL) -> Int64? {
-        guard let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) else { return nil }
+    /// WhisperKit stores models under models--argmaxinc--whisperkit-coreml/snapshots/*/modelId/
+    private nonisolated static func modelDirectory(_ modelId: String, cacheDir: URL) -> URL? {
+        guard let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) else {
+            return nil
+        }
         while let url = enumerator.nextObject() as? URL {
             if url.lastPathComponent == modelId && url.hasDirectoryPath {
-                return directorySize(url)
+                return url
             }
         }
         return nil
     }
 
-    private func directorySize(_ url: URL) -> Int64 {
-        FileManager.default.directorySize(at: url)
+    private nonisolated static func removeModelFiles(_ modelId: String) {
+        guard let url = modelDirectory(modelId, cacheDir: whisperCacheDir) else { return }
+        try? FileManager.default.removeItem(at: url)
+        dlog("[STT] deleted model files at \(url.path)")
     }
 }

@@ -67,7 +67,8 @@ final class HotkeyRecorderModel: ObservableObject {
         }
     }
 
-    deinit {
+    /// Isolated so it can touch main-actor state; the local event monitors are not Sendable.
+    isolated deinit {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
         Task { @MainActor in

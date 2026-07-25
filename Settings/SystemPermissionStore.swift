@@ -28,7 +28,10 @@ final class SystemPermissionStore: ObservableObject {
     // MARK: - Request
 
     func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        // Imported as a mutable global, so it cannot be read directly under Swift 6 strict
+        // concurrency. The underlying CFString value is a constant.
+        let promptKey = "AXTrustedCheckOptionPrompt" as CFString
+        let options = [promptKey: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
         startPolling()
     }

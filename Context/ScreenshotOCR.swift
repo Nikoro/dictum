@@ -4,12 +4,19 @@ import CoreGraphics
 enum ScreenshotOCR {
     static let maxChars = 4000
 
-    static func extractText(from image: CGImage) async -> String? {
+    /// - Parameter languages: BCP-47 recognition languages, most likely first.
+    static func extractText(from image: CGImage, languages: [String]) async -> String? {
         let start = Date()
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
-        request.recognitionLanguages = ["pl-PL", "en-US"]
+        // Vision throws at perform time on an unsupported language, and the set of supported
+        // languages is narrower than the list of languages Whisper can transcribe.
+        let supported = Set((try? request.supportedRecognitionLanguages()) ?? [])
+        let usable = languages.filter(supported.contains)
+        if !usable.isEmpty {
+            request.recognitionLanguages = usable
+        }
 
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do {

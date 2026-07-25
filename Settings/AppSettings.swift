@@ -1,97 +1,6 @@
 import SwiftUI
 import AppKit
 
-// MARK: - STT Language
-
-enum STTLanguage: String, CaseIterable, Codable, Sendable {
-    case auto
-    case pl
-    case en
-    case de
-    case fr
-    case es
-    case it
-    case pt
-    case uk
-    case cs
-    case nl
-    case ja
-    case ko
-    case zh
-    case ru
-    case sv
-    case tr
-
-    var displayName: String {
-        switch self {
-        case .auto: return String(localized: "language.auto", defaultValue: "Automatic")
-        case .pl: return "Polski"
-        case .en: return "English"
-        case .de: return "Deutsch"
-        case .fr: return "Français"
-        case .es: return "Español"
-        case .it: return "Italiano"
-        case .pt: return "Português"
-        case .uk: return "Українська"
-        case .cs: return "Čeština"
-        case .nl: return "Nederlands"
-        case .ja: return "日本語"
-        case .ko: return "한국어"
-        case .zh: return "中文"
-        case .ru: return "Русский"
-        case .sv: return "Svenska"
-        case .tr: return "Türkçe"
-        }
-    }
-
-    /// Returns the Whisper language code, or nil for auto-detect.
-    var whisperCode: String? {
-        self == .auto ? nil : rawValue
-    }
-
-    /// Maps the system language to a supported STTLanguage, falling back to .auto.
-    static var systemDefault: STTLanguage {
-        guard let code = Locale.current.language.languageCode?.identifier else { return .auto }
-        return STTLanguage(rawValue: code) ?? .auto
-    }
-}
-
-// MARK: - Per-app STT language
-
-struct AppSTTLanguage: Identifiable, Codable, Equatable {
-    var id: String { bundleId }
-    let bundleId: String
-    var appName: String
-    var language: STTLanguage
-    var enabled: Bool = true
-
-    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
-}
-
-// MARK: - App Prompt (per-app LLM prompt)
-
-struct AppPrompt: Identifiable, Codable, Equatable {
-    var id: String { bundleId }
-    let bundleId: String
-    var appName: String
-    var prompt: String
-    var enabled: Bool = true
-
-    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
-}
-
-enum RecordingMode: String, CaseIterable, Sendable {
-    case hold
-    case toggle
-
-    var displayName: String {
-        switch self {
-        case .hold: return String(localized: "mode.hold", defaultValue: "Hold-to-talk")
-        case .toggle: return String(localized: "mode.toggle", defaultValue: "Toggle")
-        }
-    }
-}
-
 enum UserDefaultsKey: String {
     case llmPrompt
     case unifiedSystemPrompt
@@ -152,24 +61,103 @@ final class AppSettings: ObservableObject {
     - Always return just the final text. Nothing else.
     """
 
-    // @AppStorage is used for scalar/String prefs; Codable arrays (appPrompts, appSTTLanguages)
-    // use manual UserDefaults + @Published because @AppStorage doesn't support Codable.
-    @AppStorage(UserDefaultsKey.llmPrompt.rawValue) var llmPrompt: String = ""
-    @AppStorage(UserDefaultsKey.unifiedSystemPrompt.rawValue) var unifiedSystemPrompt: String = ""
-    @AppStorage(UserDefaultsKey.sttModelId.rawValue) var sttModelId: String = "openai_whisper-large-v3_turbo"
-    @AppStorage(UserDefaultsKey.llmModelId.rawValue) var llmModelId: String = "mlx-community/gemma-4-e4b-it-4bit"
-    @AppStorage(UserDefaultsKey.recordingMode.rawValue) var recordingModeRaw: String = RecordingMode.hold.rawValue
-    @AppStorage(UserDefaultsKey.llmCleanupEnabled.rawValue) var llmCleanupEnabled: Bool = false
-    @AppStorage(UserDefaultsKey.llmGeneralPromptEnabled.rawValue) var llmGeneralPromptEnabled: Bool = true
-    @AppStorage(UserDefaultsKey.hotkeyKeyCode.rawValue) var hotkeyKeyCode: Int = 54 // Right Command
-    @AppStorage(UserDefaultsKey.hotkeyModifiers.rawValue) var hotkeyModifiers: Int = 0 // none (modifier-only)
-    @AppStorage(UserDefaultsKey.hotkeyIsModifierOnly.rawValue) var hotkeyIsModifierOnly: Bool = true
-    @AppStorage(UserDefaultsKey.sttLanguage.rawValue) var sttLanguageRaw: String = STTLanguage.systemDefault.rawValue
-    @AppStorage(UserDefaultsKey.hasCompletedSetup.rawValue) var hasCompletedSetup: Bool = false
-    @AppStorage(UserDefaultsKey.smartContextEnabled.rawValue) var smartContextEnabled: Bool = true
-    @AppStorage(UserDefaultsKey.contextScreenshot.rawValue) var contextScreenshot: Bool = true
-    @AppStorage(UserDefaultsKey.contextSelectedText.rawValue) var contextSelectedText: Bool = true
-    @AppStorage(UserDefaultsKey.contextClipboard.rawValue) var contextClipboard: Bool = true
+    // Scalar prefs are stored in UserDefaults behind computed properties rather than
+    // @AppStorage: @AppStorage only publishes when written through a SwiftUI binding, so
+    // writes from elsewhere in the app (e.g. WhisperModelStore adopting a freshly downloaded
+    // model) would never refresh the UI. Codable arrays (appPrompts, appSTTLanguages) use
+    // @Published because neither wrapper supports Codable.
+    var llmPrompt: String {
+        get { stored(.llmPrompt, default: "") }
+        set { store(newValue, for: .llmPrompt) }
+    }
+
+    var unifiedSystemPrompt: String {
+        get { stored(.unifiedSystemPrompt, default: "") }
+        set { store(newValue, for: .unifiedSystemPrompt) }
+    }
+
+    var sttModelId: String {
+        get { stored(.sttModelId, default: "openai_whisper-large-v3_turbo") }
+        set { store(newValue, for: .sttModelId) }
+    }
+
+    var llmModelId: String {
+        get { stored(.llmModelId, default: "mlx-community/gemma-4-e4b-it-4bit") }
+        set { store(newValue, for: .llmModelId) }
+    }
+
+    var recordingModeRaw: String {
+        get { stored(.recordingMode, default: RecordingMode.hold.rawValue) }
+        set { store(newValue, for: .recordingMode) }
+    }
+
+    var llmCleanupEnabled: Bool {
+        get { stored(.llmCleanupEnabled, default: false) }
+        set { store(newValue, for: .llmCleanupEnabled) }
+    }
+
+    var llmGeneralPromptEnabled: Bool {
+        get { stored(.llmGeneralPromptEnabled, default: true) }
+        set { store(newValue, for: .llmGeneralPromptEnabled) }
+    }
+
+    /// Default 54 = Right Command.
+    var hotkeyKeyCode: Int {
+        get { stored(.hotkeyKeyCode, default: 54) }
+        set { store(newValue, for: .hotkeyKeyCode) }
+    }
+
+    /// Default 0 = no modifiers (modifier-only hotkey).
+    var hotkeyModifiers: Int {
+        get { stored(.hotkeyModifiers, default: 0) }
+        set { store(newValue, for: .hotkeyModifiers) }
+    }
+
+    var hotkeyIsModifierOnly: Bool {
+        get { stored(.hotkeyIsModifierOnly, default: true) }
+        set { store(newValue, for: .hotkeyIsModifierOnly) }
+    }
+
+    var sttLanguageRaw: String {
+        get { stored(.sttLanguage, default: STTLanguage.systemDefault.rawValue) }
+        set { store(newValue, for: .sttLanguage) }
+    }
+
+    var hasCompletedSetup: Bool {
+        get { stored(.hasCompletedSetup, default: false) }
+        set { store(newValue, for: .hasCompletedSetup) }
+    }
+
+    var smartContextEnabled: Bool {
+        get { stored(.smartContextEnabled, default: true) }
+        set { store(newValue, for: .smartContextEnabled) }
+    }
+
+    var contextScreenshot: Bool {
+        get { stored(.contextScreenshot, default: true) }
+        set { store(newValue, for: .contextScreenshot) }
+    }
+
+    var contextSelectedText: Bool {
+        get { stored(.contextSelectedText, default: true) }
+        set { store(newValue, for: .contextSelectedText) }
+    }
+
+    var contextClipboard: Bool {
+        get { stored(.contextClipboard, default: true) }
+        set { store(newValue, for: .contextClipboard) }
+    }
+
+    private let defaults = UserDefaults.standard
+
+    private func stored<Value>(_ key: UserDefaultsKey, default fallback: Value) -> Value {
+        defaults.object(forKey: key.rawValue) as? Value ?? fallback
+    }
+
+    private func store<Value>(_ newValue: Value, for key: UserDefaultsKey) {
+        objectWillChange.send()
+        defaults.set(newValue, forKey: key.rawValue)
+    }
 
     var sttLanguage: STTLanguage {
         get { STTLanguage(rawValue: sttLanguageRaw) ?? .auto }
@@ -269,6 +257,16 @@ final class AppSettings: ObservableObject {
             return appLang.language.whisperCode
         }
         return sttLanguage.whisperCode
+    }
+
+    /// Resolve the OCR recognition languages for a given frontmost app, following the same
+    /// per-app override as `resolveSTTLanguage(for:)`.
+    func resolveOCRLanguages(for bundleId: String?) -> [String] {
+        if let bundleId,
+           let appLang = appSTTLanguages.first(where: { $0.bundleId == bundleId && $0.enabled }) {
+            return appLang.language.ocrLanguages
+        }
+        return sttLanguage.ocrLanguages
     }
 
     func addAppSTTLanguage(_ lang: AppSTTLanguage) {

@@ -3,12 +3,12 @@ import AppKit
 
 enum ScreenshotCapture {
 
-    /// Capture the frontmost window as a CGImage using ScreenCaptureKit.
+    /// Capture the main window of `pid` as a CGImage using ScreenCaptureKit.
+    /// - Parameter pid: the app that was frontmost when recording *started*. Reading the
+    ///   frontmost app here instead would capture whatever happens to be in front by the
+    ///   time the pipeline gets around to taking the screenshot.
     /// Returns nil if Screen Recording permission is not granted or capture fails.
-    static func captureFrontmostWindow() async -> CGImage? {
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else { return nil }
-        let pid = frontApp.processIdentifier
-
+    static func captureWindow(ownedBy pid: pid_t) async -> CGImage? {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
 
@@ -20,13 +20,17 @@ enum ScreenshotCapture {
             let filter = SCContentFilter(desktopIndependentWindow: window)
             let config = SCStreamConfiguration()
 
-            // Downscale for VLM: cap longest side at 2048px, preserve aspect ratio
+            // Downscale for VLM: cap longest side at 2048px, preserve aspect ratio.
+            // `window.frame` is in points but SCStreamConfiguration sizes are in pixels,
+            // so fold in the backing scale factor before applying the cap.
             let maxDimension: CGFloat = 2048
-            let w = window.frame.width
-            let h = window.frame.height
-            let scale = min(maxDimension / max(w, h), 1.0)
-            config.width = Int(w * scale)
-            config.height = Int(h * scale)
+            let backingScale = await MainActor.run { NSScreen.main?.backingScaleFactor ?? 2 }
+            let pixelWidth = window.frame.width * backingScale
+            let pixelHeight = window.frame.height * backingScale
+            guard pixelWidth > 0, pixelHeight > 0 else { return nil }
+            let scale = min(maxDimension / max(pixelWidth, pixelHeight), 1.0)
+            config.width = max(1, Int(pixelWidth * scale))
+            config.height = max(1, Int(pixelHeight * scale))
             config.captureResolution = .best
             config.showsCursor = false
 

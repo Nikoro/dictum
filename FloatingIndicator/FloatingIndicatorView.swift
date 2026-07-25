@@ -71,8 +71,12 @@ struct FloatingIndicatorView: View {
     private func startDotAnimation() {
         guard dotTimer == nil else { return }
         dotCount = 0
-        dotTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { @MainActor _ in
-            dotCount = (dotCount + 1) % 3
+        // Timer's block is only @Sendable, so hop back to the main actor explicitly rather
+        // than annotating the closure — the annotation silently drops the isolation.
+        dotTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+            Task { @MainActor in
+                dotCount = (dotCount + 1) % 3
+            }
         }
     }
 

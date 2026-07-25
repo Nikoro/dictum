@@ -93,15 +93,43 @@ actor LLMProcessor {
     private(set) var isLoading = false
     private(set) var currentModelId: String?
     private(set) var isVisionModel = false
+    private var loadingTask: Task<Void, Error>?
+    private var loadingModelId: String?
 
-    func loadModel(_ modelId: String = "mlx-community/gemma-4-e4b-it-4bit", progressHandler: (@Sendable (Progress) -> Void)? = nil) async throws {
-        guard !isLoading else { return }
+    /// Loads `modelId`, downloading it first if needed.
+    /// Concurrent calls for the same model share one load; the first caller's
+    /// `progressHandler` is the one that reports.
+    func loadModel(
+        _ modelId: String = "mlx-community/gemma-4-e4b-it-4bit",
+        progressHandler: (@Sendable (Progress) -> Void)? = nil
+    ) async throws {
+        // Never report success without actually loading — callers treat a clean return
+        // as "the model is ready" and go straight to generation.
+        while let existing = loadingTask {
+            if loadingModelId == modelId { return try await existing.value }
+            _ = try? await existing.value
+        }
+
+        let task = Task {
+            try await performLoad(modelId, progressHandler: progressHandler)
+        }
+        loadingTask = task
+        loadingModelId = modelId
+        defer {
+            loadingTask = nil
+            loadingModelId = nil
+        }
+        try await task.value
+    }
+
+    private func performLoad(_ modelId: String, progressHandler: (@Sendable (Progress) -> Void)?) async throws {
         isLoading = true
         defer { isLoading = false }
 
         modelContainer = nil
         isModelLoaded = false
         isVisionModel = false
+        currentModelId = nil
 
         let config = ModelConfiguration(id: modelId)
 
@@ -174,7 +202,7 @@ actor LLMProcessor {
             )
         )
 
-        var result = try await session.respond(to: userMessage, images: images, videos: [])
+        var result = try await session.respond(to: userMessage, images: images, videos: [], audios: [])
 
         // Strip thinking blocks (Qwen3, Gemma)
         if let thinkEnd = result.range(of: "</think>") {

@@ -38,6 +38,7 @@
 		6812C3ABA68A294B600B8615 /* DownloadedModelsStorageSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F56F836FC92EBF622EF210B /* DownloadedModelsStorageSummary.swift */; };
 		6F7CA5A1A478C5CE0F3106F5 /* DownloadedModelsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B2A2988C55FEB038221C1A /* DownloadedModelsSection.swift */; };
 		73B342021605945264103AFD /* GlobalHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99DA622EA107C648E99591AF /* GlobalHotkeyMonitor.swift */; };
+		73EEAAB0775705E4999E6E5F /* DictationPreferenceTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0453D62C5C020259F188E5C3 /* DictationPreferenceTypes.swift */; };
 		7E6DEBEC1F7E395305ADA5A1 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 161F1C9307FD19DA4C83CB5D /* Sparkle */; };
 		7E992920B22A76EAA3742385 /* KeyCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B566A97E91345AA148E33FC4 /* KeyCodes.swift */; };
 		85307B583B87772BA97F4F55 /* SetupStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD77D307B5E3CBB22A23CB4 /* SetupStepViews.swift */; };
@@ -90,6 +91,7 @@
 		01E46877DDBBA828362F4B8C /* DictumLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictumLogger.swift; sourceTree = "<group>"; };
 		02FFF3CDD5729042E95FECFC /* SystemPermissionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemPermissionStore.swift; sourceTree = "<group>"; };
 		03A173B8F832A4075F91B646 /* HuggingFaceSearchResultsList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceSearchResultsList.swift; sourceTree = "<group>"; };
+		0453D62C5C020259F188E5C3 /* DictationPreferenceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationPreferenceTypes.swift; sourceTree = "<group>"; };
 		06002033D3E05305CAEDAEA8 /* TextInputAnchorResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputAnchorResolver.swift; sourceTree = "<group>"; };
 		08371418A419B5DAA01B37BC /* FileManagerExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManagerExtensions.swift; sourceTree = "<group>"; };
 		099D120BC1892B2DA9EE4254 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
@@ -274,6 +276,7 @@
 			children = (
 				9D73DA7904B656F4B007FBBF /* AppRuntimeState.swift */,
 				87B0FE6B5AEA20A9592F0565 /* AppSettings.swift */,
+				0453D62C5C020259F188E5C3 /* DictationPreferenceTypes.swift */,
 				08371418A419B5DAA01B37BC /* FileManagerExtensions.swift */,
 				345D7F910BFCE134A0685129 /* SparkleUpdateController.swift */,
 				02FFF3CDD5729042E95FECFC /* SystemPermissionStore.swift */,
@@ -386,7 +389,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					CBE02459CFDF081B93E9F5F7 = {
 						DevelopmentTeam = "";
@@ -407,6 +410,7 @@
 			packageReferences = (
 				AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */,
 				125339931F766DA6B55F1CD9 /* XCRemoteSwiftPackageReference "whisperkit" */,
+				477DD02CFE77E514C184E144 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 				03FA1CB0B4BED92A5279D4BA /* XCRemoteSwiftPackageReference "swift-transformers" */,
 			);
@@ -449,6 +453,7 @@
 				E4E5178B1B4BF9983BE9CBD2 /* ContextGatherer.swift in Sources */,
 				4123E6AD17C92C167AE15105 /* DictationContext.swift in Sources */,
 				52921AD405506412222A545B /* DictationPipeline.swift in Sources */,
+				73EEAAB0775705E4999E6E5F /* DictationPreferenceTypes.swift in Sources */,
 				61416821E500C2BA46767158 /* DictumApp.swift in Sources */,
 				25974FAC73CF068B2AE110A4 /* DictumLogger.swift in Sources */,
 				E2A4AAC21D295AFCFD5871D1 /* DownloadedLLMModelPicker.swift in Sources */,
@@ -752,12 +757,20 @@
 				version = 0.18.0;
 			};
 		};
+		477DD02CFE77E514C184E144 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.31.4;
+			};
+		};
 		AB1438D436F31550BF9C8FAC /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.7.0;
+				minimumVersion = 2.9.4;
 			};
 		};
 		C41FCF9420D0CCE960C6DDEF /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
@@ -765,7 +778,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm.git";
 			requirement = {
 				kind = exactVersion;
-				version = 3.31.3;
+				version = 3.31.4;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

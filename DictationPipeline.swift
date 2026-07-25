@@ -18,10 +18,14 @@ final class DictationPipeline: ObservableObject {
     private let llmModelDownloadController = LLMModelDownloadController()
     private var isRecording = false
     private var isCancelled = false
+    /// True once the user pressed Escape, or once the surrounding processing task was cancelled.
+    private var isAborted: Bool { isCancelled || Task.isCancelled }
     private(set) var isWarmedUp = false
     private var warmupTask: Task<Void, Never>?
     private var preloadTask: Task<Void, Never>?
     private var errorResetTask: Task<Void, Never>?
+    private var processingTask: Task<Void, Never>?
+    private var recordingTimeoutTask: Task<Void, Never>?
     private var frontmostApp: NSRunningApplication?
     /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     private(set) var pendingSelectedContext: String?
@@ -168,6 +172,12 @@ final class DictationPipeline: ObservableObject {
             _ = audioRecorder.stopRecording()
             isRecording = false
         }
+        recordingTimeoutTask?.cancel()
+        recordingTimeoutTask = nil
+        // Cancel the work itself, not just the state machine: without this, transcription and
+        // LLM generation keep running on the GPU after the pill has already disappeared.
+        processingTask?.cancel()
+        processingTask = nil
         hotkeyMonitor.isActive = false
         isCancelled = true
         dictationContext = nil
@@ -194,7 +204,7 @@ final class DictationPipeline: ObservableObject {
 
         // Selected text was captured synchronously from the event tap — will be used in context gathering
         if let ctx = pendingSelectedContext {
-            dlog("[Dictum] pending selected context (\(ctx.count) chars): '\(ctx.prefix(100))...'")
+            dlog("[Dictum] pending selected context: \(ctx.count) chars")
         }
 
         do {
@@ -206,6 +216,7 @@ final class DictationPipeline: ObservableObject {
             dlog("[Dictum] recording started, target app: \(frontmostApp?.bundleIdentifier ?? "nil"), showing floating indicator")
             FloatingIndicatorPanelController.shared.captureTargetApp()
             FloatingIndicatorPanelController.shared.show(audioRecorder: audioRecorder)
+            startRecordingTimeout()
         } catch {
             dlog("[Dictum] startRecording error: \(error)")
             runtimeState.appState = .error(
@@ -216,7 +227,30 @@ final class DictationPipeline: ObservableObject {
     }
 
     func stopRecordingAndProcess() async {
-        try? await processStoppedRecording()
+        recordingTimeoutTask?.cancel()
+        recordingTimeoutTask = nil
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            try? await self.processStoppedRecording()
+        }
+        processingTask = task
+        await task.value
+        if processingTask == task {
+            processingTask = nil
+        }
+    }
+
+    /// Safety net for a lost key-up event (e.g. the system disabled the event tap mid-press):
+    /// stop and transcribe rather than record forever.
+    private func startRecordingTimeout() {
+        recordingTimeoutTask?.cancel()
+        recordingTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(AudioRecorder.maxRecordingSeconds))
+            guard !Task.isCancelled, let self, self.isRecording else { return }
+            dlog("[Dictum] recording hit the \(AudioRecorder.maxRecordingSeconds)s cap, stopping")
+            await self.stopRecordingAndProcess()
+        }
     }
 
     // MARK: - LLM Download
@@ -248,7 +282,7 @@ final class DictationPipeline: ObservableObject {
                 return
             }
             let finalText = await finalizeText(from: rawText)
-            guard !isCancelled else { return }
+            guard !isAborted else { return }
             runtimeState.lastCleanedText = finalText
             deliverFinalText(finalText)
             finishProcessing()
@@ -273,11 +307,11 @@ private extension DictationPipeline {
     func transcribe(samples: [Float]) async throws -> String {
         runtimeState.appState = .transcribing
         try await ensureSTTModelLoaded()
-        guard !isCancelled else { return "" }
+        guard !isAborted else { return "" }
         let sttLanguage = settings.resolveSTTLanguage(for: frontmostApp?.bundleIdentifier)
         dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
         let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
-        guard !isCancelled else { return "" }
+        guard !isAborted else { return "" }
         dlog("[Dictum] transcription complete, \(rawText.count) chars")
         runtimeState.lastTranscription = rawText
         return rawText
@@ -292,19 +326,30 @@ private extension DictationPipeline {
     }
 
     func finalizeText(from rawText: String) async -> String {
-        // Gather context — individual sources controlled by settings toggles
+        // Gather context — individual sources controlled by settings toggles.
+        // Screenshot, OCR and clipboard exist purely to feed the LLM, so with cleanup disabled
+        // they would cost a screen capture plus an OCR pass per dictation and be discarded.
+        // Selected text is captured at hotkey press regardless: it decides whether the result
+        // goes to the clipboard instead of overwriting the user's selection.
+        let llmEnabled = settings.llmCleanupEnabled
         let options = ContextOptions(
-            screenshot: settings.contextScreenshot,
+            screenshot: llmEnabled && settings.contextScreenshot,
             selectedText: settings.contextSelectedText,
-            clipboard: settings.contextClipboard
+            clipboard: llmEnabled && settings.contextClipboard
         )
         let hasAnyContextEnabled = options.screenshot || options.selectedText || options.clipboard
         let context: DictationContext?
         if settings.smartContextEnabled && hasAnyContextEnabled {
+            // Snapshot the target app on the main actor — the frontmost app may change while
+            // context is being gathered, and NSRunningApplication cannot cross actor boundaries.
+            let targetApp = frontmostApp.map {
+                TargetApp(pid: $0.processIdentifier, name: $0.localizedName, bundleId: $0.bundleIdentifier)
+            }
             let gathered = await ContextGatherer.gather(
                 selectedText: pendingSelectedContext,
-                frontmostApp: frontmostApp,
-                options: options
+                targetApp: targetApp,
+                options: options,
+                ocrLanguages: settings.resolveOCRLanguages(for: targetApp?.bundleId)
             )
             context = gathered
             dlog("[Dictum] context: app=\(gathered.appName ?? "nil"), selectedText=\(gathered.selectedText != nil ? "yes" : "no"), screenshot=\(gathered.screenshot != nil ? "yes" : "no"), clipboard=\(gathered.clipboardText != nil || gathered.clipboardImage != nil ? "yes" : "no")")
@@ -315,7 +360,8 @@ private extension DictationPipeline {
         pendingSelectedContext = nil
         dictationContext = context
 
-        guard settings.llmCleanupEnabled else {
+        guard llmEnabled else {
+            dlog("[Dictum] LLM cleanup disabled, returning raw transcription")
             return rawText
         }
         let prompt = settings.resolvePrompt(for: frontmostApp?.bundleIdentifier)
@@ -323,13 +369,13 @@ private extension DictationPipeline {
         do {
             try await ensureLLMModelLoaded()
             dlog("[Dictum] LLM prompt for \(frontmostApp?.bundleIdentifier ?? "general")")
-            dlog("[Dictum] LLM input: '\(rawText)', context: \(context?.selectedText != nil ? "yes" : "none")")
+            dlog("[Dictum] LLM input: \(rawText.count) chars, context: \(context?.selectedText != nil ? "yes" : "none")")
             let cleanedText = try await LLMProcessor.shared.cleanText(
                 rawText: rawText,
                 prompt: prompt,
                 context: context
             )
-            dlog("[Dictum] LLM raw output: '\(cleanedText)'")
+            dlog("[Dictum] LLM output: \(cleanedText.count) chars")
             return cleanedText
         } catch {
             dlog("[Dictum] LLM cleanup failed, using raw text: \(error)")
@@ -346,14 +392,14 @@ private extension DictationPipeline {
     func deliverFinalText(_ finalText: String) {
         if dictationContext?.selectedText != nil {
             // Context mode: put result in clipboard, user pastes manually
-            dlog("[Dictum] final text (context mode): '\(finalText)', copying to clipboard")
+            dlog("[Dictum] final text (context mode): \(finalText.count) chars, copying to clipboard")
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(finalText, forType: .string)
             return
         }
 
         // Normal mode: auto-paste
-        dlog("[Dictum] final text: '\(finalText)', pasting...")
+        dlog("[Dictum] final text: \(finalText.count) chars, pasting...")
         ClipboardPasteController.shared.pasteText(finalText)
     }
 

@@ -6,11 +6,16 @@ final class AudioRecorder: ObservableObject {
     @Published var isRecording = false
     @Published var audioLevel: Float = 0
 
+    /// Hard ceiling on a single recording. Reached only if a key-up event is lost, in which
+    /// case the buffer would otherwise grow until the process runs out of memory.
+    static let maxRecordingSeconds = 300
+
     private var engine: AVAudioEngine?
     private var audioBuffer: [Float] = []
     private let bufferLock = NSLock()
     private let expectedRecordingSeconds = 60
     private let targetSampleRate = 16000
+    private var maxSamples: Int { targetSampleRate * Self.maxRecordingSeconds }
 
     @MainActor
     func startRecording() throws {
@@ -110,12 +115,21 @@ final class AudioRecorder: ObservableObject {
             return nil
         }
 
+        // The converter calls this block repeatedly until the output buffer is full. Handing it
+        // the same input buffer every time makes it consume the same audio twice; signal that
+        // the single buffer we have is exhausted after the first call.
+        var consumed = false
         var error: NSError?
         let status = converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
+            if consumed {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            consumed = true
             outStatus.pointee = .haveData
             return buffer
         }
-        guard status != .error, error == nil else {
+        guard status != .error, error == nil, convertedBuffer.frameLength > 0 else {
             return nil
         }
 
@@ -129,7 +143,10 @@ final class AudioRecorder: ObservableObject {
         let rms = sqrt(sumOfSquares / Float(samples.count))
 
         bufferLock.lock()
-        audioBuffer.append(contentsOf: samples)
+        let remaining = maxSamples - audioBuffer.count
+        if remaining > 0 {
+            audioBuffer.append(contentsOf: samples.prefix(remaining))
+        }
         bufferLock.unlock()
 
         DispatchQueue.main.async { [weak self] in

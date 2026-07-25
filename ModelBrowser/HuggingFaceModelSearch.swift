@@ -32,10 +32,19 @@ final class HuggingFaceModelSearch: ObservableObject {
             searchError = nil
             defer { isSearching = false }
 
-            let query = searchQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            let urlString = "https://huggingface.co/api/models?author=mlx-community&search=\(query)&sort=downloads&direction=-1&limit=20&full=true"
+            // URLComponents rather than manual percent-encoding: `.urlQueryAllowed` lets `&`
+            // and `=` through, so a query containing them could inject extra parameters.
+            var components = URLComponents(string: "https://huggingface.co/api/models")
+            components?.queryItems = [
+                URLQueryItem(name: "author", value: "mlx-community"),
+                URLQueryItem(name: "search", value: searchQuery),
+                URLQueryItem(name: "sort", value: "downloads"),
+                URLQueryItem(name: "direction", value: "-1"),
+                URLQueryItem(name: "limit", value: "20"),
+                URLQueryItem(name: "full", value: "true")
+            ]
 
-            guard let url = URL(string: urlString) else { return }
+            guard let url = components?.url else { return }
 
             do {
                 let (data, response) = try await Self.session.data(from: url)

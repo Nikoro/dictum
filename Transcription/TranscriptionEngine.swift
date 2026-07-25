@@ -18,40 +18,55 @@ enum TranscriptionError: LocalizedError {
 actor TranscriptionEngine {
     static let shared = TranscriptionEngine()
 
+    private enum ModelSource {
+        case variant(String)
+        case folder(String)
+    }
+
     private var whisperKit: WhisperKit?
     private(set) var isModelLoaded = false
     private(set) var isLoading = false
     private(set) var currentModelId: String?
     private var loadingTask: Task<Void, Error>?
+    private var loadingModelId: String?
 
     func loadModel(_ modelName: String = "openai_whisper-large-v3_turbo") async throws {
-        if let existingTask = loadingTask { return try await existingTask.value }
-
-        let task = Task {
-            let config = WhisperKitConfig(model: modelName)
-            dlog("[STT] loading model: \(modelName)")
-            try await loadWhisperKit(config, modelId: modelName)
-            dlog("[STT] model loaded successfully")
-        }
-        loadingTask = task
-        defer { loadingTask = nil }
-        try await task.value
+        try await load(.variant(modelName), modelId: modelName)
     }
 
     func loadModel(fromFolder folder: String) async throws {
-        if let existingTask = loadingTask { return try await existingTask.value }
+        try await load(.folder(folder), modelId: URL(fileURLWithPath: folder).lastPathComponent)
+    }
+
+    private func load(_ source: ModelSource, modelId: String) async throws {
+        // Join an in-flight load only when it is for the same model. A load for a *different*
+        // model must not be silently reported as success — wait it out, then load ours.
+        while let existing = loadingTask {
+            if loadingModelId == modelId { return try await existing.value }
+            _ = try? await existing.value
+        }
 
         let task = Task {
             let startTime = CFAbsoluteTimeGetCurrent()
-            dlog("[STT] loading model from folder: \(folder)")
-            let config = WhisperKitConfig(modelFolder: folder)
-            let modelId = URL(fileURLWithPath: folder).lastPathComponent
+            let config: WhisperKitConfig
+            switch source {
+            case .variant(let name):
+                dlog("[STT] loading model: \(name)")
+                config = WhisperKitConfig(model: name)
+            case .folder(let folder):
+                dlog("[STT] loading model from folder: \(folder)")
+                config = WhisperKitConfig(modelFolder: folder)
+            }
             try await loadWhisperKit(config, modelId: modelId)
             let loadTime = CFAbsoluteTimeGetCurrent() - startTime
             dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
         }
         loadingTask = task
-        defer { loadingTask = nil }
+        loadingModelId = modelId
+        defer {
+            loadingTask = nil
+            loadingModelId = nil
+        }
         try await task.value
     }
 

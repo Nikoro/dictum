@@ -8,7 +8,9 @@ func dlog(_ message: String) {
 }
 
 private final class DictumLogger: @unchecked Sendable {
-    private let lock = NSLock()
+    /// All file I/O happens here. `log()` must never block its caller — it is called from the
+    /// CGEvent tap callback, and a slow tap callback makes macOS disable the tap entirely.
+    private let queue = DispatchQueue(label: "com.dominikkrajcer.dictum.logger", qos: .utility)
     private var handle: FileHandle?
     private let path: String
     private let backupPath: String
@@ -35,17 +37,17 @@ private final class DictumLogger: @unchecked Sendable {
     }
 
     func log(_ message: String) {
-        let line = "[\(dateFormatter.string(from: Date()))] \(message)\n"
-        let data = Data(line.utf8)
-        lock.lock()
-        defer { lock.unlock() }
-        rotateIfNeeded()
-        if handle == nil {
-            ensureFileExists()
-            handle = FileHandle(forWritingAtPath: path)
-            handle?.seekToEndOfFile()
+        let timestamp = Date()
+        queue.async { [self] in
+            let data = Data("[\(dateFormatter.string(from: timestamp))] \(message)\n".utf8)
+            rotateIfNeeded()
+            if handle == nil {
+                ensureFileExists()
+                handle = FileHandle(forWritingAtPath: path)
+                handle?.seekToEndOfFile()
+            }
+            handle?.write(data)
         }
-        handle?.write(data)
     }
 
     private func ensureFileExists() {
