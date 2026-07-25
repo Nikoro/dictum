@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-25
+
+### Added
+
+- Smart context: dictation can use a screenshot of the active window, on-screen text via OCR, the current selection, and the clipboard
+- Vision model support — MLXVLM wired up so VLM models can see the captured screenshot
+- Per-source context toggles for screenshot, selection and clipboard
+- Separate feedback while the LLM is processing
+
+### Changed
+
+- Prioritize the screenshot over the clipboard when both are available
+- Move prompt settings into the main popover
+- Split UI modules and separate runtime state from the dictation pipeline
+
+### Fixed
+
+- The global hotkey silently stopped working once macOS disabled the event tap; the tap is now re-enabled, and logging no longer blocks its callback
+- Switching STT or LLM models while another load was in flight returned the previous model and reported success
+- A failed LLM download adopted the model anyway without surfacing an error
+- Screenshot context captured whichever app was frontmost at capture time instead of the app dictation started in
+- Escape now cancels transcription and LLM generation instead of only hiding the indicator
+- Dictated text and LLM output are no longer written to the debug log
+- Settings changed outside the settings UI now refresh it
+- OCR recognition languages follow the selected STT language
+- Floating indicator anchor resolution
+
 ## [0.7.0] - 2026-04-04
 
 ### Added
@@ -136,6 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 100% on-device — no data leaves the device
 
 [Unreleased]: https://github.com/Nikoro/dictum/compare/v0.7.0...HEAD
+[0.8.0]: https://github.com/Nikoro/dictum/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Nikoro/dictum/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/Nikoro/dictum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Nikoro/dictum/compare/v0.5.1...v0.6.0
