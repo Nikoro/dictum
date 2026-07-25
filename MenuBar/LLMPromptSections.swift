@@ -32,7 +32,8 @@ struct UnifiedPromptSection: View {
                     Spacer()
                     Button(String(localized: "section.prompt.unified.reset", defaultValue: "Reset")) {
                         settings.resetUnifiedPrompt()
-                        localPrompt = settings.unifiedSystemPrompt
+                        // Reset clears the override; show the live default in the editor.
+                        localPrompt = AppSettings.defaultUnifiedPrompt
                     }
                     .buttonStyle(.plain)
                     .font(.caption)
@@ -47,7 +48,11 @@ struct UnifiedPromptSection: View {
                 .background(.quaternary)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .onChange(of: localPrompt) { _, newValue in
-                    settings.unifiedSystemPrompt = newValue
+                    // Persist an override only. onAppear seeds the editor with the default, so
+                    // storing it verbatim would freeze the user on today's wording and silently
+                    // withhold every later improvement to it.
+                    settings.unifiedSystemPrompt =
+                        newValue == AppSettings.defaultUnifiedPrompt ? "" : newValue
                 }
             }
         }

@@ -177,17 +177,56 @@ final class AppSettings: ObservableObject {
         set { recordingModeRaw = newValue.rawValue }
     }
 
+    /// Earlier wordings of `defaultUnifiedPrompt`. A stored prompt matching one of these was
+    /// never written by the user — the settings UI used to persist the default just for being
+    /// opened — so it is cleared and the current default takes over. Anything else is a genuine
+    /// customization and is left untouched.
+    private static let supersededUnifiedPrompts: [String] = [
+        """
+        You are a voice input assistant. You receive:
+        - A screenshot of the user's active window
+        - The app name they're in
+        - Any text they have selected
+        - Their spoken words (transcribed)
+
+        Your job is to figure out what they want and return ONLY the text to be pasted. No explanations, no markdown, no quotes.
+
+        Rules:
+        - If the user is simply dictating text (speaking sentences, notes, thoughts), clean it up: fix punctuation, remove filler words, fix obvious typos. Ignore the screenshot.
+        - If the user is giving a command about what's on screen (e.g. "reply to him that...", "summarize this", "translate this"), use the screenshot and selected text to understand the context, then execute the command.
+        - If replying to a conversation, match the language and formality level visible in the screenshot.
+        - Always return just the final text. Nothing else.
+        """
+    ]
+
     private init() {
+        migrateSupersededUnifiedPrompt()
         loadAppPrompts()
         loadAppSTTLanguages()
+    }
+
+    /// A stored copy of an old default describes inputs the pipeline no longer sends — most
+    /// visibly it never mentions the OCR block — which leaves the model with a large unexplained
+    /// wall of screen text and makes it reproduce that text instead of following the command.
+    private func migrateSupersededUnifiedPrompt() {
+        let stored = unifiedSystemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !stored.isEmpty else { return }
+        let isSuperseded = Self.supersededUnifiedPrompts.contains {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines) == stored
+        }
+        guard isSuperseded else { return }
+        dlog("[Settings] clearing superseded unified prompt, falling back to the current default")
+        unifiedSystemPrompt = ""
     }
 
     func resetPrompt() {
         llmPrompt = Self.defaultPrompt
     }
 
+    /// Clears the override rather than storing the default, so the prompt keeps tracking
+    /// `defaultUnifiedPrompt` as it evolves.
     func resetUnifiedPrompt() {
-        unifiedSystemPrompt = Self.defaultUnifiedPrompt
+        unifiedSystemPrompt = ""
     }
 
     // MARK: - Per-app prompts
