@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 struct SetupSpeechRecognitionModelStep: View {
-    @ObservedObject var whisperModelStore: WhisperModelStore
+    let whisperModelStore: WhisperModelStore
     @Binding var selectedModelId: String
     let isUnlocked: Bool
 
@@ -13,35 +13,7 @@ struct SetupSpeechRecognitionModelStep: View {
             isDone: whisperModelStore.downloadedModelIds.contains(selectedModelId)
         ) {
             if isUnlocked {
-                VStack(spacing: 8) {
-                    ForEach(WhisperModelStore.defaultModels) { model in
-                        SetupModelRow(
-                            model: model,
-                            isSelected: selectedModelId == model.id,
-                            isDownloaded: whisperModelStore.downloadedModelIds.contains(model.id),
-                            isDownloading: whisperModelStore.downloadingModelId == model.id,
-                            downloadProgress: whisperModelStore.downloadingModelId == model.id ? whisperModelStore.downloadProgress : 0,
-                            onSelect: {
-                                selectedModelId = model.id
-                                whisperModelStore.activeModelId = model.id
-                            },
-                            onDownload: {
-                                selectedModelId = model.id
-                                whisperModelStore.downloadAndActivate(model.id)
-                            },
-                            onCancel: {
-                                whisperModelStore.cancelDownload()
-                            }
-                        )
-                    }
-                    if let error = whisperModelStore.downloadError {
-                        LLMModelDownloadErrorView(errorMessage: error) {
-                            whisperModelStore.downloadError = nil
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
+                modelChoices
             } else {
                 Text(String(localized: "setup.step1.locked", defaultValue: "Enable permissions above first."))
                     .font(.caption)
@@ -49,5 +21,46 @@ struct SetupSpeechRecognitionModelStep: View {
                     .padding(.bottom, 16)
             }
         }
+    }
+
+    private var modelChoices: some View {
+        VStack(spacing: 8) {
+            ForEach(WhisperModelStore.defaultModels) { model in
+                row(for: model)
+            }
+            if let error = whisperModelStore.downloadError {
+                ModelDownloadErrorView(errorMessage: error, onDismiss: clearDownloadError)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+
+    private func clearDownloadError() {
+        whisperModelStore.downloadError = nil
+    }
+
+    private func row(for model: WhisperModelInfo) -> some View {
+        let isDownloading = whisperModelStore.downloadingModelId == model.id
+        return SetupModelRow(
+            name: model.displayName,
+            description: isDownloading ? nil : model.description,
+            formattedSize: model.formattedSize,
+            isRecommended: model.isRecommended,
+            isChecked: selectedModelId == model.id,
+            isSelected: selectedModelId == model.id,
+            isDownloaded: whisperModelStore.downloadedModelIds.contains(model.id),
+            isDownloading: isDownloading,
+            downloadProgress: isDownloading ? whisperModelStore.downloadProgress : 0,
+            onSelect: {
+                selectedModelId = model.id
+                whisperModelStore.activeModelId = model.id
+            },
+            onDownload: {
+                selectedModelId = model.id
+                whisperModelStore.downloadAndActivate(model.id)
+            },
+            onCancel: whisperModelStore.cancelDownload
+        )
     }
 }

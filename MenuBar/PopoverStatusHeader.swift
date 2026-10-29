@@ -2,23 +2,11 @@ import SwiftUI
 
 @MainActor
 struct PopoverStatusHeader: View {
-    @EnvironmentObject var runtimeState: AppRuntimeState
+    @Environment(AppRuntimeState.self) private var runtimeState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Spacer()
-                Image("AppLogo")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .accessibilityHidden(true)
-                Text("Dictum")
-                    .font(.title2.bold())
-                Spacer()
-            }
-
+            title
             if let statusText = stateDescription {
                 HStack(spacing: 6) {
                     if isProcessing {
@@ -37,32 +25,47 @@ struct PopoverStatusHeader: View {
         .padding()
     }
 
+    private var title: some View {
+        HStack(spacing: 8) {
+            Spacer()
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .accessibilityHidden(true)
+            Text("Dictum")
+                .font(.title2.bold())
+            Spacer()
+        }
+    }
+
     private var stateDescription: String? {
         switch runtimeState.appState {
-        case .idle: return nil
-        case .warmingUp: return String(localized: "header.warmingUp", defaultValue: "Warming up...")
-        case .recording: return String(localized: "header.recording", defaultValue: "Recording...")
-        case .transcribing: return String(localized: "header.transcribing", defaultValue: "Transcribing...")
-        case .processingLLM: return String(localized: "header.processingLLM", defaultValue: "Cleaning text with LLM...")
-        case .error(let message): return message
+        case .idle: nil
+        case .warmingUp: String(localized: "header.warmingUp", defaultValue: "Warming up...")
+        case .recording: String(localized: "header.recording", defaultValue: "Recording...")
+        case .transcribing: String(localized: "header.transcribing", defaultValue: "Transcribing...")
+        case .processingLLM: String(localized: "header.processingLLM", defaultValue: "Cleaning text with LLM...")
+        case let .error(message): message
         }
     }
 
     private var isProcessing: Bool {
         switch runtimeState.appState {
-        case .warmingUp, .recording, .transcribing, .processingLLM: return true
-        default: return false
+        case .warmingUp, .recording, .transcribing, .processingLLM: true
+        default: false
         }
     }
 
     private var stateColor: Color {
         switch runtimeState.appState {
-        case .warmingUp: return .blue
-        case .recording: return .red
-        case .transcribing: return .yellow
-        case .processingLLM: return .orange
-        case .error: return .red
-        default: return .secondary
+        case .warmingUp: .blue
+        case .recording: .red
+        case .transcribing: .yellow
+        case .processingLLM: .orange
+        case .error: .red
+        default: .secondary
         }
     }
 }

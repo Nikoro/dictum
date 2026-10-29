@@ -11,27 +11,16 @@ final class FloatingIndicatorPanelController {
     private var targetAnchor: TextInputAnchorResolver.Anchor?
     private init() {}
 
-    /// Call before showing to capture which app the user is typing in.
     func captureTargetApp() {
-        if let app = NSWorkspace.shared.frontmostApplication {
-            targetPID = app.processIdentifier
-            if let bundleURL = app.bundleURL {
-                targetAppIcon = NSWorkspace.shared.icon(forFile: bundleURL.path)
-            } else {
-                targetAppIcon = app.icon
-            }
-            targetAnchor = TextInputAnchorResolver.resolve(preferredPID: targetPID)
-            if let targetAnchor {
-                let iconAvailability = targetAppIcon != nil ? "yes" : "nil"
-                dlog(
-                    "[Pill] captured app: \(app.localizedName ?? "?"), " +
-                    "icon: \(iconAvailability), " +
-                    "anchor=\(targetAnchor.kind.rawValue):\(targetAnchor.role)"
-                )
-            } else {
-                dlog("[Pill] captured app: \(app.localizedName ?? "?"), icon: \(targetAppIcon != nil ? "yes" : "nil"), anchor=nil")
-            }
-        }
+        guard let app = NSWorkspace.shared.frontmostApplication else { return }
+        targetPID = app.processIdentifier
+        targetAppIcon = app.bundleURL.map { NSWorkspace.shared.icon(forFile: $0.path) } ?? app.icon
+        targetAnchor = TextInputAnchorResolver.resolve(preferredPID: targetPID)
+        let anchorDescription = targetAnchor.map { "\($0.kind.rawValue):\($0.role)" } ?? "nil"
+        dlog(
+            "[Pill] captured app: \(app.localizedName ?? "?"), " +
+                "icon: \(targetAppIcon != nil ? "yes" : "nil"), anchor=\(anchorDescription)"
+        )
     }
 
     func show(audioRecorder: AudioRecorder) {
@@ -41,62 +30,60 @@ final class FloatingIndicatorPanelController {
 
         if let panel, let hostingView {
             hostingView.rootView = view
-            let origin = caretOrigin(panelSize: panel.frame.size)
-            panel.setFrameOrigin(origin)
+            panel.setFrameOrigin(panelOriginNearCaretOrMouse(panelSize: panel.frame.size))
             panel.orderFrontRegardless()
             return
         }
 
+        let panelSize = NSSize(width: 210, height: 44)
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = [.intrinsicContentSize]
+        hosting.frame = NSRect(origin: .zero, size: panelSize)
 
-        let panelSize = NSSize(width: 210, height: 44)
+        let newPanel = Self.makeNonActivatingClickThroughPanel(size: panelSize)
+        newPanel.contentView = hosting
+        newPanel.setFrameOrigin(panelOriginNearCaretOrMouse(panelSize: panelSize))
+        newPanel.orderFrontRegardless()
+        panel = newPanel
+        hostingView = hosting
+    }
 
-        let newPanel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: panelSize),
+    private static func makeNonActivatingClickThroughPanel(size: NSSize) -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        newPanel.isOpaque = false
-        newPanel.backgroundColor = .clear
-        newPanel.level = .floating
-        newPanel.hasShadow = true
-        newPanel.ignoresMouseEvents = true
-        newPanel.isMovableByWindowBackground = false
-        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-
-        hosting.frame = NSRect(origin: .zero, size: panelSize)
-        newPanel.contentView = hosting
-
-        let origin = caretOrigin(panelSize: panelSize)
-        newPanel.setFrameOrigin(origin)
-
-        newPanel.orderFrontRegardless()
-        self.panel = newPanel
-        self.hostingView = hosting
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.level = .floating
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true
+        panel.isMovableByWindowBackground = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        return panel
     }
 
     func hide() {
         panel?.orderOut(nil)
-        self.targetAnchor = nil
+        targetAnchor = nil
     }
 
-    /// Get caret (text cursor) position via Accessibility API.
-    /// Falls back to the focused input frame, then to mouse position.
-    private func caretOrigin(panelSize: NSSize) -> NSPoint {
+    private func panelOriginNearCaretOrMouse(panelSize: NSSize) -> NSPoint {
         if let anchor = targetAnchor ?? TextInputAnchorResolver.resolve(preferredPID: targetPID),
-           let origin = TextInputAnchorResolver.panelOrigin(for: anchor, panelSize: panelSize) {
-            let anchorDescription = "\(anchor.rect.origin.x),\(anchor.rect.origin.y),\(anchor.rect.size.width),\(anchor.rect.size.height)"
+           let origin = TextInputAnchorResolver.panelOrigin(for: anchor, panelSize: panelSize)
+        {
+            let rect = anchor.rect
+            let anchorDescription = "\(rect.origin.x),\(rect.origin.y),\(rect.width),\(rect.height)"
             let originDescription = "\(origin.x),\(origin.y)"
             dlog(
                 "[Pill] \(anchor.kind.rawValue) role=\(anchor.role) " +
-                "ax=(\(anchorDescription)) → appKit=(\(originDescription))"
+                    "ax=(\(anchorDescription)) → appKit=(\(originDescription))"
             )
             return origin
         }
 
-        // Fallback: mouse position
         let mouse = NSEvent.mouseLocation
         dlog("[Pill] no caret, using mouse=(\(mouse.x),\(mouse.y))")
         return NSPoint(

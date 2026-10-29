@@ -1,28 +1,28 @@
 import Accelerate
-// AVFAudio predates strict concurrency: its tap and converter callbacks are @Sendable but hand
-// back non-Sendable AVAudioPCMBuffers. @preconcurrency keeps those unavoidable crossings as
-// warnings instead of errors.
+
+// Edge case: AVFAudio tap and converter callbacks are @Sendable yet hand back non-Sendable
+// buffers; @preconcurrency keeps that unavoidable crossing a warning.
 @preconcurrency import AVFoundation
-import Combine
 
-/// - Note: `@unchecked Sendable` because the compiler cannot see the isolation discipline here:
-///   `engine` is only ever touched from `startRecording`/`stopRecording` on the main actor,
-///   `audioBuffer` is guarded by `bufferLock`, and the `@Published` properties are only written
-///   on the main actor. Everything else is immutable.
-final class AudioRecorder: ObservableObject, @unchecked Sendable {
-    @Published var isRecording = false
-    @Published var audioLevel: Float = 0
+// Edge case: @unchecked Sendable holds because `engine`, `configurationObserver`,
+// `isRecording` and `audioLevel` are only touched on the main actor, and `audioBuffer` only
+// under `bufferLock`.
+final class AudioRecorder: @unchecked Sendable {
+    var isRecording = false
+    var audioLevel: Float = 0
 
-    /// Hard ceiling on a single recording. Reached only if a key-up event is lost, in which
-    /// case the buffer would otherwise grow until the process runs out of memory.
+    // Edge case: only reached when a key-up event is lost; without it the buffer grows unbounded.
     static let maxRecordingSeconds = 300
 
     private var engine: AVAudioEngine?
+    private var configurationObserver: (any NSObjectProtocol)?
     private var audioBuffer: [Float] = []
     private let bufferLock = NSLock()
     private let expectedRecordingSeconds = 60
     private let targetSampleRate = 16000
-    private var maxSamples: Int { targetSampleRate * Self.maxRecordingSeconds }
+    private var maxSamples: Int {
+        targetSampleRate * Self.maxRecordingSeconds
+    }
 
     @MainActor
     func startRecording() throws {
@@ -37,14 +37,55 @@ final class AudioRecorder: ObservableObject, @unchecked Sendable {
 
         let audioProcessing = makeAudioProcessingContext(hardwareFormat: hardwareFormat)
         installInputTap(on: inputNode, hardwareFormat: hardwareFormat, context: audioProcessing)
+        observeConfigurationChanges(of: engine)
 
         try engine.start()
         isRecording = true
         dlog("[Audio] engine started")
     }
 
+    // Edge case: Bluetooth headsets switch from A2DP to HFP when their microphone opens. The
+    // format change stops AVAudioEngine, and without a restart the recording stays empty.
+    @MainActor
+    private func observeConfigurationChanges(of engine: AVAudioEngine) {
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.restartAfterConfigurationChange()
+            }
+        }
+    }
+
+    @MainActor
+    private func restartAfterConfigurationChange() {
+        guard let engine, isRecording else { return }
+
+        let inputNode = engine.inputNode
+        inputNode.removeTap(onBus: 0)
+        let hardwareFormat = inputNode.outputFormat(forBus: 0)
+        dlog("[Audio] configuration changed, new format: \(hardwareFormat.sampleRate)Hz, \(hardwareFormat.channelCount)ch")
+        // Edge case: a device mid-switch briefly reports an empty format; another change follows.
+        guard hardwareFormat.sampleRate > 0, hardwareFormat.channelCount > 0 else { return }
+
+        let audioProcessing = makeAudioProcessingContext(hardwareFormat: hardwareFormat)
+        installInputTap(on: inputNode, hardwareFormat: hardwareFormat, context: audioProcessing)
+        do {
+            try engine.start()
+            dlog("[Audio] engine restarted")
+        } catch {
+            dlog("[Audio] engine restart failed: \(error)")
+        }
+    }
+
     @MainActor
     func stopRecording() -> [Float] {
+        if let configurationObserver {
+            NotificationCenter.default.removeObserver(configurationObserver)
+            self.configurationObserver = nil
+        }
         engine?.inputNode.removeTap(onBus: 0)
         engine?.stop()
         engine = nil
@@ -67,15 +108,15 @@ final class AudioRecorder: ObservableObject, @unchecked Sendable {
             sampleRate: desiredSampleRate,
             channels: 1,
             interleaved: false
-        ) else {
+        )
+        else {
             fatalError("internal: failed to create 16kHz mono Float32 format")
         }
 
-        let converter: AVAudioConverter?
-        if hardwareFormat.sampleRate != desiredSampleRate || hardwareFormat.channelCount != 1 {
-            converter = AVAudioConverter(from: hardwareFormat, to: desiredFormat)
+        let converter: AVAudioConverter? = if hardwareFormat.sampleRate != desiredSampleRate || hardwareFormat.channelCount != 1 {
+            AVAudioConverter(from: hardwareFormat, to: desiredFormat)
         } else {
-            converter = nil
+            nil
         }
 
         return AudioProcessingContext(
@@ -92,14 +133,15 @@ final class AudioRecorder: ObservableObject, @unchecked Sendable {
     ) {
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: hardwareFormat) { [weak self] buffer, _ in
             guard let self,
-                  let samplesBuffer = self.convertBuffer(buffer, hardwareFormat: hardwareFormat, context: context),
-                  let channelData = samplesBuffer.floatChannelData?[0] else {
+                  let samplesBuffer = convertBuffer(buffer, hardwareFormat: hardwareFormat, context: context),
+                  let channelData = samplesBuffer.floatChannelData?[0]
+            else {
                 return
             }
 
             let frameLength = Int(samplesBuffer.frameLength)
             let samples = UnsafeBufferPointer(start: channelData, count: frameLength)
-            self.appendSamples(samples)
+            appendSamples(samples)
         }
     }
 
@@ -118,15 +160,14 @@ final class AudioRecorder: ObservableObject, @unchecked Sendable {
         guard let convertedBuffer = AVAudioPCMBuffer(
             pcmFormat: context.desiredFormat,
             frameCapacity: frameCount
-        ) else {
+        )
+        else {
             return nil
         }
 
-        // The converter calls this block repeatedly until the output buffer is full. Handing it
-        // the same input buffer every time makes it consume the same audio twice; signal that
-        // the single buffer we have is exhausted after the first call.
-        // `convert(to:error:withInputFrom:)` invokes the block synchronously on this thread
-        // before returning, so this flag is never touched concurrently.
+        // Edge case: the converter keeps calling this block until its output is full; handing
+        // back the same buffer twice would duplicate audio. The block runs synchronously inside
+        // `convert`, so the flag is never shared across threads.
         nonisolated(unsafe) var consumed = false
         var error: NSError?
         let status = converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
@@ -146,7 +187,7 @@ final class AudioRecorder: ObservableObject, @unchecked Sendable {
     }
 
     private func appendSamples(_ samples: UnsafeBufferPointer<Float>) {
-        guard let baseAddress = samples.baseAddress, samples.count > 0 else { return }
+        guard let baseAddress = samples.baseAddress, !samples.isEmpty else { return }
         var sumOfSquares: Float = 0
         vDSP_svesq(baseAddress, 1, &sumOfSquares, vDSP_Length(samples.count))
         let rms = sqrt(sumOfSquares / Float(samples.count))
@@ -160,8 +201,7 @@ final class AudioRecorder: ObservableObject, @unchecked Sendable {
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.objectWillChange.send()
-            self.audioLevel = rms
+            audioLevel = rms
         }
     }
 }

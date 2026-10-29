@@ -14,24 +14,24 @@ struct WhisperModelInfo: Identifiable {
     }
 
     var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file)
+        sizeBytes.formattedFileSize
     }
 }
 
 @MainActor
-final class WhisperModelStore: ObservableObject {
+@Observable
+final class WhisperModelStore {
     static let shared = WhisperModelStore()
 
-    @Published var availableModels: [WhisperModelInfo] = WhisperModelStore.defaultModels
-    @Published var downloadedModelIds: Set<String> = []
-    @Published var activeModelId: String = "openai_whisper-large-v3_turbo"
-    @Published var isDownloading = false
-    @Published var downloadingModelId: String?
-    @Published var downloadProgress: Double = 0
-    @Published var downloadError: String?
-    @Published var cachedTotalSizeOnDisk: Int64 = 0
+    var downloadedModelIds: Set<String> = []
+    var activeModelId: String = "openai_whisper-large-v3_turbo"
+    var isDownloading = false
+    var downloadingModelId: String?
+    var downloadProgress: Double = 0
+    var downloadError: String?
+    var cachedTotalSizeOnDisk: Int64 = 0
 
-    private var downloadTask: Task<Void, Never>?
+    @ObservationIgnored private var downloadTask: Task<Void, Never>?
     private static let downloadedKey = UserDefaultsKey.whisperDownloadedModelIds.rawValue
 
     static let defaultModels: [WhisperModelInfo] = [
@@ -96,39 +96,10 @@ final class WhisperModelStore: ObservableObject {
 
         downloadTask = Task {
             do {
-                let modelFolder = try await WhisperKit.download(variant: modelId) { [weak self] progress in
-                    Task { @MainActor in
-                        // Download = 0% to 50%
-                        self?.downloadProgress = progress.fractionCompleted * 0.5
-                    }
-                }
-
+                let modelFolder = try await downloadIntoFirstHalfOfProgress(modelId)
                 try Task.checkCancellation()
-
-                // Simulate loading progress from 50% to 99% over ~120s
-                downloadProgress = 0.5
-                // The block ignores its Timer argument — Timer is not Sendable, so passing it
-                // into the main-actor body would be a cross-isolation send. The defer below
-                // owns invalidation regardless of how this scope exits.
-                let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-                    // Scheduled from the main actor, so the block fires on the main run loop.
-                    MainActor.assumeIsolated {
-                        guard let self, self.downloadProgress < 0.99 else { return }
-                        // 0.49 / 240 ticks (120s / 0.5s) ≈ 0.002 per tick
-                        self.downloadProgress += 0.002
-                    }
-                }
-                defer { loadingTimer.invalidate() }
-
-                try await TranscriptionEngine.shared.loadModel(fromFolder: modelFolder.path)
-                downloadProgress = 1.0
-
-                downloadedModelIds.insert(modelId)
-                activeModelId = modelId
-                AppSettings.shared.sttModelId = modelId
-                persistIds()
-                refreshTotalSize()
-                DictationPipeline.shared.warmUpModels()
+                try await loadWithEstimatedProgress(fromFolder: modelFolder)
+                activate(modelId)
             } catch is CancellationError {
                 dlog("[STT] download cancelled")
             } catch {
@@ -140,6 +111,42 @@ final class WhisperModelStore: ObservableObject {
             downloadProgress = 0
             downloadTask = nil
         }
+    }
+
+    private func downloadIntoFirstHalfOfProgress(_ modelId: String) async throws -> URL {
+        try await WhisperKit.download(variant: modelId) { [weak self] progress in
+            Task { @MainActor in
+                self?.downloadProgress = progress.fractionCompleted * 0.5
+            }
+        }
+    }
+
+    // Edge case: CoreML compilation reports no progress, so the second half of the bar creeps
+    // towards 99% over the typical ~120 s instead.
+    private func loadWithEstimatedProgress(fromFolder modelFolder: URL) async throws {
+        downloadProgress = 0.5
+        // Edge case: the block must ignore its Timer argument (not Sendable, so reaching it from
+        // the main actor is a cross-isolation send); `defer` invalidates instead. Scheduled from
+        // the main actor, the block runs on the main run loop, which makes assumeIsolated safe.
+        let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.downloadProgress < 0.99 else { return }
+                self.downloadProgress += Self.estimatedLoadProgressPerTick
+            }
+        }
+        defer { loadingTimer.invalidate() }
+
+        try await TranscriptionEngine.shared.loadModel(fromFolder: modelFolder.path)
+        downloadProgress = 1.0
+    }
+
+    private func activate(_ modelId: String) {
+        downloadedModelIds.insert(modelId)
+        activeModelId = modelId
+        AppSettings.shared.sttModelId = modelId
+        persistIds()
+        refreshTotalSize()
+        ModelWarmupCoordinator.shared.warmUpModels()
     }
 
     func cancelDownload() {
@@ -167,8 +174,6 @@ final class WhisperModelStore: ObservableObject {
         refreshTotalSize()
     }
 
-    /// Recomputes the on-disk total in the background. Walking the HuggingFace cache means
-    /// enumerating multiple gigabytes of model files, which must not happen on the main actor.
     func refreshTotalSize() {
         let entries = Self.defaultModels
             .filter { downloadedModelIds.contains($0.id) }
@@ -180,9 +185,8 @@ final class WhisperModelStore: ObservableObject {
         }
     }
 
-    // MARK: - Disk access (off the main actor)
+    private static let estimatedLoadProgressPerTick = 0.49 / (120 / 0.5)
 
-    /// WhisperKit downloads models to ~/Library/Caches/huggingface/hub/
     private nonisolated static var whisperCacheDir: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Caches/huggingface/hub")
@@ -193,22 +197,22 @@ final class WhisperModelStore: ObservableObject {
         var total: Int64 = 0
         for entry in entries {
             if let realSize = modelDirectory(entry.id, cacheDir: cacheDir).map(FileManager.default.directorySize(at:)),
-               realSize > 0 {
+               realSize > 0
+            {
                 total += realSize
             } else {
-                total += entry.fallbackBytes // fallback to estimate
+                total += entry.fallbackBytes
             }
         }
         return total
     }
 
-    /// WhisperKit stores models under models--argmaxinc--whisperkit-coreml/snapshots/*/modelId/
     private nonisolated static func modelDirectory(_ modelId: String, cacheDir: URL) -> URL? {
         guard let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) else {
             return nil
         }
         while let url = enumerator.nextObject() as? URL {
-            if url.lastPathComponent == modelId && url.hasDirectoryPath {
+            if url.lastPathComponent == modelId, url.hasDirectoryPath {
                 return url
             }
         }

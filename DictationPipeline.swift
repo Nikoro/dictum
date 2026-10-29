@@ -1,124 +1,57 @@
-import Foundation
-import SwiftUI
 import AppKit
-import Combine
+import Foundation
 
 @MainActor
-final class DictationPipeline: ObservableObject {
+final class DictationPipeline {
     static let shared = DictationPipeline()
 
     let audioRecorder = AudioRecorder()
     let hotkeyMonitor = GlobalHotkeyMonitor.shared
-    let whisperModelStore = WhisperModelStore.shared
-    let downloadedLLMModelStore = DownloadedLLMModelStore.shared
 
     private let settings = AppSettings.shared
     private let runtimeState = AppRuntimeState.shared
     private let permissionStore = SystemPermissionStore.shared
-    private let llmModelDownloadController = LLMModelDownloadController()
+    private let whisperModelStore = WhisperModelStore.shared
+    private let modelWarmup = ModelWarmupCoordinator.shared
     private var isRecording = false
     private var isCancelled = false
-    /// True once the user pressed Escape, or once the surrounding processing task was cancelled.
-    private var isAborted: Bool { isCancelled || Task.isCancelled }
-    private(set) var isWarmedUp = false
-    private var warmupTask: Task<Void, Never>?
-    private var preloadTask: Task<Void, Never>?
+    private var isAborted: Bool {
+        isCancelled || Task.isCancelled
+    }
+
     private var errorResetTask: Task<Void, Never>?
     private var processingTask: Task<Void, Never>?
     private var recordingTimeoutTask: Task<Void, Never>?
     private var frontmostApp: NSRunningApplication?
-    /// Selected text captured synchronously from the event tap callback, before any async dispatch.
     private(set) var pendingSelectedContext: String?
 
     func setPendingContext(_ text: String?) {
         pendingSelectedContext = text
     }
+
     private var dictationContext: DictationContext?
-    private var permissionsCancellable: AnyCancellable?
-    private var whisperSink: AnyCancellable?
-    private var downloadedModelsSink: AnyCancellable?
-    private var llmDownloadSink: AnyCancellable?
 
-    var llmDownloadError: String? {
-        get { llmModelDownloadController.downloadError }
-        set { llmModelDownloadController.downloadError = newValue }
-    }
+    private init() {}
 
-    var llmIsDownloading: Bool { llmModelDownloadController.isDownloading }
-    var llmDownloadingModelId: String? { llmModelDownloadController.downloadingModelId }
-    var llmDownloadProgress: Double { llmModelDownloadController.downloadProgress }
-
-    private init() {
-        whisperSink = whisperModelStore.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
-        downloadedModelsSink = downloadedLLMModelStore.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
-        llmDownloadSink = llmModelDownloadController.objectWillChange.sink { [weak self] _ in
-            self?.objectWillChange.send()
-        }
+    func start() {
         setupHotkey()
         observePermissions()
-        preloadSTTModel()
-    }
-
-    private func preloadSTTModel() {
-        guard whisperModelStore.downloadedModelIds.contains(settings.sttModelId) else { return }
-        preloadTask = Task {
-            do {
-                let loaded = await TranscriptionEngine.shared.isModelLoaded
-                if !loaded {
-                    dlog("[Dictum] preloading STT model: \(settings.sttModelId)")
-                    try await TranscriptionEngine.shared.loadModel(settings.sttModelId)
-                    dlog("[Dictum] STT model preloaded")
-                }
-                // Also preload LLM if enabled and downloaded
-                if settings.llmCleanupEnabled {
-                    let llmLoaded = await LLMProcessor.shared.isModelLoaded
-                    if !llmLoaded {
-                        dlog("[Dictum] preloading LLM model: \(settings.llmModelId)")
-                        try await LLMProcessor.shared.loadModel(settings.llmModelId)
-                        dlog("[Dictum] LLM model preloaded")
-                    }
-                }
-                warmUpModels()
-            } catch {
-                dlog("[Dictum] preload failed: \(error)")
-            }
-        }
-    }
-
-    func warmUpModels() {
-        warmupTask?.cancel()
-        isWarmedUp = false
-        warmupTask = Task {
-            dlog("[Dictum] warmup started")
-            await withTaskGroup(of: Void.self) { group in
-                if await TranscriptionEngine.shared.isModelLoaded {
-                    group.addTask { await TranscriptionEngine.shared.warmup() }
-                }
-                if await LLMProcessor.shared.isModelLoaded {
-                    group.addTask { await LLMProcessor.shared.warmup() }
-                }
-            }
-            guard !Task.isCancelled else { return }
-            isWarmedUp = true
-            dlog("[Dictum] warmup complete")
-        }
+        modelWarmup.preloadModels()
     }
 
     private func observePermissions() {
-        permissionsCancellable = permissionStore.$accessibilityGranted
-            .removeDuplicates()
-            .filter { $0 }
-            .sink { [weak self] _ in
-                guard let self else { return }
+        let permissionStore = permissionStore
+        Task { [weak self] in
+            var wasGranted = false
+            for await isGranted in Observations({ permissionStore.accessibilityGranted }) {
+                defer { wasGranted = isGranted }
+                guard isGranted, !wasGranted, let self else { continue }
                 dlog("[Dictum] Accessibility granted via SystemPermissionStore, restarting hotkey")
-                if !self.hotkeyMonitor.isListening {
-                    self.setupHotkey()
+                if !hotkeyMonitor.isListening {
+                    setupHotkey()
                 }
             }
+        }
     }
 
     func setupHotkey() {
@@ -161,7 +94,7 @@ final class DictationPipeline: ObservableObject {
     }
 
     private func handleKeyUp() async {
-        if settings.recordingMode == .hold && isRecording {
+        if settings.recordingMode == .hold, isRecording {
             await stopRecordingAndProcess()
         }
     }
@@ -174,8 +107,8 @@ final class DictationPipeline: ObservableObject {
         }
         recordingTimeoutTask?.cancel()
         recordingTimeoutTask = nil
-        // Cancel the work itself, not just the state machine: without this, transcription and
-        // LLM generation keep running on the GPU after the pill has already disappeared.
+        // Edge case: cancel the work itself, or transcription and generation keep the GPU busy
+        // after the pill has disappeared.
         processingTask?.cancel()
         processingTask = nil
         hotkeyMonitor.isActive = false
@@ -191,18 +124,9 @@ final class DictationPipeline: ObservableObject {
         errorResetTask?.cancel()
         errorResetTask = nil
 
-        // Guard: STT model must be downloaded first
-        if !whisperModelStore.downloadedModelIds.contains(settings.sttModelId) {
-            dlog("[Dictum] STT model not downloaded, showing popover")
-            runtimeState.appState = .error(String(localized: "error.download.stt", defaultValue: "Download STT model in settings"))
-            // Open the menu bar popover so user sees the setup screen
-            MenuBarController.shared?.showPopover()
-            return
-        }
-
+        guard requireDownloadedSTTModel() else { return }
         dlog("[Dictum] startRecording called")
 
-        // Selected text was captured synchronously from the event tap — will be used in context gathering
         if let ctx = pendingSelectedContext {
             dlog("[Dictum] pending selected context: \(ctx.count) chars")
         }
@@ -221,9 +145,20 @@ final class DictationPipeline: ObservableObject {
             dlog("[Dictum] startRecording error: \(error)")
             runtimeState.appState = .error(
                 "\(String(localized: "error.mic", defaultValue: "Cannot start microphone:")) " +
-                error.localizedDescription
+                    error.localizedDescription
             )
         }
+    }
+
+    private func requireDownloadedSTTModel() -> Bool {
+        guard !whisperModelStore.downloadedModelIds.contains(settings.sttModelId) else { return true }
+        dlog("[Dictum] STT model not downloaded, showing popover")
+        runtimeState.appState = .error(String(
+            localized: "error.download.stt",
+            defaultValue: "Download STT model in settings"
+        ))
+        MenuBarController.shared?.showPopover()
+        return false
     }
 
     func stopRecordingAndProcess() async {
@@ -232,7 +167,7 @@ final class DictationPipeline: ObservableObject {
 
         let task = Task { @MainActor [weak self] in
             guard let self else { return }
-            try? await self.processStoppedRecording()
+            try? await processStoppedRecording()
         }
         processingTask = task
         await task.value
@@ -241,26 +176,16 @@ final class DictationPipeline: ObservableObject {
         }
     }
 
-    /// Safety net for a lost key-up event (e.g. the system disabled the event tap mid-press):
-    /// stop and transcribe rather than record forever.
+    // Edge case: a key-up can be lost (e.g. the tap was disabled mid-press); stop and transcribe
+    // rather than record forever.
     private func startRecordingTimeout() {
         recordingTimeoutTask?.cancel()
         recordingTimeoutTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(AudioRecorder.maxRecordingSeconds))
-            guard !Task.isCancelled, let self, self.isRecording else { return }
+            guard !Task.isCancelled, let self, isRecording else { return }
             dlog("[Dictum] recording hit the \(AudioRecorder.maxRecordingSeconds)s cap, stopping")
-            await self.stopRecordingAndProcess()
+            await stopRecordingAndProcess()
         }
-    }
-
-    // MARK: - LLM Download
-
-    func downloadLLMModel(_ modelId: String) {
-        llmModelDownloadController.downloadModel(modelId)
-    }
-
-    func cancelLLMDownload() {
-        llmModelDownloadController.cancelDownload()
     }
 
     private func processStoppedRecording() async throws {
@@ -276,16 +201,7 @@ final class DictationPipeline: ObservableObject {
             return
         }
         do {
-            let rawText = try await transcribe(samples: samples)
-            guard !rawText.isEmpty else {
-                transitionToIdleAfterEmptyRecording()
-                return
-            }
-            let finalText = await finalizeText(from: rawText)
-            guard !isAborted else { return }
-            runtimeState.lastCleanedText = finalText
-            deliverFinalText(finalText)
-            finishProcessing()
+            try await process(samples)
         } catch {
             handleProcessingError(error)
             throw error
@@ -296,109 +212,42 @@ final class DictationPipeline: ObservableObject {
 @MainActor
 private extension DictationPipeline {
     func waitForWarmupIfNeeded() async {
-        guard !isWarmedUp, let task = warmupTask else { return }
+        guard modelWarmup.isWarmingUp else { return }
         dlog("[Dictum] waiting for warmup to finish...")
         runtimeState.appState = .warmingUp
         FloatingIndicatorPanelController.shared.captureTargetApp()
         FloatingIndicatorPanelController.shared.show(audioRecorder: audioRecorder)
-        await task.value
+        await modelWarmup.waitForWarmup()
     }
 
-    func transcribe(samples: [Float]) async throws -> String {
-        runtimeState.appState = .transcribing
-        try await ensureSTTModelLoaded()
-        guard !isAborted else { return "" }
-        let sttLanguage = settings.resolveSTTLanguage(for: frontmostApp?.bundleIdentifier)
-        dlog("[Dictum] transcribing \(samples.count) samples, language: \(sttLanguage ?? "auto")...")
-        let rawText = try await TranscriptionEngine.shared.transcribe(audioSamples: samples, language: sttLanguage)
-        guard !isAborted else { return "" }
-        dlog("[Dictum] transcription complete, \(rawText.count) chars")
-        runtimeState.lastTranscription = rawText
-        return rawText
-    }
-
-    func ensureSTTModelLoaded() async throws {
-        let sttLoaded = await TranscriptionEngine.shared.isModelLoaded
-        guard !sttLoaded else { return }
-        dlog("[Dictum] loading STT model: \(settings.sttModelId)")
-        try await TranscriptionEngine.shared.loadModel(settings.sttModelId)
-        dlog("[Dictum] STT model loaded")
-    }
-
-    func finalizeText(from rawText: String) async -> String {
-        // Gather context — individual sources controlled by settings toggles.
-        // Screenshot, OCR and clipboard exist purely to feed the LLM, so with cleanup disabled
-        // they would cost a screen capture plus an OCR pass per dictation and be discarded.
-        // Selected text is captured at hotkey press regardless: it decides whether the result
-        // goes to the clipboard instead of overwriting the user's selection.
-        let llmEnabled = settings.llmCleanupEnabled
-        let options = ContextOptions(
-            screenshot: llmEnabled && settings.contextScreenshot,
-            selectedText: settings.contextSelectedText,
-            clipboard: llmEnabled && settings.contextClipboard
-        )
-        let hasAnyContextEnabled = options.screenshot || options.selectedText || options.clipboard
-        let context: DictationContext?
-        if settings.smartContextEnabled && hasAnyContextEnabled {
-            // Snapshot the target app on the main actor — the frontmost app may change while
-            // context is being gathered, and NSRunningApplication cannot cross actor boundaries.
-            let targetApp = frontmostApp.map {
-                TargetApp(pid: $0.processIdentifier, name: $0.localizedName, bundleId: $0.bundleIdentifier)
-            }
-            let gathered = await ContextGatherer.gather(
-                selectedText: pendingSelectedContext,
-                targetApp: targetApp,
-                options: options,
-                ocrLanguages: settings.resolveOCRLanguages(for: targetApp?.bundleId)
-            )
-            context = gathered
-            dlog("[Dictum] context: app=\(gathered.appName ?? "nil"), selectedText=\(gathered.selectedText != nil ? "yes" : "no"), screenshot=\(gathered.screenshot != nil ? "yes" : "no"), clipboard=\(gathered.clipboardText != nil || gathered.clipboardImage != nil ? "yes" : "no")")
-        } else {
-            context = nil
-            dlog("[Dictum] smart context disabled, skipping")
+    func process(_ samples: [Float]) async throws {
+        let processor = DictationProcessor(
+            targetAppAtRecordingStart: frontmostApp,
+            selectedTextAtHotkeyPress: pendingSelectedContext
+        ) { [weak self] in self?.isAborted ?? true }
+        let rawText = try await processor.transcribe(samples: samples)
+        guard !rawText.isEmpty else {
+            transitionToIdleAfterEmptyRecording()
+            return
         }
+        let (finalText, context) = await processor.finalize(rawText)
         pendingSelectedContext = nil
         dictationContext = context
-
-        guard llmEnabled else {
-            dlog("[Dictum] LLM cleanup disabled, returning raw transcription")
-            return rawText
-        }
-        let prompt = settings.resolvePrompt(for: frontmostApp?.bundleIdentifier)
-        runtimeState.appState = .processingLLM
-        do {
-            try await ensureLLMModelLoaded()
-            dlog("[Dictum] LLM prompt for \(frontmostApp?.bundleIdentifier ?? "general")")
-            dlog("[Dictum] LLM input: \(rawText.count) chars, context: \(context?.selectedText != nil ? "yes" : "none")")
-            let cleanedText = try await LLMProcessor.shared.cleanText(
-                rawText: rawText,
-                prompt: prompt,
-                context: context
-            )
-            dlog("[Dictum] LLM output: \(cleanedText.count) chars")
-            return cleanedText
-        } catch {
-            dlog("[Dictum] LLM cleanup failed, using raw text: \(error)")
-            return rawText
-        }
-    }
-
-    func ensureLLMModelLoaded() async throws {
-        let llmLoaded = await LLMProcessor.shared.isModelLoaded
-        guard !llmLoaded else { return }
-        try await LLMProcessor.shared.loadModel(settings.llmModelId)
+        guard !isAborted else { return }
+        runtimeState.lastCleanedText = finalText
+        deliverFinalText(finalText)
+        finishProcessing()
     }
 
     func deliverFinalText(_ finalText: String) {
-        if dictationContext?.selectedText != nil {
-            // Context mode: put result in clipboard, user pastes manually
+        let isContextMode = dictationContext?.selectedText != nil
+        if isContextMode {
             dlog("[Dictum] final text (context mode): \(finalText.count) chars, copying to clipboard")
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(finalText, forType: .string)
             return
         }
 
-        // Normal mode: auto-paste
         dlog("[Dictum] final text: \(finalText.count) chars, pasting...")
         ClipboardPasteController.shared.pasteText(finalText)
     }
@@ -425,10 +274,10 @@ private extension DictationPipeline {
         errorResetTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled, let self else { return }
-            if case .error = self.runtimeState.appState {
-                self.runtimeState.appState = .idle
+            if case .error = runtimeState.appState {
+                runtimeState.appState = .idle
             }
-            self.errorResetTask = nil
+            errorResetTask = nil
         }
     }
 }

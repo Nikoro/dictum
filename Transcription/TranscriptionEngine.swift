@@ -8,14 +8,15 @@ enum TranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .modelNotLoaded:
-            return String(localized: "error.stt.notLoaded", defaultValue: "STT model not loaded.")
-        case .transcriptionFailed(let reason):
-            return String(localized: "error.stt.transcriptionFailed", defaultValue: "Transcription failed:") + " " + reason
+            String(localized: "error.stt.notLoaded", defaultValue: "STT model not loaded.")
+        case let .transcriptionFailed(reason):
+            String(localized: "error.stt.transcriptionFailed", defaultValue: "Transcription failed:") + " " + reason
         }
     }
 }
 
 actor TranscriptionEngine {
+    private static let sampleRate = 16000
     static let shared = TranscriptionEngine()
 
     private enum ModelSource {
@@ -26,7 +27,6 @@ actor TranscriptionEngine {
     private var whisperKit: WhisperKit?
     private(set) var isModelLoaded = false
     private(set) var isLoading = false
-    private(set) var currentModelId: String?
     private var loadingTask: Task<Void, Error>?
     private var loadingModelId: String?
 
@@ -39,10 +39,12 @@ actor TranscriptionEngine {
     }
 
     private func load(_ source: ModelSource, modelId: String) async throws {
-        // Join an in-flight load only when it is for the same model. A load for a *different*
-        // model must not be silently reported as success — wait it out, then load ours.
+        // Edge case: join an in-flight load only for the same model; a different model's load
+        // must not be reported as ours.
         while let existing = loadingTask {
-            if loadingModelId == modelId { return try await existing.value }
+            if loadingModelId == modelId {
+                return try await existing.value
+            }
             _ = try? await existing.value
         }
 
@@ -50,14 +52,14 @@ actor TranscriptionEngine {
             let startTime = CFAbsoluteTimeGetCurrent()
             let config: WhisperKitConfig
             switch source {
-            case .variant(let name):
+            case let .variant(name):
                 dlog("[STT] loading model: \(name)")
                 config = WhisperKitConfig(model: name)
-            case .folder(let folder):
+            case let .folder(folder):
                 dlog("[STT] loading model from folder: \(folder)")
                 config = WhisperKitConfig(modelFolder: folder)
             }
-            try await loadWhisperKit(config, modelId: modelId)
+            try await loadWhisperKit(config)
             let loadTime = CFAbsoluteTimeGetCurrent() - startTime
             dlog("[STT] model loaded successfully in \(String(format: "%.2f", loadTime))s")
         }
@@ -70,7 +72,7 @@ actor TranscriptionEngine {
         try await task.value
     }
 
-    private func loadWhisperKit(_ config: WhisperKitConfig, modelId: String) async throws {
+    private func loadWhisperKit(_ config: WhisperKitConfig) async throws {
         whisperKit = nil
         isModelLoaded = false
         isLoading = true
@@ -78,7 +80,6 @@ actor TranscriptionEngine {
 
         whisperKit = try await WhisperKit(config)
         isModelLoaded = true
-        currentModelId = modelId
     }
 
     func transcribe(audioSamples: [Float], language: String? = nil) async throws -> String {
@@ -103,13 +104,13 @@ actor TranscriptionEngine {
         guard let whisperKit else { return }
         let startTime = CFAbsoluteTimeGetCurrent()
         dlog("[STT] warmup: transcribing 1s silent buffer")
-        let silentSamples = [Float](repeating: 0, count: 16000) // 1s at 16kHz
+        let oneSecondOfSilence = [Float](repeating: 0, count: Self.sampleRate)
         let options = DecodingOptions(
             skipSpecialTokens: true,
             withoutTimestamps: true
         )
         _ = try? await whisperKit.transcribe(
-            audioArray: silentSamples,
+            audioArray: oneSecondOfSilence,
             decodeOptions: options
         )
         let warmupTime = CFAbsoluteTimeGetCurrent() - startTime
@@ -119,6 +120,5 @@ actor TranscriptionEngine {
     func unloadModel() {
         whisperKit = nil
         isModelLoaded = false
-        currentModelId = nil
     }
 }

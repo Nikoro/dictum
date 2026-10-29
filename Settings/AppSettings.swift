@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 enum UserDefaultsKey: String {
     case llmPrompt
@@ -25,47 +25,17 @@ enum UserDefaultsKey: String {
 }
 
 @MainActor
-final class AppSettings: ObservableObject {
+@Observable
+final class AppSettings {
     static let shared = AppSettings()
 
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
-    private var savePromptsTask: Task<Void, Never>?
-    private var saveLanguagesTask: Task<Void, Never>?
+    @ObservationIgnored private var savePromptsTask: Task<Void, Never>?
+    @ObservationIgnored private var saveLanguagesTask: Task<Void, Never>?
 
-    static let defaultPrompt = """
-    Popraw tekst dyktowany po polsku. Zasady:
-    1. Usuń wyrazy-wypełniacze: yyy, eee, hmm, no, więc, tak jakby, w sumie, powiedzmy, że tak powiem
-    2. Popraw interpunkcję — dodaj kropki, przecinki, znaki zapytania
-    3. Popraw oczywiste literówki i przejęzyczenia
-    4. Nie zmieniaj znaczenia ani stylu wypowiedzi
-    5. Nie dodawaj niczego od siebie
-    6. Zwróć TYLKO poprawiony tekst, bez komentarzy
-    """
-
-    static let defaultUnifiedPrompt = """
-    You are a voice input assistant. You receive:
-    - A screenshot of the user's active window
-    - Extracted text from that screenshot (OCR — use as ground truth for spelling, especially Polish characters and proper names)
-    - The app name they're in
-    - Any text they have selected
-    - Their spoken words (transcribed)
-
-    Your job is to figure out what they want and return ONLY the text to be pasted. No explanations, no markdown, no quotes.
-
-    Rules:
-    - If the user is simply dictating text (speaking sentences, notes, thoughts), clean it up: fix punctuation, remove filler words, fix obvious typos. Ignore the screenshot and OCR.
-    - If the user is giving a command about what's on screen (e.g. "reply to him that...", "summarize this", "translate this"), use the screenshot, OCR text, and selected text to understand the context, then execute the command.
-    - When quoting or referencing on-screen text, prefer the OCR text for exact spelling over what you see in the image.
-    - If replying to a conversation, match the language and formality level visible in the screenshot.
-    - Always return just the final text. Nothing else.
-    """
-
-    // Scalar prefs are stored in UserDefaults behind computed properties rather than
-    // @AppStorage: @AppStorage only publishes when written through a SwiftUI binding, so
-    // writes from elsewhere in the app (e.g. WhisperModelStore adopting a freshly downloaded
-    // model) would never refresh the UI. Codable arrays (appPrompts, appSTTLanguages) use
-    // @Published because neither wrapper supports Codable.
+    // Edge case: Observation cannot see UserDefaults, so every stored read touches `revision`
+    // and every write bumps it. (@AppStorage is no fix: it only publishes binding writes.)
     var llmPrompt: String {
         get { stored(.llmPrompt, default: "") }
         set { store(newValue, for: .llmPrompt) }
@@ -101,13 +71,11 @@ final class AppSettings: ObservableObject {
         set { store(newValue, for: .llmGeneralPromptEnabled) }
     }
 
-    /// Default 54 = Right Command.
     var hotkeyKeyCode: Int {
-        get { stored(.hotkeyKeyCode, default: 54) }
+        get { stored(.hotkeyKeyCode, default: Int(KeyCode.rightCommand)) }
         set { store(newValue, for: .hotkeyKeyCode) }
     }
 
-    /// Default 0 = no modifiers (modifier-only hotkey).
     var hotkeyModifiers: Int {
         get { stored(.hotkeyModifiers, default: 0) }
         set { store(newValue, for: .hotkeyModifiers) }
@@ -150,12 +118,15 @@ final class AppSettings: ObservableObject {
 
     private let defaults = UserDefaults.standard
 
+    private var revision = 0
+
     private func stored<Value>(_ key: UserDefaultsKey, default fallback: Value) -> Value {
-        defaults.object(forKey: key.rawValue) as? Value ?? fallback
+        _ = revision
+        return defaults.object(forKey: key.rawValue) as? Value ?? fallback
     }
 
-    private func store<Value>(_ newValue: Value, for key: UserDefaultsKey) {
-        objectWillChange.send()
+    private func store(_ newValue: some Any, for key: UserDefaultsKey) {
+        revision &+= 1
         defaults.set(newValue, forKey: key.rawValue)
     }
 
@@ -164,11 +135,11 @@ final class AppSettings: ObservableObject {
         set { sttLanguageRaw = newValue.rawValue }
     }
 
-    @Published var appPrompts: [AppPrompt] = [] {
+    var appPrompts: [AppPrompt] = [] {
         didSet { saveAppPrompts() }
     }
 
-    @Published var appSTTLanguages: [AppSTTLanguage] = [] {
+    var appSTTLanguages: [AppSTTLanguage] = [] {
         didSet { saveAppSTTLanguages() }
     }
 
@@ -177,41 +148,18 @@ final class AppSettings: ObservableObject {
         set { recordingModeRaw = newValue.rawValue }
     }
 
-    /// Earlier wordings of `defaultUnifiedPrompt`. A stored prompt matching one of these was
-    /// never written by the user — the settings UI used to persist the default just for being
-    /// opened — so it is cleared and the current default takes over. Anything else is a genuine
-    /// customization and is left untouched.
-    private static let supersededUnifiedPrompts: [String] = [
-        """
-        You are a voice input assistant. You receive:
-        - A screenshot of the user's active window
-        - The app name they're in
-        - Any text they have selected
-        - Their spoken words (transcribed)
-
-        Your job is to figure out what they want and return ONLY the text to be pasted. No explanations, no markdown, no quotes.
-
-        Rules:
-        - If the user is simply dictating text (speaking sentences, notes, thoughts), clean it up: fix punctuation, remove filler words, fix obvious typos. Ignore the screenshot.
-        - If the user is giving a command about what's on screen (e.g. "reply to him that...", "summarize this", "translate this"), use the screenshot and selected text to understand the context, then execute the command.
-        - If replying to a conversation, match the language and formality level visible in the screenshot.
-        - Always return just the final text. Nothing else.
-        """
-    ]
-
     private init() {
         migrateSupersededUnifiedPrompt()
         loadAppPrompts()
         loadAppSTTLanguages()
     }
 
-    /// A stored copy of an old default describes inputs the pipeline no longer sends — most
-    /// visibly it never mentions the OCR block — which leaves the model with a large unexplained
-    /// wall of screen text and makes it reproduce that text instead of following the command.
+    // Edge case: older builds stored the default verbatim. An outdated copy never mentions the
+    // OCR block, so the model reproduces the screen text instead of following the command.
     private func migrateSupersededUnifiedPrompt() {
         let stored = unifiedSystemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !stored.isEmpty else { return }
-        let isSuperseded = Self.supersededUnifiedPrompts.contains {
+        let isSuperseded = DefaultPrompts.supersededUnified.contains {
             $0.trimmingCharacters(in: .whitespacesAndNewlines) == stored
         }
         guard isSuperseded else { return }
@@ -219,34 +167,9 @@ final class AppSettings: ObservableObject {
         unifiedSystemPrompt = ""
     }
 
-    func resetPrompt() {
-        llmPrompt = Self.defaultPrompt
-    }
-
-    /// Clears the override rather than storing the default, so the prompt keeps tracking
-    /// `defaultUnifiedPrompt` as it evolves.
+    // Edge case: clearing (not storing the default) keeps the prompt tracking later improvements.
     func resetUnifiedPrompt() {
         unifiedSystemPrompt = ""
-    }
-
-    // MARK: - Per-app prompts
-
-    /// Resolve the full system prompt for a given frontmost app.
-    /// Base = unified prompt (always applies). Per-app or general prompt layered on top.
-    func resolvePrompt(for bundleId: String?) -> String {
-        let base = unifiedSystemPrompt.isEmpty ? Self.defaultUnifiedPrompt : unifiedSystemPrompt
-
-        if let bundleId,
-           let appPrompt = appPrompts.first(where: { $0.bundleId == bundleId && $0.enabled }),
-           !appPrompt.prompt.isEmpty {
-            return base + "\n\nAdditional instructions for this app:\n" + appPrompt.prompt
-        }
-
-        if llmGeneralPromptEnabled, !llmPrompt.isEmpty {
-            return base + "\n\nAdditional instructions:\n" + llmPrompt
-        }
-
-        return base
     }
 
     func addAppPrompt(_ prompt: AppPrompt) {
@@ -281,31 +204,10 @@ final class AppSettings: ObservableObject {
 
     private func loadAppPrompts() {
         if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appPrompts.rawValue),
-           let prompts = try? decoder.decode([AppPrompt].self, from: data) {
+           let prompts = try? decoder.decode([AppPrompt].self, from: data)
+        {
             appPrompts = prompts
         }
-    }
-
-    // MARK: - Per-app STT language
-
-    /// Resolve which STT language to use for a given frontmost app.
-    /// Returns the Whisper language code (e.g. "pl") or nil for auto-detect.
-    func resolveSTTLanguage(for bundleId: String?) -> String? {
-        if let bundleId,
-           let appLang = appSTTLanguages.first(where: { $0.bundleId == bundleId && $0.enabled }) {
-            return appLang.language.whisperCode
-        }
-        return sttLanguage.whisperCode
-    }
-
-    /// Resolve the OCR recognition languages for a given frontmost app, following the same
-    /// per-app override as `resolveSTTLanguage(for:)`.
-    func resolveOCRLanguages(for bundleId: String?) -> [String] {
-        if let bundleId,
-           let appLang = appSTTLanguages.first(where: { $0.bundleId == bundleId && $0.enabled }) {
-            return appLang.language.ocrLanguages
-        }
-        return sttLanguage.ocrLanguages
     }
 
     func addAppSTTLanguage(_ lang: AppSTTLanguage) {
@@ -340,7 +242,8 @@ final class AppSettings: ObservableObject {
 
     private func loadAppSTTLanguages() {
         if let data = UserDefaults.standard.data(forKey: UserDefaultsKey.appSTTLanguages.rawValue),
-           let langs = try? decoder.decode([AppSTTLanguage].self, from: data) {
+           let langs = try? decoder.decode([AppSTTLanguage].self, from: data)
+        {
             appSTTLanguages = langs
         }
     }

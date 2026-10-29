@@ -1,23 +1,26 @@
 import Foundation
-import Combine
+import Observation
 
 @MainActor
-final class LLMModelDownloadController: ObservableObject {
-    @Published var downloadError: String?
-    @Published var isDownloading = false
-    @Published var downloadingModelId: String?
-    @Published var downloadProgress: Double = 0
+@Observable
+final class LLMModelDownloadController {
+    static let shared = LLMModelDownloadController()
+
+    var downloadError: String?
+    var isDownloading = false
+    var downloadingModelId: String?
+    var downloadProgress: Double = 0
 
     private let settings: AppSettings
     private let downloadedLLMModelStore: DownloadedLLMModelStore
-    private var downloadTask: Task<Void, Never>?
+    @ObservationIgnored private var downloadTask: Task<Void, Never>?
 
     init(settings: AppSettings, downloadedLLMModelStore: DownloadedLLMModelStore) {
         self.settings = settings
         self.downloadedLLMModelStore = downloadedLLMModelStore
     }
 
-    convenience init() {
+    private convenience init() {
         self.init(settings: AppSettings.shared, downloadedLLMModelStore: DownloadedLLMModelStore.shared)
     }
 
@@ -43,8 +46,8 @@ final class LLMModelDownloadController: ObservableObject {
                         self?.downloadProgress = progress.fractionCompleted
                     }
                 }
-                // Only adopt the model once it actually loaded, otherwise the user is left
-                // with a selected model that does not exist on disk.
+                // Edge case: select the model only after it loaded, or a failed download leaves a
+                // selected model that does not exist on disk.
                 settings.llmModelId = modelId
                 downloadedLLMModelStore.scanDownloadedModels()
             } catch is CancellationError {

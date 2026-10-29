@@ -1,7 +1,7 @@
 import SwiftUI
 
 @MainActor
-struct LLMModelDownloadErrorView: View {
+struct ModelDownloadErrorView: View {
     let errorMessage: String
     let onDismiss: () -> Void
 

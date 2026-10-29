@@ -8,8 +8,8 @@ func dlog(_ message: String) {
 }
 
 private final class DictumLogger: @unchecked Sendable {
-    /// All file I/O happens here. `log()` must never block its caller — it is called from the
-    /// CGEvent tap callback, and a slow tap callback makes macOS disable the tap entirely.
+    // Edge case: log() must never block its caller; it is called from the event tap callback,
+    // and a slow callback makes macOS disable the tap.
     private let queue = DispatchQueue(label: "com.dominikkrajcer.dictum.logger", qos: .utility)
     private var handle: FileHandle?
     private let path: String
@@ -25,11 +25,11 @@ private final class DictumLogger: @unchecked Sendable {
         let logsDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Logs/Dictum")
         try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
-        self.path = logsDir.appendingPathComponent("dictum.log").path
-        self.backupPath = logsDir.appendingPathComponent("dictum.log.bak").path
+        path = logsDir.appendingPathComponent("dictum.log").path
+        backupPath = logsDir.appendingPathComponent("dictum.log.bak").path
         ensureFileExists()
-        self.handle = FileHandle(forWritingAtPath: path)
-        self.handle?.seekToEndOfFile()
+        handle = FileHandle(forWritingAtPath: path)
+        handle?.seekToEndOfFile()
     }
 
     deinit {

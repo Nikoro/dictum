@@ -1,13 +1,12 @@
 import AppKit
 import Carbon.HIToolbox
-import Combine
 import os
 
 @MainActor
-final class GlobalHotkeyMonitor: ObservableObject {
+final class GlobalHotkeyMonitor {
     static let shared = GlobalHotkeyMonitor()
 
-    @Published var isListening = false
+    var isListening = false
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -17,18 +16,16 @@ final class GlobalHotkeyMonitor: ObservableObject {
 
     private let settings = AppSettings.shared
 
-    /// Thread-safe cached hotkey config, read from the CGEvent tap thread
-    private struct CachedHotkeyConfig: Sendable {
+    private struct HotkeyConfig: Sendable {
         var isModifierOnly: Bool = true
-        var keyCode: Int = 54
+        var keyCode = Int(KeyCode.rightCommand)
         var modifiers: Int = 0
         var isActive: Bool = false
     }
 
-    private let cachedConfig = OSAllocatedUnfairLock(initialState: CachedHotkeyConfig())
+    private let cachedConfig = OSAllocatedUnfairLock(initialState: HotkeyConfig())
 
-    /// Tracks whether a modifier-only hotkey is currently "pressed"
-    private var modifierKeyDown = false
+    private var isModifierHotkeyHeld = false
 
     nonisolated var isActive: Bool {
         get { cachedConfig.withLock { $0.isActive } }
@@ -37,23 +34,23 @@ final class GlobalHotkeyMonitor: ObservableObject {
 
     private init() {}
 
-    private var permissionStore: SystemPermissionStore { SystemPermissionStore.shared }
+    private var permissionStore: SystemPermissionStore {
+        SystemPermissionStore.shared
+    }
 
     func start(onKeyDown: @escaping () -> Void, onKeyUp: @escaping () -> Void, onCancel: @escaping () -> Void) {
-        // Tear down any existing event tap before creating a new one
         stop()
 
-        self.keyDownHandler = onKeyDown
-        self.keyUpHandler = onKeyUp
-        self.cancelHandler = onCancel
+        keyDownHandler = onKeyDown
+        keyUpHandler = onKeyUp
+        cancelHandler = onCancel
 
         dlog(
             "[Hotkey] start() called, accessibility=\(permissionStore.accessibilityGranted), " +
-            "keyCode=\(settings.hotkeyKeyCode), " +
-            "isModifierOnly=\(settings.hotkeyIsModifierOnly)"
+                "keyCode=\(settings.hotkeyKeyCode), " +
+                "isModifierOnly=\(settings.hotkeyIsModifierOnly)"
         )
 
-        // Cache settings for safe access from nonisolated event tap callback
         let isModOnly = settings.hotkeyIsModifierOnly
         let keyCode = settings.hotkeyKeyCode
         let mods = settings.hotkeyModifiers
@@ -78,24 +75,24 @@ final class GlobalHotkeyMonitor: ObservableObject {
             if let runLoopSource {
                 CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
             }
-            // Without this the mach port and its run loop source stay alive for the
-            // lifetime of the process — start() tears down and rebuilds the tap often.
+            // Edge case: without invalidation the mach port outlives the tap, and start()
+            // rebuilds the tap often.
             CFMachPortInvalidate(eventTap)
         }
         eventTap = nil
         runLoopSource = nil
         isListening = false
-        modifierKeyDown = false
+        isModifierHotkeyHeld = false
     }
 
-    /// macOS disables an event tap if its callback is too slow, or on certain user input.
-    /// Without re-enabling it here the hotkey silently stops working until the app restarts.
+    // Edge case: macOS disables a tap whose callback is slow, or on some user input. Unless it is
+    // re-enabled, the hotkey silently stays dead until the app restarts.
     private func reenableTap(disabledBy type: CGEventType) {
         guard let eventTap else { return }
         let reason = type == .tapDisabledByTimeout ? "timeout" : "user input"
         dlog("[Hotkey] tap disabled by \(reason), re-enabling")
-        // A missed key-up may have left the state machine mid-press.
-        modifierKeyDown = false
+        // Edge case: a key-up missed while disabled would leave the press half-finished.
+        isModifierHotkeyHeld = false
         isActive = false
         CGEvent.tapEnable(tap: eventTap, enable: true)
     }
@@ -106,7 +103,6 @@ final class GlobalHotkeyMonitor: ObservableObject {
             (1 << CGEventType.keyUp.rawValue) |
             (1 << CGEventType.flagsChanged.rawValue)
 
-        // Store self reference for callback
         let refcon = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
         guard let tap = CGEvent.tapCreate(
@@ -120,7 +116,8 @@ final class GlobalHotkeyMonitor: ObservableObject {
                 return monitor.handleEvent(type: type, event: event)
             },
             userInfo: refcon
-        ) else {
+        )
+        else {
             dlog("[Hotkey] failed to create event tap — accessibility permission required")
             return
         }
@@ -146,38 +143,18 @@ final class GlobalHotkeyMonitor: ObservableObject {
         }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        let flags = event.flags
-        let snapshot = cachedConfig.withLock { $0 }
-        let isModifierOnly = snapshot.isModifierOnly
-        let expectedKeyCode = Int64(snapshot.keyCode)
-
-        if handleEscapeKey(type: type, keyCode: keyCode) {
+        if cancelsDictationOnEscape(type: type, keyCode: keyCode) {
             return Unmanaged.passRetained(event)
         }
 
-        if isModifierOnly {
-            return handleModifierOnlyEvent(
-                type: type,
-                keyCode: keyCode,
-                expectedKeyCode: expectedKeyCode,
-                flags: flags,
-                event: event
-            )
-        } else {
-            return handleKeyComboEvent(
-                type: type,
-                keyCode: keyCode,
-                expectedKeyCode: expectedKeyCode,
-                expectedModifiers: snapshot.modifiers,
-                flags: flags,
-                event: event
-            )
-        }
+        let config = cachedConfig.withLock { $0 }
+        let isHotkey = config.isModifierOnly
+            ? consumeModifierOnlyHotkey(type: type, keyCode: keyCode, flags: event.flags, config: config)
+            : consumeKeyComboHotkey(type: type, keyCode: keyCode, flags: event.flags, config: config)
+        return isHotkey ? nil : Unmanaged.passRetained(event)
     }
 
-    /// Returns true when the event was an Escape that cancelled an in-flight dictation.
-    /// The event is still passed through to the frontmost app by the caller.
-    private nonisolated func handleEscapeKey(type: CGEventType, keyCode: Int64) -> Bool {
+    private nonisolated func cancelsDictationOnEscape(type: CGEventType, keyCode: Int64) -> Bool {
         guard type == .keyDown, keyCode == Int64(KeyCode.escape), isActive else {
             return false
         }
@@ -188,111 +165,68 @@ final class GlobalHotkeyMonitor: ObservableObject {
         return true
     }
 
-    private nonisolated func handleModifierOnlyEvent(
+    private nonisolated func consumeModifierOnlyHotkey(
         type: CGEventType,
         keyCode: Int64,
-        expectedKeyCode: Int64,
         flags: CGEventFlags,
-        event: CGEvent
-    ) -> Unmanaged<CGEvent>? {
-        // Deliberately not logged: this runs for every modifier press system-wide.
-        guard type == .flagsChanged, keyCode == expectedKeyCode else {
-            return Unmanaged.passRetained(event)
+        config: HotkeyConfig
+    ) -> Bool {
+        // Edge case: never log here, this runs for every modifier press system-wide.
+        guard type == .flagsChanged, keyCode == Int64(config.keyCode) else {
+            return false
         }
 
-        let modifierFlag = Self.modifierFlag(forKeyCode: Int(expectedKeyCode))
-        let isPressed = flags.contains(modifierFlag)
-
-        if isPressed {
-            Task.detached(priority: .userInitiated) { [weak self] in
-                let selectedText = SelectedTextCapture.readSelectedText()
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    DictationPipeline.shared.setPendingContext(selectedText)
-                    self.modifierKeyDown = true
-                    self.keyDownHandler?()
-                }
+        if flags.contains(ModifierKey.flag(forKeyCode: config.keyCode)) {
+            beginPress(tracksModifier: true)
+        } else {
+            Task { @MainActor [weak self] in
+                guard let self, isModifierHotkeyHeld else { return }
+                isModifierHotkeyHeld = false
+                keyUpHandler?()
             }
-            return nil
         }
-
-        Task { @MainActor [weak self] in
-            guard let self, self.modifierKeyDown else { return }
-            self.modifierKeyDown = false
-            self.keyUpHandler?()
-        }
-        return nil
+        return true
     }
 
-    private nonisolated func handleKeyComboEvent(
+    private nonisolated func consumeKeyComboHotkey(
         type: CGEventType,
         keyCode: Int64,
-        expectedKeyCode: Int64,
-        expectedModifiers modifiersRaw: Int,
         flags: CGEventFlags,
-        event: CGEvent
-    ) -> Unmanaged<CGEvent>? {
-        let expectedModifiers = CGEventFlags(rawValue: UInt64(modifiersRaw))
+        config: HotkeyConfig
+    ) -> Bool {
         let modifierMask: CGEventFlags = [.maskAlternate, .maskCommand, .maskControl, .maskShift]
-        let currentModifiers = flags.intersection(modifierMask)
-        let expectedMods = expectedModifiers.intersection(modifierMask)
-
-        guard keyCode == expectedKeyCode, currentModifiers == expectedMods else {
-            return Unmanaged.passRetained(event)
+        let expectedModifiers = CGEventFlags(rawValue: UInt64(config.modifiers)).intersection(modifierMask)
+        guard keyCode == Int64(config.keyCode), flags.intersection(modifierMask) == expectedModifiers else {
+            return false
         }
 
         switch type {
         case .keyDown:
-            Task.detached(priority: .userInitiated) { [weak self] in
-                let selectedText = SelectedTextCapture.readSelectedText()
-                await MainActor.run { [weak self] in
-                    DictationPipeline.shared.setPendingContext(selectedText)
-                    self?.keyDownHandler?()
-                }
-            }
-            return nil
+            beginPress(tracksModifier: false)
+            return true
         case .keyUp:
             Task { @MainActor [weak self] in
                 self?.keyUpHandler?()
             }
-            return nil
+            return true
         default:
-            return Unmanaged.passRetained(event)
+            return false
         }
     }
 
-    // MARK: - Helpers
-
-    /// Maps a modifier keyCode to the corresponding CGEventFlags bit.
-    nonisolated static func modifierFlag(forKeyCode keyCode: Int) -> CGEventFlags {
-        switch keyCode {
-        case 54, 55: return .maskCommand     // Right/Left Command
-        case 56, 60: return .maskShift       // Left/Right Shift
-        case 58, 61: return .maskAlternate   // Left/Right Option
-        case 59, 62: return .maskControl     // Left/Right Control
-        default: return []
-        }
-    }
-
-    /// Whether a keyCode is a modifier key.
-    nonisolated static func isModifierKeyCode(_ keyCode: Int) -> Bool {
-        [54, 55, 56, 57, 58, 59, 60, 61, 62].contains(keyCode)
-    }
-
-    /// Human-readable name for a modifier keyCode.
-    nonisolated static func modifierKeyName(_ keyCode: Int) -> String? {
-        let right = String(localized: "hotkey.right", defaultValue: "Right")
-        let left = String(localized: "hotkey.left", defaultValue: "Left")
-        switch keyCode {
-        case 54: return "\(right) ⌘"
-        case 55: return "\(left) ⌘"
-        case 56: return "\(left) ⇧"
-        case 60: return "\(right) ⇧"
-        case 58: return "\(left) ⌥"
-        case 61: return "\(right) ⌥"
-        case 59: return "\(left) ⌃"
-        case 62: return "\(right) ⌃"
-        default: return nil
+    // Edge case: capturing the selection may post Cmd+C and wait for it, which would stall the
+    // event tap, so it runs detached.
+    private nonisolated func beginPress(tracksModifier: Bool) {
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let selectedText = SelectedTextCapture.readSelectedText()
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                DictationPipeline.shared.setPendingContext(selectedText)
+                if tracksModifier {
+                    isModifierHotkeyHeld = true
+                }
+                keyDownHandler?()
+            }
         }
     }
 }

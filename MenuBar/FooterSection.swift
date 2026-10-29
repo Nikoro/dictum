@@ -2,48 +2,20 @@ import SwiftUI
 
 @MainActor
 struct FooterSection: View {
-    @EnvironmentObject var runtimeState: AppRuntimeState
-    @EnvironmentObject var updateController: SparkleUpdateController
+    @Environment(AppRuntimeState.self) private var runtimeState
+    @Environment(SparkleUpdateController.self) private var updateController
     @State private var showUninstallAlert = false
 
     var body: some View {
         VStack(spacing: 8) {
-            if case .error(let message) = runtimeState.appState {
+            if case let .error(message) = runtimeState.appState {
                 Text(message)
                     .font(.caption)
                     .foregroundStyle(.red)
                     .lineLimit(2)
             }
 
-            HStack {
-                Button(action: { NSApplication.shared.terminate(nil) }, label: {
-                    Image(systemName: "power")
-                })
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .font(.caption)
-
-                Spacer()
-
-                Button(action: { updateController.checkForUpdates() }, label: {
-                    Text(String(format: String(localized: "footer.version", defaultValue: "Version: %@"), dictumAppVersion))
-                        .font(.caption)
-                        .foregroundStyle(updateController.canCheckForUpdates ? Color("AccentColor") : .secondary)
-                        .underline(updateController.canCheckForUpdates)
-                })
-                .buttonStyle(.plain)
-                .disabled(!updateController.canCheckForUpdates)
-                .help(String(localized: "footer.checkUpdates", defaultValue: "Check for updates"))
-
-                Spacer()
-
-                Button(action: { showUninstallAlert = true }, label: {
-                    Image(systemName: "trash")
-                })
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .font(.caption)
-            }
+            controls
         }
         .padding()
         .alert(
@@ -58,9 +30,44 @@ struct FooterSection: View {
             Text(
                 String(
                     localized: "uninstall.message",
-                    defaultValue: "This will delete all downloaded models, settings, and move Dictum to Trash. This cannot be undone."
+                    defaultValue: """
+                    This will delete all downloaded models, settings, and move Dictum to Trash. \
+                    This cannot be undone.
+                    """
                 )
             )
+        }
+    }
+
+    private var controls: some View {
+        HStack {
+            Button(action: { NSApplication.shared.terminate(nil) }, label: {
+                Image(systemName: "power")
+            })
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .font(.caption)
+
+            Spacer()
+
+            Button(action: { updateController.checkForUpdates() }, label: {
+                Text(String(format: String(localized: "footer.version", defaultValue: "Version: %@"), dictumAppVersion))
+                    .font(.caption)
+                    .foregroundStyle(updateController.canCheckForUpdates ? Color("AccentColor") : .secondary)
+                    .underline(updateController.canCheckForUpdates)
+            })
+            .buttonStyle(.plain)
+            .disabled(!updateController.canCheckForUpdates)
+            .help(String(localized: "footer.checkUpdates", defaultValue: "Check for updates"))
+
+            Spacer()
+
+            Button(action: { showUninstallAlert = true }, label: {
+                Image(systemName: "trash")
+            })
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .font(.caption)
         }
     }
 

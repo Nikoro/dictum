@@ -1,23 +1,25 @@
 import SwiftUI
 
 struct DownloadedModelsSection: View {
-    @EnvironmentObject var settings: AppSettings
-    @EnvironmentObject var pipeline: DictationPipeline
+    @Environment(AppSettings.self) private var settings
+    @Environment(WhisperModelStore.self) private var whisperModelStore
+    @Environment(DownloadedLLMModelStore.self) private var downloadedLLMModelStore
+    @Environment(LLMModelDownloadController.self) private var llmDownloads
     @State private var modelToDeleteSTT: WhisperModelInfo?
     @State private var modelToDeleteLLM: DownloadedLLMModel?
 
     private var whisperDownloadedModels: [WhisperModelInfo] {
         WhisperModelStore.defaultModels.filter {
-            pipeline.whisperModelStore.downloadedModelIds.contains($0.id)
+            whisperModelStore.downloadedModelIds.contains($0.id)
         }
     }
 
     private var downloadedLLMModels: [DownloadedLLMModel] {
-        pipeline.downloadedLLMModelStore.downloadedModels
+        downloadedLLMModelStore.downloadedModels
     }
 
     private var totalDiskUsage: Int64 {
-        pipeline.downloadedLLMModelStore.totalSizeOnDisk + pipeline.whisperModelStore.cachedTotalSizeOnDisk
+        downloadedLLMModelStore.totalSizeOnDisk + whisperModelStore.cachedTotalSizeOnDisk
     }
 
     var body: some View {
@@ -28,22 +30,7 @@ struct DownloadedModelsSection: View {
                 Text(String(localized: "section.downloaded", defaultValue: "Downloaded models"))
                     .font(.headline)
 
-                VStack(spacing: 2) {
-                    DownloadedWhisperModelsList(
-                        models: whisperDownloadedModels,
-                        activeModelId: pipeline.whisperModelStore.activeModelId,
-                        onSelectModel: selectWhisperModel,
-                        onDeleteModel: requestWhisperModelDeletion
-                    )
-                    DownloadedLLMModelsList(
-                        models: downloadedLLMModels,
-                        selectedModelId: settings.llmModelId,
-                        onSelectModel: selectLLMModel,
-                        onDeleteModel: requestLLMModelDeletion
-                    )
-                }
-                .background(.quaternary)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                modelList
 
                 if totalDiskUsage > 0 {
                     DownloadedModelsStorageSummary(totalDiskUsage: totalDiskUsage)
@@ -51,10 +38,10 @@ struct DownloadedModelsSection: View {
             }
             .padding()
             .onAppear {
-                pipeline.downloadedLLMModelStore.scanDownloadedModels()
+                downloadedLLMModelStore.scanDownloadedModels()
             }
             .whisperModelDeletionAlert(model: $modelToDeleteSTT) { model in
-                Task { await pipeline.whisperModelStore.deleteModel(model.id) }
+                Task { await whisperModelStore.deleteModel(model.id) }
             }
             .llmModelDeletionAlert(
                 model: $modelToDeleteLLM,
@@ -64,30 +51,47 @@ struct DownloadedModelsSection: View {
                 },
                 onConfirmDeletion: { model in
                     do {
-                        try pipeline.downloadedLLMModelStore.deleteModel(model.id)
+                        try downloadedLLMModelStore.deleteModel(model.id)
                     } catch {
                         dlog("[LLM] delete failed: \(error)")
-                        pipeline.llmDownloadError = error.localizedDescription
+                        llmDownloads.downloadError = error.localizedDescription
                     }
                 }
             )
         }
     }
 
+    private var modelList: some View {
+        VStack(spacing: 2) {
+            ForEach(whisperDownloadedModels) { model in
+                DownloadedModelRow(
+                    name: model.displayName,
+                    kind: "STT",
+                    formattedSize: model.formattedSize,
+                    isSelected: model.id == whisperModelStore.activeModelId,
+                    isDeletionBlocked: model.id == whisperModelStore.activeModelId,
+                    onSelect: { selectWhisperModel(model.id) },
+                    onDelete: { modelToDeleteSTT = model }
+                )
+            }
+            ForEach(downloadedLLMModels) { model in
+                DownloadedModelRow(
+                    name: model.shortName,
+                    kind: "LLM",
+                    formattedSize: model.formattedSize,
+                    isSelected: model.id == settings.llmModelId,
+                    isDeletionBlocked: false,
+                    onSelect: { settings.llmModelId = model.id },
+                    onDelete: { modelToDeleteLLM = model }
+                )
+            }
+        }
+        .background(.quaternary)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
     private func selectWhisperModel(_ modelId: String) {
-        pipeline.whisperModelStore.activeModelId = modelId
+        whisperModelStore.activeModelId = modelId
         settings.sttModelId = modelId
-    }
-
-    private func requestWhisperModelDeletion(_ model: WhisperModelInfo) {
-        modelToDeleteSTT = model
-    }
-
-    private func selectLLMModel(_ modelId: String) {
-        settings.llmModelId = modelId
-    }
-
-    private func requestLLMModelDeletion(_ model: DownloadedLLMModel) {
-        modelToDeleteLLM = model
     }
 }

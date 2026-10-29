@@ -1,22 +1,12 @@
-import Vision
 import CoreGraphics
+import Vision
 
 enum ScreenshotOCR {
     static let maxChars = 4000
 
-    /// - Parameter languages: BCP-47 recognition languages, most likely first.
-    static func extractText(from image: CGImage, languages: [String]) async -> String? {
+    static func extractText(from image: CGImage, languagesMostLikelyFirst languages: [String]) -> String? {
         let start = Date()
-        let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        // Vision throws at perform time on an unsupported language, and the set of supported
-        // languages is narrower than the list of languages Whisper can transcribe.
-        let supported = Set((try? request.supportedRecognitionLanguages()) ?? [])
-        let usable = languages.filter(supported.contains)
-        if !usable.isEmpty {
-            request.recognitionLanguages = usable
-        }
+        let request = makeRequest(languages: languages)
 
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
         do {
@@ -30,14 +20,7 @@ enum ScreenshotOCR {
             return nil
         }
 
-        // Vision uses bottom-left origin, normalized [0,1]. Sort top→bottom, left→right.
-        let sorted = observations.sorted { lhs, rhs in
-            let dy = rhs.boundingBox.minY - lhs.boundingBox.minY
-            if abs(dy) > 0.01 { return dy < 0 }
-            return lhs.boundingBox.minX < rhs.boundingBox.minX
-        }
-
-        let lines = sorted.compactMap { $0.topCandidates(1).first?.string }
+        let lines = readingOrder(observations).compactMap { $0.topCandidates(1).first?.string }
         var joined = lines.joined(separator: "\n")
         if joined.count > maxChars {
             joined = String(joined.prefix(maxChars)) + "\n[...truncated]"
@@ -47,5 +30,30 @@ enum ScreenshotOCR {
         dlog("[OCR] \(joined.count) chars in \(elapsedMs)ms")
 
         return joined.isEmpty ? nil : joined
+    }
+
+    private static func makeRequest(languages: [String]) -> VNRecognizeTextRequest {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        // Edge case: Vision throws on an unsupported language, and it supports fewer languages
+        // than Whisper transcribes.
+        let supported = Set((try? request.supportedRecognitionLanguages()) ?? [])
+        let usable = languages.filter(supported.contains)
+        if !usable.isEmpty {
+            request.recognitionLanguages = usable
+        }
+        return request
+    }
+
+    // Edge case: Vision boxes use a bottom-left origin, so top-to-bottom means descending minY.
+    private static func readingOrder(_ observations: [VNRecognizedTextObservation]) -> [VNRecognizedTextObservation] {
+        observations.sorted { lhs, rhs in
+            let verticalDelta = rhs.boundingBox.minY - lhs.boundingBox.minY
+            if abs(verticalDelta) > 0.01 {
+                return verticalDelta < 0
+            }
+            return lhs.boundingBox.minX < rhs.boundingBox.minX
+        }
     }
 }

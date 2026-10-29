@@ -1,13 +1,11 @@
-import Foundation
 import CoreImage
+import Foundation
 import Hub
-import Tokenizers
-import MLXLLM
-import MLXVLM
-import MLXLMCommon
 import MLX
-
-// MARK: - Bridge: swift-transformers → MLXLMCommon
+import MLXLLM
+import MLXLMCommon
+import MLXVLM
+import Tokenizers
 
 private struct HubDownloader: MLXLMCommon.Downloader {
     func download(
@@ -56,9 +54,17 @@ private struct TokenizerBridge: MLXLMCommon.Tokenizer {
         upstream.convertIdToToken(id)
     }
 
-    var bosToken: String? { upstream.bosToken }
-    var eosToken: String? { upstream.eosToken }
-    var unknownToken: String? { upstream.unknownToken }
+    var bosToken: String? {
+        upstream.bosToken
+    }
+
+    var eosToken: String? {
+        upstream.eosToken
+    }
+
+    var unknownToken: String? {
+        upstream.unknownToken
+    }
 
     func applyChatTemplate(
         messages: [[String: any Sendable]],
@@ -69,8 +75,6 @@ private struct TokenizerBridge: MLXLMCommon.Tokenizer {
     }
 }
 
-// MARK: - LLMProcessor
-
 enum LLMError: LocalizedError {
     case modelNotLoaded
     case generationFailed(String)
@@ -78,9 +82,9 @@ enum LLMError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .modelNotLoaded:
-            return String(localized: "error.llm.notLoaded", defaultValue: "LLM model not loaded.")
-        case .generationFailed(let reason):
-            return String(localized: "error.llm.generationFailed", defaultValue: "Text generation failed:") + " " + reason
+            String(localized: "error.llm.notLoaded", defaultValue: "LLM model not loaded.")
+        case let .generationFailed(reason):
+            String(localized: "error.llm.generationFailed", defaultValue: "Text generation failed:") + " " + reason
         }
     }
 }
@@ -91,22 +95,22 @@ actor LLMProcessor {
     private var modelContainer: ModelContainer?
     private(set) var isModelLoaded = false
     private(set) var isLoading = false
-    private(set) var currentModelId: String?
     private(set) var isVisionModel = false
     private var loadingTask: Task<Void, Error>?
     private var loadingModelId: String?
 
-    /// Loads `modelId`, downloading it first if needed.
-    /// Concurrent calls for the same model share one load; the first caller's
-    /// `progressHandler` is the one that reports.
+    // Edge case: concurrent calls for the same model share one load, so only the first caller's
+    // progressHandler reports.
     func loadModel(
         _ modelId: String = "mlx-community/gemma-4-e4b-it-4bit",
         progressHandler: (@Sendable (Progress) -> Void)? = nil
     ) async throws {
-        // Never report success without actually loading — callers treat a clean return
-        // as "the model is ready" and go straight to generation.
+        // Edge case: a call for another model must wait and load its own, never return early;
+        // callers treat a clean return as "this model is ready".
         while let existing = loadingTask {
-            if loadingModelId == modelId { return try await existing.value }
+            if loadingModelId == modelId {
+                return try await existing.value
+            }
             _ = try? await existing.value
         }
 
@@ -129,11 +133,9 @@ actor LLMProcessor {
         modelContainer = nil
         isModelLoaded = false
         isVisionModel = false
-        currentModelId = nil
 
         let config = ModelConfiguration(id: modelId)
 
-        // Auto-dispatches to VLM or LLM factory via ModelFactoryRegistry
         let container = try await loadModelContainer(
             from: HubDownloader(),
             using: TransformersTokenizerLoader(),
@@ -142,59 +144,26 @@ actor LLMProcessor {
         )
         modelContainer = container
 
-        // Detect vision model at runtime
         isVisionModel = await container.perform { context in
             context.model is VLMModel
         }
 
         isModelLoaded = true
-        currentModelId = modelId
         dlog("[LLM] loaded \(isVisionModel ? "VLM" : "LLM"): \(modelId)")
     }
 
     func cleanText(rawText: String, prompt: String, context: DictationContext? = nil) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
 
-        let systemPrompt: String
-        let userMessage: String
+        let userMessage = context.map { Self.userMessage(rawText: rawText, context: $0) } ?? rawText
         var images: [UserInput.Image] = []
-
-        if let context {
-            // Smart context mode: unified prompt as system, structured user message
-            systemPrompt = prompt
-
-            var parts: [String] = []
-            if let appName = context.appName {
-                parts.append("App: \(appName)")
-            }
-            if let selectedText = context.selectedText, !selectedText.isEmpty {
-                parts.append("Selected text:\n\(selectedText)")
-            }
-            if let clipboardText = context.clipboardText, !clipboardText.isEmpty {
-                parts.append("Clipboard:\n\(clipboardText)")
-            }
-            if let screenshot = context.screenshot, isVisionModel {
-                images.append(.ciImage(CIImage(cgImage: screenshot)))
-                dlog("[LLM] passing screenshot to vision model")
-            } else if let clipboardImage = context.clipboardImage, isVisionModel {
-                images.append(.ciImage(CIImage(cgImage: clipboardImage)))
-                dlog("[LLM] passing clipboard image to vision model")
-            }
-            if let ocrText = context.ocrText, !ocrText.isEmpty {
-                parts.append("Screen text (OCR):\n\(ocrText)")
-                dlog("[LLM] attached OCR \(ocrText.count) chars")
-            }
-            parts.append("Spoken words: \(rawText)")
-            userMessage = parts.joined(separator: "\n\n")
-        } else {
-            // Fallback: no context
-            systemPrompt = prompt
-            userMessage = rawText
+        if let context, isVisionModel {
+            images = Self.visionImages(from: context)
         }
 
         let session = ChatSession(
             modelContainer,
-            instructions: systemPrompt,
+            instructions: prompt,
             generateParameters: GenerateParameters(
                 maxTokens: 2048,
                 temperature: 0.7,
@@ -202,14 +171,44 @@ actor LLMProcessor {
             )
         )
 
-        var result = try await session.respond(to: userMessage, images: images, videos: [], audios: [])
+        let result = try await session.respond(to: userMessage, images: images, videos: [], audios: [])
+        return Self.removingReasoningBlock(from: result).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
-        // Strip thinking blocks (Qwen3, Gemma)
-        if let thinkEnd = result.range(of: "</think>") {
-            result = String(result[thinkEnd.upperBound...])
+    private static func userMessage(rawText: String, context: DictationContext) -> String {
+        var parts: [String] = []
+        if let appName = context.appName {
+            parts.append("App: \(appName)")
         }
+        if let selectedText = context.selectedText, !selectedText.isEmpty {
+            parts.append("Selected text:\n\(selectedText)")
+        }
+        if let clipboardText = context.clipboardText, !clipboardText.isEmpty {
+            parts.append("Clipboard:\n\(clipboardText)")
+        }
+        if let ocrText = context.ocrText, !ocrText.isEmpty {
+            parts.append("Screen text (OCR):\n\(ocrText)")
+            dlog("[LLM] attached OCR \(ocrText.count) chars")
+        }
+        parts.append("Spoken words: \(rawText)")
+        return parts.joined(separator: "\n\n")
+    }
 
-        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    private static func visionImages(from context: DictationContext) -> [UserInput.Image] {
+        if let screenshot = context.screenshot {
+            dlog("[LLM] passing screenshot to vision model")
+            return [.ciImage(CIImage(cgImage: screenshot))]
+        }
+        if let clipboardImage = context.clipboardImage {
+            dlog("[LLM] passing clipboard image to vision model")
+            return [.ciImage(CIImage(cgImage: clipboardImage))]
+        }
+        return []
+    }
+
+    private static func removingReasoningBlock(from result: String) -> String {
+        guard let thinkEnd = result.range(of: "</think>") else { return result }
+        return String(result[thinkEnd.upperBound...])
     }
 
     func warmup() async {
@@ -232,6 +231,5 @@ actor LLMProcessor {
         modelContainer = nil
         isModelLoaded = false
         isVisionModel = false
-        currentModelId = nil
     }
 }

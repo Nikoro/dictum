@@ -14,11 +14,10 @@ struct DownloadedSTTModelsList: View {
                     isDownloaded: true,
                     isActive: activeModelId == model.id,
                     isDownloading: false,
-                    downloadProgress: 0,
-                    onSelect: {
-                        onSelectModel(model.id)
-                    }
-                )
+                    downloadProgress: 0
+                ) {
+                    onSelectModel(model.id)
+                }
             }
         }
         .background(.quaternary)
@@ -58,25 +57,27 @@ struct AvailableSTTModelsDisclosure: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                VStack(spacing: 2) {
-                    ForEach(models) { model in
-                        STTModelRow(
-                            model: model,
-                            isDownloaded: false,
-                            isActive: false,
-                            isDownloading: downloadingModelId == model.id,
-                            downloadProgress: downloadingModelId == model.id ? downloadProgress : 0,
-                            onSelect: {
-                                onDownloadModel(model.id)
-                            },
-                            onCancel: onCancelDownload
-                        )
-                    }
-                }
-                .background(.quaternary)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                modelList
             }
         }
+    }
+
+    private var modelList: some View {
+        VStack(spacing: 2) {
+            ForEach(models) { model in
+                STTModelRow(
+                    model: model,
+                    isDownloaded: false,
+                    isActive: false,
+                    isDownloading: downloadingModelId == model.id,
+                    downloadProgress: downloadingModelId == model.id ? downloadProgress : 0,
+                    onSelect: { onDownloadModel(model.id) },
+                    onCancel: onCancelDownload
+                )
+            }
+        }
+        .background(.quaternary)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -97,39 +98,12 @@ struct STTModelRow: View {
                     Image(systemName: isActive ? "circle.fill" : "circle")
                         .foregroundStyle(isActive ? Color("AccentColor") : .secondary)
                         .font(.caption2)
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(model.displayName)
-                            .fontWeight(isActive ? .semibold : .regular)
-                        Text(model.description)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-
+                    nameAndDescription
                     Spacer()
-
                     Text(model.formattedSize)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-
-                    if isDownloading {
-                        Text("\(Int(downloadProgress * 100))%")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .frame(width: 36, alignment: .trailing)
-                        Button {
-                            onCancel?()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    } else if !isDownloaded {
-                        Image(systemName: "arrow.down.circle")
-                            .foregroundStyle(Color("AccentColor"))
-                            .font(.body)
-                    }
+                    downloadStatus
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
@@ -143,5 +117,37 @@ struct STTModelRow: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private var nameAndDescription: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(model.displayName)
+                .fontWeight(isActive ? .semibold : .regular)
+            Text(model.description)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+    }
+
+    @ViewBuilder
+    private var downloadStatus: some View {
+        if isDownloading {
+            Text("\(Int(downloadProgress * 100))%")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 36, alignment: .trailing)
+            Button {
+                onCancel?()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        } else if !isDownloaded {
+            Image(systemName: "arrow.down.circle")
+                .foregroundStyle(Color("AccentColor"))
+                .font(.body)
+        }
     }
 }

@@ -1,13 +1,16 @@
 import Foundation
+import Observation
 import Sparkle
 
 @MainActor
-final class SparkleUpdateController: ObservableObject {
+@Observable
+final class SparkleUpdateController {
     static let shared = SparkleUpdateController()
 
     private let updaterController: SPUStandardUpdaterController
 
-    @Published var canCheckForUpdates = false
+    var canCheckForUpdates = false
+    @ObservationIgnored private var canCheckObservation: NSKeyValueObservation?
 
     private init() {
         updaterController = SPUStandardUpdaterController(
@@ -16,8 +19,15 @@ final class SparkleUpdateController: ObservableObject {
             userDriverDelegate: nil
         )
 
-        updaterController.updater.publisher(for: \.canCheckForUpdates)
-            .assign(to: &$canCheckForUpdates)
+        canCheckObservation = updaterController.updater.observe(
+            \.canCheckForUpdates,
+            options: [.initial, .new]
+        ) { [weak self] _, change in
+            let canCheck = change.newValue ?? false
+            Task { @MainActor in
+                self?.canCheckForUpdates = canCheck
+            }
+        }
     }
 
     func checkForUpdates() {

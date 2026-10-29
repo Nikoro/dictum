@@ -5,7 +5,9 @@ private struct InstalledAppInfo: Identifiable {
     let appName: String
     let icon: NSImage
 
-    var id: String { bundleId }
+    var id: String {
+        bundleId
+    }
 }
 
 struct InstalledAppPickerSheet: View {
@@ -20,35 +22,16 @@ struct InstalledAppPickerSheet: View {
 
     private var filteredApps: [InstalledAppInfo] {
         let available = apps.filter { !excludedBundleIds.contains($0.bundleId) }
-        if searchText.isEmpty { return available }
+        if searchText.isEmpty {
+            return available
+        }
         return available.filter { $0.appName.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text(title)
-                    .font(.headline)
-                Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding()
-
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField(String(localized: "picker.search", defaultValue: "Search apps..."), text: $searchText)
-                    .textFieldStyle(.plain)
-            }
-            .padding(8)
-            .background(.quaternary)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal)
-
+            header
+            searchField
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, minHeight: 100)
@@ -59,73 +42,104 @@ struct InstalledAppPickerSheet: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 60)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(filteredApps) { app in
-                            Button {
-                                onSelect(app.bundleId, app.appName)
-                                dismiss()
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(nsImage: app.icon)
-                                        .resizable()
-                                        .interpolation(.high)
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 24, height: 24)
-                                    Text(app.appName)
-                                        .font(.body)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
+                appList
             }
         }
         .frame(width: 320, height: 400)
-        .task { await loadInstalledApps() }
+        .task {
+            apps = await InstalledAppScanner.scan()
+            isLoading = false
+        }
     }
 
-    private func loadInstalledApps() async {
-        let found: [InstalledAppInfo] = await Task.detached {
-            let workspace = NSWorkspace.shared
-            var result: [InstalledAppInfo] = []
-            var seen = Set<String>()
+    private var header: some View {
+        HStack {
+            Text(title)
+                .font(.headline)
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+    }
 
-            func scanApps(in directory: URL) {
-                guard let contents = try? FileManager.default.contentsOfDirectory(
-                    at: directory,
-                    includingPropertiesForKeys: nil
-                ) else { return }
-                for url in contents where url.pathExtension == "app" {
-                    guard let bundle = Bundle(url: url),
-                          let bundleId = bundle.bundleIdentifier,
-                          !seen.contains(bundleId) else { continue }
-                    seen.insert(bundleId)
-                    let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
-                    let icon = workspace.icon(forFile: url.path)
-                    result.append(InstalledAppInfo(bundleId: bundleId, appName: name, icon: icon))
+    private var searchField: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField(String(localized: "picker.search", defaultValue: "Search apps..."), text: $searchText)
+                .textFieldStyle(.plain)
+        }
+        .padding(8)
+        .background(.quaternary)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal)
+    }
+
+    private var appList: some View {
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(filteredApps) { app in
+                    Button {
+                        onSelect(app.bundleId, app.appName)
+                        dismiss()
+                    } label: {
+                        InstalledAppRow(app: app)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(.vertical, 8)
+        }
+    }
+}
 
-            let appDirs = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
-                + FileManager.default.urls(for: .applicationDirectory, in: .systemDomainMask)
-            for dir in appDirs { scanApps(in: dir) }
+private struct InstalledAppRow: View {
+    let app: InstalledAppInfo
 
-            let userApps = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications")
-            scanApps(in: userApps)
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(nsImage: app.icon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+            Text(app.appName)
+                .font(.body)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+    }
+}
 
-            return result.sorted {
+private enum InstalledAppScanner {
+    static func scan() async -> [InstalledAppInfo] {
+        await Task.detached {
+            let fileManager = FileManager.default
+            let directories = fileManager.urls(for: .applicationDirectory, in: .localDomainMask)
+                + fileManager.urls(for: .applicationDirectory, in: .systemDomainMask)
+                + [fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Applications")]
+
+            var seen = Set<String>()
+            let apps = directories.flatMap(appBundles).filter { seen.insert($0.bundleId).inserted }
+            return apps.sorted {
                 $0.appName.localizedCaseInsensitiveCompare($1.appName) == .orderedAscending
             }
         }.value
+    }
 
-        apps = found
-        isLoading = false
+    private static func appBundles(in directory: URL) -> [InstalledAppInfo] {
+        let fileManager = FileManager.default
+        let contents = (try? fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        return contents.filter { $0.pathExtension == "app" }.compactMap { url in
+            guard let bundleId = Bundle(url: url)?.bundleIdentifier else { return nil }
+            let name = fileManager.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+            return InstalledAppInfo(bundleId: bundleId, appName: name, icon: NSWorkspace.shared.icon(forFile: url.path))
+        }
     }
 }

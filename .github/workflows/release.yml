@@ -76,8 +76,8 @@ jobs:
         run: |
           # Keep in sync with the Sparkle package version in project.yml, so updates are
           # signed with the same generation of tooling that ships in the app.
-          SPARKLE_VERSION="2.9.4"
-          SPARKLE_SHA256="ce89daf967db1e1893ed3ebd67575ed82d3902563e3191ca92aaec9164fbdef9"
+          SPARKLE_VERSION="2.10.1"
+          SPARKLE_SHA256="1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27"
           curl -sL -o /tmp/sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
           echo "${SPARKLE_SHA256}  /tmp/sparkle.tar.xz" | shasum -a 256 -c
           tar xJf /tmp/sparkle.tar.xz -C /tmp

@@ -5,9 +5,9 @@ import CoreGraphics
 final class ClipboardPasteController {
     static let shared = ClipboardPasteController()
 
-    /// Delay before simulating Cmd+V to ensure clipboard is ready
     private let clipboardSettleDelay: Duration = .milliseconds(150)
-    /// Delay before restoring original clipboard after paste is processed by target app
+    // Edge case: the target app reads the pasteboard asynchronously after Cmd+V; restoring the
+    // user's clipboard sooner pastes their old contents instead.
     private let clipboardRestoreDelay: Duration = .milliseconds(500)
 
     private var pasteTask: Task<Void, Never>?
@@ -18,22 +18,10 @@ final class ClipboardPasteController {
         pasteTask?.cancel()
 
         let pasteboard = NSPasteboard.general
-
-        // 1. Save current clipboard
-        var savedContents: [(NSPasteboard.PasteboardType, Data)] = []
-        for item in pasteboard.pasteboardItems ?? [] {
-            for type in item.types {
-                if let data = item.data(forType: type) {
-                    savedContents.append((type, data))
-                }
-            }
-        }
-
-        // 2. Set our text
+        let savedContents = PasteboardSnapshot(of: pasteboard)
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        // 3. Simulate Cmd+V after short delay, then restore
         pasteTask = Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(for: clipboardSettleDelay)
@@ -42,14 +30,8 @@ final class ClipboardPasteController {
             simulatePaste()
 
             try? await Task.sleep(for: clipboardRestoreDelay)
-            guard !Task.isCancelled else { return }
-
-            if !savedContents.isEmpty {
-                pasteboard.clearContents()
-                for (type, data) in savedContents {
-                    pasteboard.setData(data, forType: type)
-                }
-            }
+            guard !Task.isCancelled, !savedContents.isEmpty else { return }
+            savedContents.restore(to: pasteboard)
         }
     }
 
@@ -61,15 +43,14 @@ final class ClipboardPasteController {
 
         let source = CGEventSource(stateID: .privateState)
 
-        // Send all 4 events: Cmd↓, V↓, V↑, Cmd↑
         let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.command, keyDown: true)
-        let vDown   = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.v, keyDown: true)
-        let vUp     = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.v, keyDown: false)
-        let cmdUp   = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.command, keyDown: false)
+        let vDown = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.letterV, keyDown: true)
+        let vUp = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.letterV, keyDown: false)
+        let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: KeyCode.command, keyDown: false)
 
         cmdDown?.flags = .maskCommand
-        vDown?.flags   = .maskCommand
-        vUp?.flags     = .maskCommand
+        vDown?.flags = .maskCommand
+        vUp?.flags = .maskCommand
 
         cmdDown?.post(tap: .cgAnnotatedSessionEventTap)
         vDown?.post(tap: .cgAnnotatedSessionEventTap)

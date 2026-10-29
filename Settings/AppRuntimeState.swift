@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 enum AppState: Equatable, Sendable {
     case idle
@@ -10,12 +11,13 @@ enum AppState: Equatable, Sendable {
 }
 
 @MainActor
-final class AppRuntimeState: ObservableObject {
+@Observable
+final class AppRuntimeState {
     static let shared = AppRuntimeState()
 
-    @Published var appState: AppState = .idle
-    @Published var lastTranscription: String = ""
-    @Published var lastCleanedText: String = ""
+    var appState: AppState = .idle
+    var lastTranscription: String = ""
+    var lastCleanedText: String = ""
 
     private init() {}
 }

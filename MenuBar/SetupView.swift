@@ -2,12 +2,12 @@ import SwiftUI
 
 @MainActor
 struct SetupView: View {
-    @ObservedObject var permissionsStore: SystemPermissionStore
-    @ObservedObject var whisperModelStore: WhisperModelStore
-    @EnvironmentObject var settings: AppSettings
+    let permissionsStore: SystemPermissionStore
+    let whisperModelStore: WhisperModelStore
+    @Environment(AppSettings.self) private var settings
 
-    @EnvironmentObject var pipeline: DictationPipeline
-    @State private var downloadedLLMId: String? = UserDefaults.standard.string(forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
+    @State private var downloadedLLMId: String? = UserDefaults.standard
+        .string(forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
 
     var body: some View {
         ScrollView {
@@ -16,7 +16,7 @@ struct SetupView: View {
                 SetupPermissionStep(permissionsStore: permissionsStore)
                 SetupSpeechRecognitionModelStep(
                     whisperModelStore: whisperModelStore,
-                    selectedModelId: $settings.sttModelId,
+                    selectedModelId: Bindable(settings).sttModelId,
                     isUnlocked: permissionsStore.allGranted
                 )
                 SetupLLMProcessingStep(

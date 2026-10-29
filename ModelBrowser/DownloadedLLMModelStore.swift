@@ -4,10 +4,9 @@ import SwiftUI
 struct DownloadedLLMModel: Identifiable {
     let id: String
     let sizeOnDisk: Int64
-    var isActive: Bool
 
     var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: sizeOnDisk, countStyle: .file)
+        sizeOnDisk.formattedFileSize
     }
 
     var shortName: String {
@@ -16,12 +15,12 @@ struct DownloadedLLMModel: Identifiable {
 }
 
 @MainActor
-final class DownloadedLLMModelStore: ObservableObject {
+@Observable
+final class DownloadedLLMModelStore {
     static let shared = DownloadedLLMModelStore()
 
-    @Published var downloadedModels: [DownloadedLLMModel] = []
+    var downloadedModels: [DownloadedLLMModel] = []
 
-    /// MLX Swift downloads to ~/Library/Caches/models/
     private var mlxCacheDir: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Caches/models/mlx-community")
@@ -35,25 +34,20 @@ final class DownloadedLLMModelStore: ObservableObject {
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: mlxCacheDir,
             includingPropertiesForKeys: nil
-        ) else {
+        )
+        else {
             downloadedModels = []
             return
         }
 
-        let activeModelId = AppSettings.shared.llmModelId
-
         downloadedModels = contents
-            .filter { $0.hasDirectoryPath }
+            .filter(\.hasDirectoryPath)
             .compactMap { url -> DownloadedLLMModel? in
                 let folderName = url.lastPathComponent
                 let modelId = ModelConstants.mlxCommunityPrefix + folderName
                 let size = directorySize(url)
                 guard size > 0 else { return nil }
-                return DownloadedLLMModel(
-                    id: modelId,
-                    sizeOnDisk: size,
-                    isActive: modelId == activeModelId
-                )
+                return DownloadedLLMModel(id: modelId, sizeOnDisk: size)
             }
             .sorted { $0.sizeOnDisk > $1.sizeOnDisk }
     }
@@ -76,10 +70,6 @@ final class DownloadedLLMModelStore: ObservableObject {
 
     var totalSizeOnDisk: Int64 {
         downloadedModels.map(\.sizeOnDisk).reduce(0, +)
-    }
-
-    var formattedTotalSize: String {
-        ByteCountFormatter.string(fromByteCount: totalSizeOnDisk, countStyle: .file)
     }
 
     private func directorySize(_ url: URL) -> Int64 {

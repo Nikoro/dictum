@@ -13,12 +13,13 @@ enum TextInputAnchorResolver {
     }
 
     static func resolve(preferredPID: pid_t) -> Anchor? {
-        if let focusedElement = systemWideFocusedElement(), let anchor = resolve(from: focusedElement) {
+        if let focusedElement = AXBridge.focusedElement(), let anchor = resolve(from: focusedElement) {
             return anchor
         }
 
         guard preferredPID > 0,
-              let focusedElement = focusedElement(in: AXUIElementCreateApplication(preferredPID)) else {
+              let focusedElement = AXBridge.focusedElement(in: AXUIElementCreateApplication(preferredPID))
+        else {
             return nil
         }
 
@@ -51,19 +52,6 @@ enum TextInputAnchorResolver {
         return NSPoint(x: originX, y: originY)
     }
 
-    private static func focusedElement(in application: AXUIElement) -> AXUIElement? {
-        var focusedElement: AnyObject?
-        guard AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
-            return nil
-        }
-
-        return AXBridge.axUIElement(from: focusedElement)
-    }
-
-    private static func systemWideFocusedElement() -> AXUIElement? {
-        focusedElement(in: AXUIElementCreateSystemWide())
-    }
-
     private static func resolve(from startingElement: AXUIElement) -> Anchor? {
         for element in ancestorChain(startingAt: startingElement, limit: 8) {
             let elementRole = role(of: element)
@@ -84,25 +72,14 @@ enum TextInputAnchorResolver {
 
         while let node = current, chain.count < limit {
             chain.append(node)
-            current = parent(of: node)
+            current = AXBridge.elementAttribute(kAXParentAttribute, of: node)
         }
 
         return chain
     }
 
-    private static func parent(of element: AXUIElement) -> AXUIElement? {
-        var parent: AnyObject?
-        guard AXUIElementCopyAttributeValue(element, kAXParentAttribute as CFString, &parent) == .success else {
-            return nil
-        }
-
-        return AXBridge.axUIElement(from: parent)
-    }
-
     private static func role(of element: AXUIElement) -> String {
-        var role: AnyObject?
-        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
-        return role as? String ?? "unknown"
+        AXBridge.attribute(kAXRoleAttribute, of: element) as? String ?? "unknown"
     }
 
     private static func isTextInputElement(_ element: AXUIElement, role: String) -> Bool {
@@ -119,26 +96,14 @@ enum TextInputAnchorResolver {
             return true
         }
 
-        return boolAttribute("AXEditable" as CFString, on: element) == true
-    }
-
-    private static func boolAttribute(_ attribute: CFString, on element: AXUIElement) -> Bool? {
-        var value: AnyObject?
-        guard AXUIElementCopyAttributeValue(element, attribute, &value) == .success else {
-            return nil
-        }
-
-        return value as? Bool
+        return AXBridge.attribute("AXEditable", of: element) as? Bool ?? false
     }
 
     private static func caretRect(for element: AXUIElement, role roleStr: String) -> CGRect? {
-        guard isTextInputElement(element, role: roleStr) else {
-            return nil
-        }
-
-        var selectedRange: AnyObject?
-        guard AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selectedRange) == .success,
-              let selectedRange else {
+        guard isTextInputElement(element, role: roleStr), let selectedRange = AXBridge.attribute(
+            kAXSelectedTextRangeAttribute,
+            of: element
+        ) else {
             return nil
         }
 
@@ -149,17 +114,16 @@ enum TextInputAnchorResolver {
             selectedRange,
             &caretBounds
         ) == .success,
-        let caretBounds else {
+              let caretBounds
+        else {
             return nil
         }
 
         var rect = CGRect.zero
-                guard let caretBoundsValue = AXBridge.axValue(from: caretBounds),
-              AXValueGetValue(caretBoundsValue, .cgRect, &rect) else {
-            return nil
-        }
-
-        guard rect.origin.x > 0 || rect.size.width > 0 else {
+        guard let caretBoundsValue = AXBridge.axValue(from: caretBounds),
+              AXValueGetValue(caretBoundsValue, .cgRect, &rect),
+              rect.origin.x > 0 || rect.size.width > 0
+        else {
             return nil
         }
 
@@ -167,26 +131,18 @@ enum TextInputAnchorResolver {
     }
 
     private static func frame(of element: AXUIElement) -> CGRect? {
-        var positionValue: AnyObject?
-        var sizeValue: AnyObject?
-
-        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionValue) == .success,
-              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeValue) == .success,
-              let positionValue,
-              let sizeValue else {
+        guard let positionAXValue = AXBridge.axValue(from: AXBridge.attribute(kAXPositionAttribute, of: element)),
+              let sizeAXValue = AXBridge.axValue(from: AXBridge.attribute(kAXSizeAttribute, of: element))
+        else {
             return nil
         }
-
-                  guard let positionAXValue = AXBridge.axValue(from: positionValue),
-                      let sizeAXValue = AXBridge.axValue(from: sizeValue) else {
-                        return nil
-                }
         var origin = CGPoint.zero
         var size = CGSize.zero
         guard AXValueGetValue(positionAXValue, .cgPoint, &origin),
               AXValueGetValue(sizeAXValue, .cgSize, &size),
               size.width > 0,
-              size.height > 0 else {
+              size.height > 0
+        else {
             return nil
         }
 
@@ -220,5 +176,4 @@ enum TextInputAnchorResolver {
             return topLeftFrame.contains(center)
         } ?? NSScreen.main
     }
-
 }

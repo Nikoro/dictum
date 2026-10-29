@@ -1,10 +1,10 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 @MainActor
 struct FloatingIndicatorView: View {
     let audioRecorder: AudioRecorder
-    @ObservedObject var runtimeState: AppRuntimeState
+    let runtimeState: AppRuntimeState
     let appIcon: NSImage
 
     @State private var levels: [Float] = Array(repeating: 0, count: 16)
@@ -19,19 +19,9 @@ struct FloatingIndicatorView: View {
                 Image(nsImage: appIcon)
                     .resizable()
                     .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 20, height: 20)
-
-                switch runtimeState.appState {
-                case .recording:
-                    recordingContent(time: context.date.timeIntervalSince1970)
-                case .warmingUp:
-                    animatedTextContent(key: "pill.warmingUp")
-                case .transcribing, .processingLLM:
-                    animatedTextContent(key: runtimeState.appState == .processingLLM ? "pill.thinking" : "pill.transcribing")
-                default:
-                    EmptyView()
-                }
+                stateContent(time: context.date.timeIntervalSince1970)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -42,6 +32,21 @@ struct FloatingIndicatorView: View {
                     sampleLevel()
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func stateContent(time: Double) -> some View {
+        switch runtimeState.appState {
+        case .recording:
+            recordingContent(time: time)
+        case .warmingUp:
+            animatedTextContent(key: "pill.warmingUp")
+        case .transcribing, .processingLLM:
+            // Edge case: one branch keeps the view identity, so the dots do not restart.
+            animatedTextContent(key: runtimeState.appState == .processingLLM ? "pill.thinking" : "pill.transcribing")
+        default:
+            EmptyView()
         }
     }
 
@@ -71,8 +76,8 @@ struct FloatingIndicatorView: View {
     private func startDotAnimation() {
         guard dotTimer == nil else { return }
         dotCount = 0
-        // Timer's block is only @Sendable, so hop back to the main actor explicitly rather
-        // than annotating the closure — the annotation silently drops the isolation.
+        // Edge case: hop to the main actor explicitly; annotating the @Sendable Timer block with
+        // @MainActor silently drops the isolation.
         dotTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
             Task { @MainActor in
                 dotCount = (dotCount + 1) % 3

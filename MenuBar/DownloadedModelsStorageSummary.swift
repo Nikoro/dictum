@@ -13,7 +13,7 @@ struct DownloadedModelsStorageSummary: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
-            Text(ByteCountFormatter.string(fromByteCount: totalDiskUsage, countStyle: .file))
+            Text(totalDiskUsage.formattedFileSize)
                 .font(.caption.bold())
         }
     }

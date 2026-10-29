@@ -2,14 +2,16 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class HuggingFaceModelSearch: ObservableObject {
+@Observable
+final class HuggingFaceModelSearch {
     static let shared = HuggingFaceModelSearch()
-    @Published var searchQuery = ""
-    @Published var searchResults: [HuggingFaceModelInfo] = []
-    @Published var isSearching = false
-    @Published var searchError: String?
+    var searchQuery = ""
+    var searchResults: [HuggingFaceModelInfo] = []
+    var isSearching = false
+    var searchError: String?
 
-    private var searchTask: Task<Void, Never>?
+    @ObservationIgnored private var searchTask: Task<Void, Never>?
+    private static let typingDebounce: Duration = .milliseconds(300)
     private static let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10
@@ -24,38 +26,19 @@ final class HuggingFaceModelSearch: ObservableObject {
             return
         }
 
+        let query = searchQuery
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms debounce
+            try? await Task.sleep(for: Self.typingDebounce)
             guard !Task.isCancelled else { return }
 
             isSearching = true
             searchError = nil
             defer { isSearching = false }
 
-            // URLComponents rather than manual percent-encoding: `.urlQueryAllowed` lets `&`
-            // and `=` through, so a query containing them could inject extra parameters.
-            var components = URLComponents(string: "https://huggingface.co/api/models")
-            components?.queryItems = [
-                URLQueryItem(name: "author", value: "mlx-community"),
-                URLQueryItem(name: "search", value: searchQuery),
-                URLQueryItem(name: "sort", value: "downloads"),
-                URLQueryItem(name: "direction", value: "-1"),
-                URLQueryItem(name: "limit", value: "20"),
-                URLQueryItem(name: "full", value: "true")
-            ]
-
-            guard let url = components?.url else { return }
-
             do {
-                let (data, response) = try await Self.session.data(from: url)
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-                    throw URLError(.badServerResponse)
-                }
-                let models = try JSONDecoder().decode([HuggingFaceModelInfo].self, from: data)
-
+                let models = try await Self.fetchMostDownloadedMLXModels(matching: query)
                 guard !Task.isCancelled else { return }
-
-                self.searchResults = models
+                searchResults = models
             } catch {
                 if !Task.isCancelled {
                     dlog("[HF] search error: \(error)")
@@ -63,6 +46,27 @@ final class HuggingFaceModelSearch: ObservableObject {
                 }
             }
         }
+    }
+
+    private static func fetchMostDownloadedMLXModels(matching query: String) async throws -> [HuggingFaceModelInfo] {
+        // Edge case: URLComponents, not manual percent-encoding; `.urlQueryAllowed` lets `&` and
+        // `=` through, so a query could inject extra parameters.
+        var components = URLComponents(string: "https://huggingface.co/api/models")
+        components?.queryItems = [
+            URLQueryItem(name: "author", value: "mlx-community"),
+            URLQueryItem(name: "search", value: query),
+            URLQueryItem(name: "sort", value: "downloads"),
+            URLQueryItem(name: "direction", value: "-1"),
+            URLQueryItem(name: "limit", value: "20"),
+            URLQueryItem(name: "full", value: "true")
+        ]
+        guard let url = components?.url else { throw URLError(.badURL) }
+
+        let (data, response) = try await session.data(from: url)
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode([HuggingFaceModelInfo].self, from: data)
     }
 
     func clearSearch() {

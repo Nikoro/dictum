@@ -1,19 +1,19 @@
 import SwiftUI
 
 struct STTModelSection: View {
-    @EnvironmentObject var settings: AppSettings
-    @EnvironmentObject var pipeline: DictationPipeline
+    @Environment(AppSettings.self) private var settings
+    @Environment(WhisperModelStore.self) private var whisperModelStore
     @State private var isExpanded = false
 
     private var downloadedModels: [WhisperModelInfo] {
         WhisperModelStore.defaultModels.filter {
-            pipeline.whisperModelStore.downloadedModelIds.contains($0.id)
+            whisperModelStore.downloadedModelIds.contains($0.id)
         }
     }
 
     private var availableModels: [WhisperModelInfo] {
         WhisperModelStore.defaultModels.filter {
-            !pipeline.whisperModelStore.downloadedModelIds.contains($0.id)
+            !whisperModelStore.downloadedModelIds.contains($0.id)
         }
     }
 
@@ -25,25 +25,25 @@ struct STTModelSection: View {
             if !downloadedModels.isEmpty {
                 DownloadedSTTModelsList(
                     models: downloadedModels,
-                    activeModelId: pipeline.whisperModelStore.activeModelId,
+                    activeModelId: whisperModelStore.activeModelId,
                     onSelectModel: selectDownloadedModel
                 )
             }
 
             AvailableSTTModelsDisclosure(
                 models: availableModels,
-                downloadingModelId: pipeline.whisperModelStore.downloadingModelId,
-                downloadProgress: pipeline.whisperModelStore.downloadProgress,
+                downloadingModelId: whisperModelStore.downloadingModelId,
+                downloadProgress: whisperModelStore.downloadProgress,
                 isExpanded: $isExpanded,
-                onDownloadModel: pipeline.whisperModelStore.downloadAndActivate,
-                onCancelDownload: pipeline.whisperModelStore.cancelDownload
+                onDownloadModel: whisperModelStore.downloadAndActivate,
+                onCancelDownload: whisperModelStore.cancelDownload
             )
         }
         .padding()
     }
 
     private func selectDownloadedModel(_ modelId: String) {
-        pipeline.whisperModelStore.activeModelId = modelId
+        whisperModelStore.activeModelId = modelId
         settings.sttModelId = modelId
     }
 }

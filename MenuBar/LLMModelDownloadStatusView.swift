@@ -17,8 +17,8 @@ struct LLMModelDownloadStatusView: View {
                         defaultValue: "Downloading \(shortModelId)..."
                     )
                 )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(.caption.monospacedDigit())

@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - STT Language
-
 enum STTLanguage: String, CaseIterable, Codable, Sendable {
     case auto
     case pl
@@ -23,33 +21,32 @@ enum STTLanguage: String, CaseIterable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .auto: return String(localized: "language.auto", defaultValue: "Automatic")
-        case .pl: return "Polski"
-        case .en: return "English"
-        case .de: return "Deutsch"
-        case .fr: return "Français"
-        case .es: return "Español"
-        case .it: return "Italiano"
-        case .pt: return "Português"
-        case .uk: return "Українська"
-        case .cs: return "Čeština"
-        case .nl: return "Nederlands"
-        case .ja: return "日本語"
-        case .ko: return "한국어"
-        case .zh: return "中文"
-        case .ru: return "Русский"
-        case .sv: return "Svenska"
-        case .tr: return "Türkçe"
+        case .auto: String(localized: "language.auto", defaultValue: "Automatic")
+        case .pl: "Polski"
+        case .en: "English"
+        case .de: "Deutsch"
+        case .fr: "Français"
+        case .es: "Español"
+        case .it: "Italiano"
+        case .pt: "Português"
+        case .uk: "Українська"
+        case .cs: "Čeština"
+        case .nl: "Nederlands"
+        case .ja: "日本語"
+        case .ko: "한국어"
+        case .zh: "中文"
+        case .ru: "Русский"
+        case .sv: "Svenska"
+        case .tr: "Türkçe"
         }
     }
 
-    /// Returns the Whisper language code, or nil for auto-detect.
-    var whisperCode: String? {
+    var whisperCodeOrNilForAutoDetect: String? {
         self == .auto ? nil : rawValue
     }
 
-    /// BCP-47 tags for Vision text recognition, most likely first. English is always kept as a
-    /// fallback because window chrome is usually English no matter what the user dictates.
+    // Edge case: English stays as a fallback because window chrome is usually English, whatever
+    // language the user dictates in.
     var ocrLanguages: [String] {
         guard self != .auto else {
             let system = Self.systemDefault
@@ -66,35 +63,40 @@ enum STTLanguage: String, CaseIterable, Codable, Sendable {
         .tr: "tr-TR"
     ]
 
-    /// Maps the system language to a supported STTLanguage, falling back to .auto.
     static var systemDefault: STTLanguage {
         guard let code = Locale.current.language.languageCode?.identifier else { return .auto }
         return STTLanguage(rawValue: code) ?? .auto
     }
 }
 
-// MARK: - Per-app STT language
-
 struct AppSTTLanguage: Identifiable, Codable, Equatable {
-    var id: String { bundleId }
+    var id: String {
+        bundleId
+    }
+
     let bundleId: String
     var appName: String
     var language: STTLanguage
     var enabled: Bool = true
 
-    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
+    var displayName: String {
+        appName.replacingOccurrences(of: ".app", with: "")
+    }
 }
 
-// MARK: - App Prompt (per-app LLM prompt)
-
 struct AppPrompt: Identifiable, Codable, Equatable {
-    var id: String { bundleId }
+    var id: String {
+        bundleId
+    }
+
     let bundleId: String
     var appName: String
     var prompt: String
     var enabled: Bool = true
 
-    var displayName: String { appName.replacingOccurrences(of: ".app", with: "") }
+    var displayName: String {
+        appName.replacingOccurrences(of: ".app", with: "")
+    }
 }
 
 enum RecordingMode: String, CaseIterable, Sendable {
@@ -103,8 +105,8 @@ enum RecordingMode: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .hold: return String(localized: "mode.hold", defaultValue: "Hold-to-talk")
-        case .toggle: return String(localized: "mode.toggle", defaultValue: "Toggle")
+        case .hold: String(localized: "mode.hold", defaultValue: "Hold-to-talk")
+        case .toggle: String(localized: "mode.toggle", defaultValue: "Toggle")
         }
     }
 }

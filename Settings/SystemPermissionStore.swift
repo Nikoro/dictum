@@ -1,18 +1,21 @@
-import AVFoundation
 import AppKit
-import Combine
+import AVFoundation
+import Observation
 
 @MainActor
-final class SystemPermissionStore: ObservableObject {
+@Observable
+final class SystemPermissionStore {
     static let shared = SystemPermissionStore()
 
-    @Published var accessibilityGranted = false
-    @Published var microphoneGranted = false
-    @Published var screenRecordingGranted = false
+    var accessibilityGranted = false
+    var microphoneGranted = false
+    var screenRecordingGranted = false
 
-    var allGranted: Bool { accessibilityGranted && microphoneGranted }
+    var allGranted: Bool {
+        accessibilityGranted && microphoneGranted
+    }
 
-    private var pollingTimer: Timer?
+    @ObservationIgnored private var pollingTimer: Timer?
 
     private init() {
         refresh()
@@ -25,64 +28,62 @@ final class SystemPermissionStore: ObservableObject {
         screenRecordingGranted = CGPreflightScreenCaptureAccess()
     }
 
-    // MARK: - Request
-
     func requestAccessibility() {
-        // Imported as a mutable global, so it cannot be read directly under Swift 6 strict
-        // concurrency. The underlying CFString value is a constant.
+        // Edge case: kAXTrustedCheckOptionPrompt is imported as a mutable global, which Swift 6
+        // refuses to read; its value is a constant string.
         let promptKey = "AXTrustedCheckOptionPrompt" as CFString
         let options = [promptKey: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
         startPolling()
     }
 
-    func requestMicrophone() {
-        AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
-            DispatchQueue.main.async {
-                self?.microphoneGranted = granted
+    func isGranted(_ permission: SystemPermission) -> Bool {
+        switch permission {
+        case .microphone: microphoneGranted
+        case .accessibility: accessibilityGranted
+        case .screenRecording: screenRecordingGranted
+        }
+    }
+
+    // Edge case: macOS shows the microphone prompt only once; after a denial the only way back
+    // is System Settings.
+    func request(_ permission: SystemPermission) {
+        switch permission {
+        case .microphone:
+            if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+                AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                    DispatchQueue.main.async {
+                        self?.microphoneGranted = granted
+                    }
+                }
+            } else {
+                openPrivacySettings(anchor: "Privacy_Microphone")
             }
+        case .accessibility:
+            openPrivacySettings(anchor: "Privacy_Accessibility")
+        case .screenRecording:
+            guard !screenRecordingGranted else { return }
+            CGRequestScreenCaptureAccess()
+            startPolling()
         }
     }
 
-    func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+    private func openPrivacySettings(anchor: String) {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)") {
             NSWorkspace.shared.open(url)
         }
         startPolling()
     }
-
-    func openMicrophoneSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") {
-            NSWorkspace.shared.open(url)
-        }
-        startPolling()
-    }
-
-    func requestScreenRecording() {
-        CGRequestScreenCaptureAccess()
-        startPolling()
-    }
-
-    func openScreenRecordingSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
-        startPolling()
-    }
-
-    // MARK: - Polling
 
     func startPolling() {
         guard pollingTimer == nil else { return }
-        // The block deliberately ignores its Timer argument: Timer is not Sendable, so handing
-        // it to the main-actor body would be a cross-isolation send. Invalidation goes through
-        // `pollingTimer` instead, which is the same object.
+        // Edge case: the block must ignore its Timer argument (not Sendable); invalidation goes
+        // through `pollingTimer`. Scheduled from the main actor, so assumeIsolated is safe.
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            // Scheduled from the main actor, so the block fires on the main run loop.
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.refresh()
-                if self.allGranted && self.screenRecordingGranted {
+                if self.allGranted, self.screenRecordingGranted {
                     self.stopPolling()
                 }
             }

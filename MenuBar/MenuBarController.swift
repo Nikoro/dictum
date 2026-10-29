@@ -1,19 +1,16 @@
 import AppKit
 import SwiftUI
-import Combine
 
 @MainActor
-final class MenuBarController: ObservableObject {
+final class MenuBarController {
     static var shared: MenuBarController?
 
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var eventMonitor: Any?
-    private var cancellables = Set<AnyCancellable>()
 
     private let settings = AppSettings.shared
     private let runtimeState = AppRuntimeState.shared
-    private let pipeline = DictationPipeline.shared
 
     init() {
         MenuBarController.shared = self
@@ -40,12 +37,14 @@ final class MenuBarController: ObservableObject {
         popover.contentViewController = NSHostingController(
             rootView: PopoverView()
                 .tint(Color("AccentColor"))
-                .environmentObject(settings)
-                .environmentObject(runtimeState)
-                .environmentObject(pipeline)
-                .environmentObject(SparkleUpdateController.shared)
-                .environmentObject(SystemPermissionStore.shared)
-                .environmentObject(HuggingFaceModelSearch.shared)
+                .environment(settings)
+                .environment(runtimeState)
+                .environment(WhisperModelStore.shared)
+                .environment(DownloadedLLMModelStore.shared)
+                .environment(LLMModelDownloadController.shared)
+                .environment(SparkleUpdateController.shared)
+                .environment(SystemPermissionStore.shared)
+                .environment(HuggingFaceModelSearch.shared)
         )
         self.popover = popover
     }
@@ -57,12 +56,12 @@ final class MenuBarController: ObservableObject {
     }
 
     private func observeState() {
-        runtimeState.$appState
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] state in
+        let runtimeState = runtimeState
+        Task { [weak self] in
+            for await state in Observations({ runtimeState.appState }) {
                 self?.updateIcon(for: state)
             }
-            .store(in: &cancellables)
+        }
     }
 
     private func updateIcon(for state: AppState) {
@@ -72,7 +71,6 @@ final class MenuBarController: ObservableObject {
         case .recording:
             button.image = MenuBarIcon.recording()
         default:
-            // Template image — the system adapts it to light/dark mode automatically
             button.image = MenuBarIcon.microphone()
         }
     }
@@ -96,7 +94,7 @@ final class MenuBarController: ObservableObject {
         }
     }
 
-    /// Isolated so it can touch main-actor state; the global monitor is not Sendable.
+    // Edge case: isolated, because the event monitor is not Sendable.
     isolated deinit {
         if let eventMonitor {
             NSEvent.removeMonitor(eventMonitor)
