@@ -1,0 +1,9 @@
+run: scripts/run.sh ...args ## Kills Dictum, builds Debug, launches it and checks it stays running
+
+check: scripts/quality/check_all.sh ## Runs every pre-commit quality gate over the whole repository
+
+format: swiftformat . ## Formats all Swift sources with the pinned SwiftFormat rules
+
+deadcode: periphery scan --strict ## Scans for unused code; known false positives live in .periphery.baseline.json
+
+push: git push ...args ## Pushes local commits to the remote repository

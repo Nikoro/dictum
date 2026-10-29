@@ -24,3 +24,6 @@ build/
 
 # Environment
 .env
+
+# Project-local tool installs (scripts/quality/lizard.sh)
+.tools/

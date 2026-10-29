@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Dictum pre-commit hook. Blocks the commit on any finding; gates and thresholds are described
+# in docs/quality-gates.md. Do not bypass with --no-verify.
+
+set -euo pipefail
+
+REQUIRED_SWIFTLINT="0.65.1"
+REQUIRED_SWIFTFORMAT="0.64.4"
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+swift_files=()
+strings_changed=false
+while IFS= read -r -d '' file; do
+    case "$file" in
+        .agents/* | build/* | website/*) continue ;;
+        *.strings) strings_changed=true ;;
+        *.swift) swift_files+=("$file") ;;
+    esac
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+if [[ ${#swift_files[@]} -eq 0 && "$strings_changed" == false ]]; then
+    exit 0
+fi
+
+status=0
+
+if ! scripts/quality/check_strings.py; then
+    status=1
+fi
+
+if [[ ${#swift_files[@]} -eq 0 ]]; then
+    exit "$status"
+fi
+
+check_version() {
+    local tool="$1" required="$2" installed
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "pre-commit: $tool $required is required — brew install $tool" >&2
+        return 1
+    fi
+    installed="$("$tool" --version | tail -1)"
+    if [[ "$installed" != "$required" ]]; then
+        echo "pre-commit: $tool $installed found, $required required. Results differ between" >&2
+        echo "  versions; install $required, or bump REQUIRED_* here and fix what the new version reports." >&2
+        return 1
+    fi
+}
+check_version swiftlint "$REQUIRED_SWIFTLINT" || exit 1
+check_version swiftformat "$REQUIRED_SWIFTFORMAT" || exit 1
+
+if ! swiftlint lint --strict --quiet --force-exclude --reporter emoji "${swift_files[@]}"; then
+    echo "pre-commit: fix the SwiftLint findings above." >&2
+    status=1
+fi
+
+if ! format_report="$(swiftformat --lint "${swift_files[@]}" 2>&1)"; then
+    grep -E 'error:|require formatting' <<<"$format_report" >&2
+    echo "pre-commit: run \`swiftformat\` on the files listed above and re-stage." >&2
+    status=1
+fi
+
+if ! scripts/quality/check_nesting.py "${swift_files[@]}"; then
+    status=1
+fi
+
+if ! scripts/quality/check_comments.py "${swift_files[@]}"; then
+    status=1
+fi
+
+if ! scripts/quality/lizard.sh "${swift_files[@]}" >&2; then
+    echo "pre-commit: split the functions above (cognitive complexity > 10)." >&2
+    status=1
+fi
+
+exit "$status"

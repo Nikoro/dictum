@@ -1,0 +1,8 @@
+project: Dictum.xcodeproj
+schemes:
+  - Dictum
+retain_swift_ui_previews: true
+# Codable fields are read by synthesized conformances the indexer cannot attribute.
+retain_codable_properties: true
+relative_results: true
+baseline: .periphery.baseline.json
