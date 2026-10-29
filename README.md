@@ -51,6 +51,8 @@ open Dictum.xcodeproj
 
 > **Note:** Must be built with Xcode (`xcodebuild`), not `swift build` — MLX Swift compiles Metal shaders.
 
+Project commands live in `spells.yaml` and need [Spellbook](https://nikoro.github.io/spellbook/) (macOS only): install via `curl -sSfL https://raw.githubusercontent.com/Nikoro/spellbook/main/install.sh | sh`, then run `spells` in the project root to activate it.
+
 ## Permissions
 
 On first launch, the onboarding flow guides you through:

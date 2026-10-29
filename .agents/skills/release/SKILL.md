@@ -5,6 +5,10 @@ description: Automate release preparation for Dictum. Determines version bump, u
 
 You are preparing a new release for **Dictum**, a native macOS menu bar app for voice dictation. The user may optionally provide a version number or bump keyword.
 
+
+The signing identity must not change between releases: macOS ties Microphone and Accessibility
+grants to it and silently revokes them for every user.
+
 ## Step 1: Parse User Input
 
 Extract from `$ARGUMENTS`:
