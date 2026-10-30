@@ -101,10 +101,9 @@ struct HotkeyRecorderButton: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(recorder.isRecording ? Color("AccentColor").opacity(0.2) : Color(nsColor: .quaternaryLabelColor))
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .font(.system(.body, design: .monospaced))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 6)
                         .stroke(recorder.isRecording ? Color("AccentColor") : .clear, lineWidth: 1)
                 )
         }

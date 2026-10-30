@@ -2,12 +2,13 @@ import Foundation
 import SwiftUI
 import WhisperKit
 
-struct WhisperModelInfo: Identifiable {
+struct SpeechModelInfo: Identifiable {
     let id: String
     let displayName: String
     let sizeBytes: Int64
     let descriptionKey: String
     var isRecommended: Bool = false
+    var engine: SpeechEngine = .whisper
 
     var description: String {
         String(localized: String.LocalizationValue(descriptionKey))
@@ -24,7 +25,6 @@ final class WhisperModelStore {
     static let shared = WhisperModelStore()
 
     var downloadedModelIds: Set<String> = []
-    var activeModelId: String = "openai_whisper-large-v3_turbo"
     var isDownloading = false
     var downloadingModelId: String?
     var downloadProgress: Double = 0
@@ -34,39 +34,39 @@ final class WhisperModelStore {
     @ObservationIgnored private var downloadTask: Task<Void, Never>?
     private static let downloadedKey = UserDefaultsKey.whisperDownloadedModelIds.rawValue
 
-    static let defaultModels: [WhisperModelInfo] = [
-        WhisperModelInfo(
+    static let defaultModels: [SpeechModelInfo] = [
+        SpeechModelInfo(
             id: "openai_whisper-large-v3_turbo",
             displayName: "Large V3 Turbo",
             sizeBytes: 954_000_000,
             descriptionKey: "stt.large_v3_turbo.desc",
             isRecommended: true
         ),
-        WhisperModelInfo(
+        SpeechModelInfo(
             id: "openai_whisper-large-v3",
             displayName: "Large V3",
             sizeBytes: 947_000_000,
             descriptionKey: "stt.large_v3.desc"
         ),
-        WhisperModelInfo(
+        SpeechModelInfo(
             id: "distil-whisper_distil-large-v3_turbo",
             displayName: "Distil Large V3 Turbo",
             sizeBytes: 600_000_000,
             descriptionKey: "stt.distil_large_v3_turbo.desc"
         ),
-        WhisperModelInfo(
+        SpeechModelInfo(
             id: "openai_whisper-medium",
             displayName: "Medium",
             sizeBytes: 1_500_000_000,
             descriptionKey: "stt.medium.desc"
         ),
-        WhisperModelInfo(
+        SpeechModelInfo(
             id: "openai_whisper-small",
             displayName: "Small",
             sizeBytes: 216_000_000,
             descriptionKey: "stt.small.desc"
         ),
-        WhisperModelInfo(
+        SpeechModelInfo(
             id: "openai_whisper-base",
             displayName: "Base",
             sizeBytes: 150_000_000,
@@ -142,11 +142,11 @@ final class WhisperModelStore {
 
     private func activate(_ modelId: String) {
         downloadedModelIds.insert(modelId)
-        activeModelId = modelId
+        AppSettings.shared.sttEngine = .whisper
         AppSettings.shared.sttModelId = modelId
         persistIds()
         refreshTotalSize()
-        ModelWarmupCoordinator.shared.warmUpModels()
+        ModelWarmupCoordinator.shared.switchSpeechModel()
     }
 
     func cancelDownload() {
@@ -158,13 +158,12 @@ final class WhisperModelStore {
     }
 
     func deleteModel(_ modelId: String) async {
-        if activeModelId == modelId {
+        let settings = AppSettings.shared
+        if settings.sttModelId == modelId {
             await TranscriptionEngine.shared.unloadModel()
+            settings.sttModelId = Self.defaultModels.first?.id ?? ""
         }
         downloadedModelIds.remove(modelId)
-        if activeModelId == modelId {
-            activeModelId = Self.defaultModels.first?.id ?? ""
-        }
         persistIds()
 
         await Task.detached(priority: .utility) {

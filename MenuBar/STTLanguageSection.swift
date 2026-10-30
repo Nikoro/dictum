@@ -36,22 +36,14 @@ struct STTLanguageSection: View {
     }
 
     private var generalLanguagePicker: some View {
-        HStack {
-            Text(String(localized: "section.stt.language.general", defaultValue: "General"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Spacer()
+        PreferenceRow(title: String(localized: "section.stt.language.general", defaultValue: "General")) {
             STTLanguagePicker(selection: Bindable(settings).sttLanguage)
-                .frame(width: 160)
+                .fixedSize()
         }
     }
 
     private var perAppHeader: some View {
-        HStack {
-            Text(String(localized: "section.stt.language.perapp", defaultValue: "Language per app"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Spacer()
+        PreferenceRow(title: String(localized: "section.stt.language.perapp", defaultValue: "Language per app")) {
             Button {
                 showingAppPicker = true
             } label: {
@@ -103,8 +95,8 @@ private struct AppSTTLanguageRow: View {
                 get: { appLang.language },
                 set: { settings.updateAppSTTLanguage(bundleId: appLang.bundleId, language: $0) }
             ))
-            .frame(width: 130)
             .controlSize(.small)
+            .fixedSize()
 
             removeButton
         }

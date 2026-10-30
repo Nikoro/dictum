@@ -15,12 +15,13 @@ struct DownloadedModelRow: View {
             HStack {
                 Image(systemName: isSelected ? "circle.fill" : "circle")
                     .foregroundStyle(isSelected ? Color("AccentColor") : .secondary)
-                    .font(.caption)
+                    .font(.caption2)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(name)
-                        .font(.caption)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                        .lineLimit(1)
                     Text(kind)
-                        .font(.system(size: 9))
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -30,7 +31,7 @@ struct DownloadedModelRow: View {
                 deleteButton
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
     }

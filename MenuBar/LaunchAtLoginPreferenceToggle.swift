@@ -6,9 +6,7 @@ struct LaunchAtLoginPreferenceToggle: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
-        HStack {
-            Text(String(localized: "section.launchAtLogin", defaultValue: "Launch at login"))
-            Spacer()
+        PreferenceRow(title: String(localized: "section.launchAtLogin", defaultValue: "Launch at login")) {
             Toggle("", isOn: $launchAtLogin)
                 .toggleStyle(.switch)
                 .labelsHidden()

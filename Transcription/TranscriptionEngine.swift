@@ -26,6 +26,7 @@ actor TranscriptionEngine {
 
     private var whisperKit: WhisperKit?
     private(set) var isModelLoaded = false
+    private(set) var loadedModelId: String?
     private(set) var isLoading = false
     private var loadingTask: Task<Void, Error>?
     private var loadingModelId: String?
@@ -70,11 +71,13 @@ actor TranscriptionEngine {
             loadingModelId = nil
         }
         try await task.value
+        loadedModelId = modelId
     }
 
     private func loadWhisperKit(_ config: WhisperKitConfig) async throws {
         whisperKit = nil
         isModelLoaded = false
+        loadedModelId = nil
         isLoading = true
         defer { isLoading = false }
 
@@ -133,5 +136,6 @@ actor TranscriptionEngine {
     func unloadModel() {
         whisperKit = nil
         isModelLoaded = false
+        loadedModelId = nil
     }
 }

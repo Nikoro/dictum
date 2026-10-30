@@ -24,6 +24,17 @@ final class ModelWarmupCoordinator {
         activeSpeechEngine == .parakeet || whisperModelStore.downloadedModelIds.contains(settings.sttModelId)
     }
 
+    func switchSpeechModel() {
+        Task {
+            if activeSpeechEngine == .parakeet {
+                await TranscriptionEngine.shared.unloadModel()
+            } else {
+                await ParakeetEngine.shared.unloadModel()
+            }
+            preloadModels()
+        }
+    }
+
     func preloadModels() {
         guard hasSpeechModel else { return }
         Task {
@@ -96,7 +107,7 @@ final class ModelWarmupCoordinator {
             try await ParakeetEngine.shared.loadModel()
             return
         }
-        guard await !TranscriptionEngine.shared.isModelLoaded else { return }
+        guard await TranscriptionEngine.shared.loadedModelId != settings.sttModelId else { return }
         dlog("[Dictum] loading STT model: \(settings.sttModelId)")
         try await TranscriptionEngine.shared.loadModel(settings.sttModelId)
         dlog("[Dictum] STT model loaded")

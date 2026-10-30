@@ -3,15 +3,14 @@ import SwiftUI
 struct DownloadedModelsSection: View {
     @Environment(AppSettings.self) private var settings
     @Environment(WhisperModelStore.self) private var whisperModelStore
+    @Environment(ParakeetModelStore.self) private var parakeetModelStore
     @Environment(DownloadedLLMModelStore.self) private var downloadedLLMModelStore
     @Environment(LLMModelDownloadController.self) private var llmDownloads
-    @State private var modelToDeleteSTT: WhisperModelInfo?
+    @State private var modelToDeleteSTT: SpeechModelInfo?
     @State private var modelToDeleteLLM: DownloadedLLMModel?
 
-    private var whisperDownloadedModels: [WhisperModelInfo] {
-        WhisperModelStore.defaultModels.filter {
-            whisperModelStore.downloadedModelIds.contains($0.id)
-        }
+    private var speechModels: SpeechModelCatalog {
+        SpeechModelCatalog(settings: settings, whisper: whisperModelStore, parakeet: parakeetModelStore)
     }
 
     private var downloadedLLMModels: [DownloadedLLMModel] {
@@ -19,11 +18,11 @@ struct DownloadedModelsSection: View {
     }
 
     private var totalDiskUsage: Int64 {
-        downloadedLLMModelStore.totalSizeOnDisk + whisperModelStore.cachedTotalSizeOnDisk
+        downloadedLLMModelStore.totalSizeOnDisk + speechModels.totalSizeOnDisk
     }
 
     var body: some View {
-        let hasAny = !whisperDownloadedModels.isEmpty || !downloadedLLMModels.isEmpty
+        let hasAny = !speechModels.downloadedModels.isEmpty || !downloadedLLMModels.isEmpty
 
         if hasAny {
             VStack(alignment: .leading, spacing: 8) {
@@ -40,8 +39,8 @@ struct DownloadedModelsSection: View {
             .onAppear {
                 downloadedLLMModelStore.scanDownloadedModels()
             }
-            .whisperModelDeletionAlert(model: $modelToDeleteSTT) { model in
-                Task { await whisperModelStore.deleteModel(model.id) }
+            .speechModelDeletionAlert(model: $modelToDeleteSTT, formattedSize: speechModels.formattedSize) { model in
+                Task { await speechModels.delete(model) }
             }
             .llmModelDeletionAlert(
                 model: $modelToDeleteLLM,
@@ -63,14 +62,14 @@ struct DownloadedModelsSection: View {
 
     private var modelList: some View {
         VStack(spacing: 2) {
-            ForEach(whisperDownloadedModels) { model in
+            ForEach(speechModels.downloadedModels) { model in
                 DownloadedModelRow(
                     name: model.displayName,
                     kind: "STT",
-                    formattedSize: model.formattedSize,
-                    isSelected: model.id == whisperModelStore.activeModelId,
-                    isDeletionBlocked: model.id == whisperModelStore.activeModelId,
-                    onSelect: { selectWhisperModel(model.id) },
+                    formattedSize: speechModels.formattedSize(of: model),
+                    isSelected: speechModels.isActive(model),
+                    isDeletionBlocked: speechModels.isActive(model),
+                    onSelect: { speechModels.select(model) },
                     onDelete: { modelToDeleteSTT = model }
                 )
             }
@@ -88,10 +87,5 @@ struct DownloadedModelsSection: View {
         }
         .background(.quaternary)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func selectWhisperModel(_ modelId: String) {
-        whisperModelStore.activeModelId = modelId
-        settings.sttModelId = modelId
     }
 }

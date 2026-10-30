@@ -2,21 +2,20 @@ import SwiftUI
 
 @MainActor
 struct DownloadedSTTModelsList: View {
-    let models: [WhisperModelInfo]
-    let activeModelId: String
-    let onSelectModel: (String) -> Void
+    let speechModels: SpeechModelCatalog
 
     var body: some View {
         VStack(spacing: 2) {
-            ForEach(models) { model in
+            ForEach(speechModels.downloadedModels) { model in
                 STTModelRow(
                     model: model,
+                    formattedSize: speechModels.formattedSize(of: model),
                     isDownloaded: true,
-                    isActive: activeModelId == model.id,
+                    isActive: speechModels.isActive(model),
                     isDownloading: false,
                     downloadProgress: 0
                 ) {
-                    onSelectModel(model.id)
+                    speechModels.select(model)
                 }
             }
         }
@@ -27,12 +26,12 @@ struct DownloadedSTTModelsList: View {
 
 @MainActor
 struct AvailableSTTModelsDisclosure: View {
-    let models: [WhisperModelInfo]
-    let downloadingModelId: String?
-    let downloadProgress: Double
+    let speechModels: SpeechModelCatalog
     @Binding var isExpanded: Bool
-    let onDownloadModel: (String) -> Void
-    let onCancelDownload: () -> Void
+
+    private var models: [SpeechModelInfo] {
+        speechModels.availableModels
+    }
 
     var body: some View {
         if !models.isEmpty {
@@ -67,12 +66,17 @@ struct AvailableSTTModelsDisclosure: View {
             ForEach(models) { model in
                 STTModelRow(
                     model: model,
+                    formattedSize: speechModels.formattedSize(of: model),
                     isDownloaded: false,
                     isActive: false,
-                    isDownloading: downloadingModelId == model.id,
-                    downloadProgress: downloadingModelId == model.id ? downloadProgress : 0,
-                    onSelect: { onDownloadModel(model.id) },
-                    onCancel: onCancelDownload
+                    isDownloading: speechModels.isDownloading(model),
+                    downloadProgress: speechModels.downloadProgress(of: model),
+                    onSelect: {
+                        if !speechModels.isDownloading(model) {
+                            speechModels.download(model)
+                        }
+                    },
+                    onCancel: { speechModels.cancelDownload(of: model) }
                 )
             }
         }
@@ -83,7 +87,8 @@ struct AvailableSTTModelsDisclosure: View {
 
 @MainActor
 struct STTModelRow: View {
-    let model: WhisperModelInfo
+    let model: SpeechModelInfo
+    let formattedSize: String
     let isDownloaded: Bool
     let isActive: Bool
     let isDownloading: Bool
@@ -100,7 +105,7 @@ struct STTModelRow: View {
                         .font(.caption2)
                     nameAndDescription
                     Spacer()
-                    Text(model.formattedSize)
+                    Text(formattedSize)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     downloadStatus

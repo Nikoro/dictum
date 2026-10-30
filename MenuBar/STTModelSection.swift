@@ -3,48 +3,28 @@ import SwiftUI
 struct STTModelSection: View {
     @Environment(AppSettings.self) private var settings
     @Environment(WhisperModelStore.self) private var whisperModelStore
+    @Environment(ParakeetModelStore.self) private var parakeetModelStore
     @State private var isExpanded = false
 
-    private var downloadedModels: [WhisperModelInfo] {
-        WhisperModelStore.defaultModels.filter {
-            whisperModelStore.downloadedModelIds.contains($0.id)
-        }
-    }
-
-    private var availableModels: [WhisperModelInfo] {
-        WhisperModelStore.defaultModels.filter {
-            !whisperModelStore.downloadedModelIds.contains($0.id)
-        }
+    private var speechModels: SpeechModelCatalog {
+        SpeechModelCatalog(settings: settings, whisper: whisperModelStore, parakeet: parakeetModelStore)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "section.stt", defaultValue: "STT Model"))
                 .font(.headline)
-            SpeechEnginePicker()
 
-            if !downloadedModels.isEmpty {
-                DownloadedSTTModelsList(
-                    models: downloadedModels,
-                    activeModelId: whisperModelStore.activeModelId,
-                    onSelectModel: selectDownloadedModel
-                )
+            if !speechModels.downloadedModels.isEmpty {
+                DownloadedSTTModelsList(speechModels: speechModels)
             }
 
-            AvailableSTTModelsDisclosure(
-                models: availableModels,
-                downloadingModelId: whisperModelStore.downloadingModelId,
-                downloadProgress: whisperModelStore.downloadProgress,
-                isExpanded: $isExpanded,
-                onDownloadModel: whisperModelStore.downloadAndActivate,
-                onCancelDownload: whisperModelStore.cancelDownload
-            )
+            AvailableSTTModelsDisclosure(speechModels: speechModels, isExpanded: $isExpanded)
+
+            if let error = speechModels.downloadError {
+                ModelDownloadErrorView(errorMessage: error, onDismiss: speechModels.clearDownloadError)
+            }
         }
         .padding()
-    }
-
-    private func selectDownloadedModel(_ modelId: String) {
-        whisperModelStore.activeModelId = modelId
-        settings.sttModelId = modelId
     }
 }

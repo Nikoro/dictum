@@ -26,10 +26,13 @@ final class DownloadedLLMModelStore {
     }
 
     func scanDownloadedModels() {
-        downloadedModels = LLMModelStorage.installedModels()
-            .compactMap { model -> DownloadedLLMModel? in
-                let size = FileManager.default.directorySize(at: model.directory)
-                return size > 0 ? DownloadedLLMModel(id: model.id, sizeOnDisk: size) : nil
+        let modelIds = Set(LLMModelStorage.installedModels().map(\.id))
+        downloadedModels = modelIds
+            .compactMap { modelId -> DownloadedLLMModel? in
+                let size = LLMModelStorage.directories(of: modelId)
+                    .map(FileManager.default.directorySize(at:))
+                    .reduce(0, +)
+                return size > 0 ? DownloadedLLMModel(id: modelId, sizeOnDisk: size) : nil
             }
             .sorted { $0.sizeOnDisk > $1.sizeOnDisk }
     }

@@ -9,10 +9,7 @@ struct AudioPreferencesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(String(localized: "section.microphone", defaultValue: "Microphone:"))
-                    .font(.headline)
-                Spacer()
+            PreferenceRow(title: String(localized: "section.microphone", defaultValue: "Microphone")) {
                 Picker("", selection: Bindable(settings).inputDeviceUID) {
                     Text(String(localized: "section.microphone.systemDefault", defaultValue: "System default")).tag("")
                     ForEach(inputDevices) { device in
@@ -20,18 +17,15 @@ struct AudioPreferencesSection: View {
                     }
                 }
                 .labelsHidden()
-                .frame(width: 200)
             }
-            HStack {
-                Text(String(localized: "section.idleUnload", defaultValue: "Free memory after:"))
-                Spacer()
+            PreferenceRow(title: String(localized: "section.idleUnload", defaultValue: "Free memory after")) {
                 Picker("", selection: Bindable(settings).modelIdleUnloadMinutes) {
                     ForEach(Self.idleUnloadOptions, id: \.self) { minutes in
                         Text(Self.idleUnloadLabel(minutes)).tag(minutes)
                     }
                 }
                 .labelsHidden()
-                .frame(width: 140)
+                .fixedSize()
             }
         }
         .padding(.horizontal)

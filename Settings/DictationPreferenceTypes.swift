@@ -114,11 +114,4 @@ enum RecordingMode: String, CaseIterable, Sendable {
 enum SpeechEngine: String, CaseIterable, Sendable {
     case whisper
     case parakeet
-
-    var displayName: String {
-        switch self {
-        case .whisper: String(localized: "engine.whisper", defaultValue: "Accurate (Whisper)")
-        case .parakeet: String(localized: "engine.parakeet", defaultValue: "Fast (Parakeet)")
-        }
-    }
 }

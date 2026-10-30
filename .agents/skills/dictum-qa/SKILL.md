@@ -67,7 +67,10 @@ sections to the user as a short list, naming only the sections the change touche
 
 ## 8. Model management
 
-- Switch the active STT model; dictation uses it (log shows the model id on load).
+- Switch the active STT model, including to and from Parakeet in the same list; dictation uses
+  it right away (log shows the model id on load, no restart needed).
+- Downloaded models lists each model once, every STT model (Parakeet too) and only Dictum's
+  LLMs, never other tools' models from `~/.cache/huggingface`.
 - Delete a non-active model: confirmation alert with the size, disk usage summary updates.
 - The active STT model's trash button is disabled with a tooltip.
 - HuggingFace search: 1 character shows the hint, 2+ show results, downloading shows progress
@@ -101,7 +104,8 @@ sections to the user as a short list, naming only the sections the change touche
 
 ## 14. Engines, dictionary, idle unload
 
-- Switch to Fast (Parakeet), download the model, dictate: noticeably faster result.
+- Download Parakeet TDT v3 from the STT list (progress bar, cancel works), dictate: noticeably
+  faster result. Switch back to Whisper, then delete Parakeet from Downloaded models.
 - Add a dictionary rule, dictate the heard word: the replacement is pasted.
 - With "Free memory after" set to 5 min, wait: the log shows `unloading models`; the next
   dictation still works (models reload while you speak).

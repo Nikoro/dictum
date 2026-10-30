@@ -8,18 +8,13 @@ struct RecordingPreferencesSection: View {
         VStack(alignment: .leading, spacing: 12) {
             modePicker
 
-            HStack {
-                Text(String(localized: "section.hotkey", defaultValue: "Hotkey:"))
-                    .font(.headline)
-                Spacer()
+            PreferenceRow(title: String(localized: "section.hotkey", defaultValue: "Hotkey")) {
                 HotkeyRecorderButton(hotkeyDescription: hotkeyDescription)
             }
 
             LaunchAtLoginPreferenceToggle()
 
-            HStack {
-                Text(String(localized: "section.llm.cleanup", defaultValue: "LLM processing"))
-                Spacer()
+            PreferenceRow(title: String(localized: "section.llm.cleanup", defaultValue: "LLM processing")) {
                 Toggle("", isOn: Bindable(settings).llmCleanupEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
@@ -33,17 +28,15 @@ struct RecordingPreferencesSection: View {
     }
 
     private var modePicker: some View {
-        HStack {
-            Text(String(localized: "section.mode", defaultValue: "Mode:"))
-                .font(.headline)
-            Spacer()
+        PreferenceRow(title: String(localized: "section.mode", defaultValue: "Mode")) {
             Picker("", selection: Bindable(settings).recordingModeRaw) {
                 ForEach(RecordingMode.allCases, id: \.rawValue) { mode in
                     Text(mode.displayName).tag(mode.rawValue)
                 }
             }
             .pickerStyle(.segmented)
-            .frame(width: 200)
+            .labelsHidden()
+            .fixedSize()
         }
     }
 

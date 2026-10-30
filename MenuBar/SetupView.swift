@@ -3,8 +3,7 @@ import SwiftUI
 @MainActor
 struct SetupView: View {
     let permissionsStore: SystemPermissionStore
-    let whisperModelStore: WhisperModelStore
-    @Environment(AppSettings.self) private var settings
+    let speechModels: SpeechModelCatalog
 
     @State private var downloadedLLMId: String? = UserDefaults.standard
         .string(forKey: UserDefaultsKey.llmDownloadedModelId.rawValue)
@@ -15,13 +14,12 @@ struct SetupView: View {
                 SetupHeaderView()
                 SetupPermissionStep(permissionsStore: permissionsStore)
                 SetupSpeechRecognitionModelStep(
-                    whisperModelStore: whisperModelStore,
-                    selectedModelId: Bindable(settings).sttModelId,
+                    speechModels: speechModels,
                     isUnlocked: permissionsStore.allGranted
                 )
                 SetupLLMProcessingStep(
                     downloadedLLMId: $downloadedLLMId,
-                    isUnlocked: whisperModelStore.downloadedModelIds.contains(settings.sttModelId)
+                    isUnlocked: speechModels.hasActiveModel
                 )
 
                 Spacer(minLength: 12)

@@ -4,10 +4,15 @@ import SwiftUI
 struct PopoverView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(WhisperModelStore.self) private var whisperModelStore
+    @Environment(ParakeetModelStore.self) private var parakeetModelStore
     @Environment(SystemPermissionStore.self) private var permissionStore
 
+    private var speechModels: SpeechModelCatalog {
+        SpeechModelCatalog(settings: settings, whisper: whisperModelStore, parakeet: parakeetModelStore)
+    }
+
     private var isSetupComplete: Bool {
-        permissionStore.allGranted && whisperModelStore.downloadedModelIds.contains(settings.sttModelId)
+        permissionStore.allGranted && speechModels.hasActiveModel
     }
 
     var body: some View {
@@ -17,7 +22,7 @@ struct PopoverView: View {
             } else if settings.hasCompletedSetup, !permissionStore.allGranted {
                 PermissionsNeededView(permissionsStore: permissionStore)
             } else {
-                SetupView(permissionsStore: permissionStore, whisperModelStore: whisperModelStore)
+                SetupView(permissionsStore: permissionStore, speechModels: speechModels)
             }
         }
         .frame(width: 360)

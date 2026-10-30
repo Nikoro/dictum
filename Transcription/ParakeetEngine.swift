@@ -7,11 +7,15 @@ actor ParakeetEngine {
     private var manager: AsrManager?
     private var loadingTask: Task<AsrManager, Error>?
 
-    nonisolated static var isModelDownloaded: Bool {
-        AsrModels.modelsExist(at: AsrModels.defaultCacheDirectory(for: .v3), version: .v3)
+    nonisolated static var modelDirectory: URL {
+        AsrModels.defaultCacheDirectory(for: .v3)
     }
 
-    func loadModel() async throws {
+    nonisolated static var isModelDownloaded: Bool {
+        AsrModels.modelsExist(at: modelDirectory, version: .v3)
+    }
+
+    func loadModel(progressHandler: ProgressHandler? = nil) async throws {
         if manager != nil {
             return
         }
@@ -20,7 +24,7 @@ actor ParakeetEngine {
             return
         }
         let task = Task {
-            let models = try await AsrModels.downloadAndLoad(version: .v3)
+            let models = try await AsrModels.downloadAndLoad(version: .v3, progressHandler: progressHandler)
             let manager = AsrManager(config: .default)
             try await manager.loadModels(models)
             return manager
@@ -41,5 +45,11 @@ actor ParakeetEngine {
 
     func unloadModel() {
         manager = nil
+    }
+
+    func deleteModel() throws {
+        manager = nil
+        try FileManager.default.removeItem(at: Self.modelDirectory)
+        dlog("[Parakeet] model files deleted")
     }
 }

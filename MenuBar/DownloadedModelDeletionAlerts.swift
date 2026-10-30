@@ -2,9 +2,10 @@ import SwiftUI
 
 @MainActor
 extension View {
-    func whisperModelDeletionAlert(
-        model: Binding<WhisperModelInfo?>,
-        onConfirmDeletion: @escaping (WhisperModelInfo) -> Void
+    func speechModelDeletionAlert(
+        model: Binding<SpeechModelInfo?>,
+        formattedSize: @escaping (SpeechModelInfo) -> String,
+        onConfirmDeletion: @escaping (SpeechModelInfo) -> Void
     ) -> some View {
         modelDeletionAlert(
             title: String(localized: "alert.delete.stt.title", defaultValue: "Delete model?"),
@@ -13,7 +14,7 @@ extension View {
                 String(
                     localized: "alert.delete.stt.message",
                     defaultValue: """
-                    This will remove \(modelToDelete.formattedSize) from disk. \
+                    This will remove \(formattedSize(modelToDelete)) from disk. \
                     You will need to re-download the model.
                     """
                 )

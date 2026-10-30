@@ -38,6 +38,7 @@
 		53378C5D1934736E3738DC69 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 7DA13053973FFE210402E210 /* MLXVLM */; };
 		549D99FAF5A8E4131AD45188 /* HuggingFaceSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20640DE623A01CDD134E4FF2 /* HuggingFaceSearchField.swift */; };
 		550016EEAA4F9D1D9B0DC919 /* LaunchAtLoginPreferenceToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF24FA3340D5BE3C3EDDF3F1 /* LaunchAtLoginPreferenceToggle.swift */; };
+		5612AA714AD376A0FEB6109F /* PreferenceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A5BEF7F148201D1B1B1F658 /* PreferenceRow.swift */; };
 		56A4BB4135CAA2E8CBF229CC /* LLMModelSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B269BB55AAE21D58EAE7B0E /* LLMModelSection.swift */; };
 		56ACEB8CDF4BE178CAD338CA /* AppSettings+Resolution.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0EFE572E7399D86A6E70A6 /* AppSettings+Resolution.swift */; };
 		5ECE953AE68E9728B0D034E3 /* UnifiedPromptSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D28CEFA78A8A28FFF40B6A9 /* UnifiedPromptSection.swift */; };
@@ -48,7 +49,6 @@
 		67AAD201D3C0BDC0BD2643C4 /* ParakeetModelStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D431B94827CDF5757137E894 /* ParakeetModelStore.swift */; };
 		6812C3ABA68A294B600B8615 /* DownloadedModelsStorageSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F56F836FC92EBF622EF210B /* DownloadedModelsStorageSummary.swift */; };
 		6F7CA5A1A478C5CE0F3106F5 /* DownloadedModelsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B2A2988C55FEB038221C1A /* DownloadedModelsSection.swift */; };
-		710806293EA12A8A5BDC8D98 /* SpeechEnginePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E25511B3047714DCD067A628 /* SpeechEnginePicker.swift */; };
 		73B342021605945264103AFD /* GlobalHotkeyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99DA622EA107C648E99591AF /* GlobalHotkeyMonitor.swift */; };
 		73EEAAB0775705E4999E6E5F /* DictationPreferenceTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0453D62C5C020259F188E5C3 /* DictationPreferenceTypes.swift */; };
 		74B2A47F7A185F02CE17D141 /* TranscriptionPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = D832A9E04DAB8FB09556F77E /* TranscriptionPrompt.swift */; };
@@ -86,6 +86,7 @@
 		CBD75A35B28E907567CCC808 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AE01836B483358C5F2DFE15E /* Localizable.xcstrings */; };
 		CDC7AF5AD6A513AAC5A21DFE /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B0FE6B5AEA20A9592F0565 /* AppSettings.swift */; };
 		CEB52D817BD96AAC38C1134C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C0D6B8BE9F43150FF0DFE1D8 /* Assets.xcassets */; };
+		CFD832275B4CC8AB7A87AAD2 /* SpeechModelCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A4596D50B35929CDC21BD8 /* SpeechModelCatalog.swift */; };
 		D0DE5B891A1C3DAEBA99EDD4 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E10EE1EACAB44A1CA9FEB64 /* MenuBarController.swift */; };
 		D0F3552B34D51CBFCB4B8BA4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = A231C686F6E1BB95E9757D00 /* WhisperKit */; };
 		D297C30E988A41DA5C44F851 /* DefaultPrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BE2BD6B7DC1B7856A15168E /* DefaultPrompts.swift */; };
@@ -124,6 +125,7 @@
 		082D636364A8F2202521DA63 /* TimeLimit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeLimit.swift; sourceTree = "<group>"; };
 		08371418A419B5DAA01B37BC /* FileManagerExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManagerExtensions.swift; sourceTree = "<group>"; };
 		099D120BC1892B2DA9EE4254 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
+		0A5BEF7F148201D1B1B1F658 /* PreferenceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceRow.swift; sourceTree = "<group>"; };
 		0C525FAE93A283BA56C776FE /* LLMProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProcessor.swift; sourceTree = "<group>"; };
 		0D5EEDB1028917E1FBEDA908 /* TransformersTokenizerLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformersTokenizerLoader.swift; sourceTree = "<group>"; };
 		0E340D8F1287ED5A113E6E80 /* PromptTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptTextEditor.swift; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 		4CE5620FA7AA1148EA4C0B77 /* STTModelSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTModelSection.swift; sourceTree = "<group>"; };
 		4E10EE1EACAB44A1CA9FEB64 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		4F56F836FC92EBF622EF210B /* DownloadedModelsStorageSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadedModelsStorageSummary.swift; sourceTree = "<group>"; };
+		51A4596D50B35929CDC21BD8 /* SpeechModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelCatalog.swift; sourceTree = "<group>"; };
 		591F0AE9F267C1F81BDF94BF /* HuggingFaceModelSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceModelSearch.swift; sourceTree = "<group>"; };
 		5AAAEA545766A3DAD0638BEF /* LLMBenchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMBenchmark.swift; sourceTree = "<group>"; };
 		5D28CEFA78A8A28FFF40B6A9 /* UnifiedPromptSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedPromptSection.swift; sourceTree = "<group>"; };
@@ -203,7 +206,6 @@
 		DFB8DE0C33089C84D49558C6 /* ScreenshotOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotOCR.swift; sourceTree = "<group>"; };
 		E01BE4EC740130FDCCA7C321 /* ClipboardPasteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasteController.swift; sourceTree = "<group>"; };
 		E13A2D8D6D7B4326D9FBE153 /* AudioPreferencesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPreferencesSection.swift; sourceTree = "<group>"; };
-		E25511B3047714DCD067A628 /* SpeechEnginePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechEnginePicker.swift; sourceTree = "<group>"; };
 		E35A992318F3D01A5FF4C262 /* STTLanguageSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTLanguageSection.swift; sourceTree = "<group>"; };
 		E475C5E566637F04037497E9 /* LLMModelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModelStorage.swift; sourceTree = "<group>"; };
 		E780A227A7717A02ED290EE1 /* SetupSpeechRecognitionModelStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupSpeechRecognitionModelStep.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 				AB9ADDCC870D4AC19668533B /* PermissionsNeededView.swift */,
 				EBA639061A336A2E7DD265D1 /* PopoverStatusHeader.swift */,
 				4B85AA9574913F69B9F7A437 /* PopoverView.swift */,
+				0A5BEF7F148201D1B1B1F658 /* PreferenceRow.swift */,
 				0E340D8F1287ED5A113E6E80 /* PromptTextEditor.swift */,
 				18F65423401283C8A86A34D3 /* RecordingPreferencesSection.swift */,
 				49B5B7C8B4D3DF023759760A /* SetupFooterView.swift */,
@@ -292,7 +295,6 @@
 				E780A227A7717A02ED290EE1 /* SetupSpeechRecognitionModelStep.swift */,
 				AD5BF4975870CB0F2CE12D0D /* SetupStepContent.swift */,
 				D07E3665429F23BECACE7B13 /* SetupView.swift */,
-				E25511B3047714DCD067A628 /* SpeechEnginePicker.swift */,
 				E35A992318F3D01A5FF4C262 /* STTLanguageSection.swift */,
 				CC6C7D9D568C0C0C712189AC /* STTModelLists.swift */,
 				4CE5620FA7AA1148EA4C0B77 /* STTModelSection.swift */,
@@ -333,6 +335,7 @@
 				95252F9BAEA1A841D8F288AB /* ModelWarmupCoordinator.swift */,
 				7A34D03129763090094B5520 /* ParakeetEngine.swift */,
 				D431B94827CDF5757137E894 /* ParakeetModelStore.swift */,
+				51A4596D50B35929CDC21BD8 /* SpeechModelCatalog.swift */,
 				DE5AC13A5691AB92D2AB3D9E /* TranscriptionEngine.swift */,
 				D832A9E04DAB8FB09556F77E /* TranscriptionPrompt.swift */,
 				C099A922CCE27613ADF0DB83 /* WhisperModelStore.swift */,
@@ -588,6 +591,7 @@
 				ACDD1CF32D67CBB054723332 /* PermissionsNeededView.swift in Sources */,
 				F3CD5357D69808466D16A732 /* PopoverStatusHeader.swift in Sources */,
 				9209EC46C4204C29D74EAC5B /* PopoverView.swift in Sources */,
+				5612AA714AD376A0FEB6109F /* PreferenceRow.swift in Sources */,
 				05CA6E35E2ED65D7167E5151 /* PromptPrefixCache.swift in Sources */,
 				01CAAEAEC5DEC62681A8717D /* PromptTextEditor.swift in Sources */,
 				9C8CAAC73DE8231867B7ACE6 /* RecordingPreferencesSection.swift in Sources */,
@@ -607,7 +611,7 @@
 				6236A1758388AAEB86CF3506 /* SetupStepContent.swift in Sources */,
 				2B77C3E1768A9CB079739A22 /* SetupView.swift in Sources */,
 				BE785DB68A0093B107B78457 /* SparkleUpdateController.swift in Sources */,
-				710806293EA12A8A5BDC8D98 /* SpeechEnginePicker.swift in Sources */,
+				CFD832275B4CC8AB7A87AAD2 /* SpeechModelCatalog.swift in Sources */,
 				7C3FE8A6E902D2C546585F12 /* SpeechTrimmer.swift in Sources */,
 				3310C6676265D406BC530013 /* SystemPermission.swift in Sources */,
 				13E0AB41A2685DC26E977936 /* SystemPermissionStore.swift in Sources */,

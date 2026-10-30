@@ -9,20 +9,30 @@ struct InstalledLLMModel {
 }
 
 // Edge case: models downloaded before swift-transformers 1.2 live in ~/Library/Caches/models
-// as plain <org>/<name> folders; newer ones in the Hugging Face cache. Both stay usable, so an
-// upgrade never re-downloads gigabytes.
+// as plain <org>/<name> folders; newer ones in a Hub-layout cache next to them. Both stay
+// usable, so an upgrade never re-downloads gigabytes. The shared ~/.cache/huggingface is
+// deliberately not used: other tools' models there would show up in, and be deleted from, Dictum.
 enum LLMModelStorage {
     static let organization = "mlx-community"
-    static let hubCache = HubCache.default
     static let legacyRoot = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Caches/models")
+    static let hubCache = HubCache(cacheDirectory: legacyRoot.appendingPathComponent("hub"))
 
     private static var hubRepoPrefix: String {
         "models--\(organization)--"
     }
 
     static func installedModels() -> [InstalledLLMModel] {
-        storedModels().filter { !$0.id.contains("-assistant-") }
+        storedModels().filter { !isDrafter($0.id) }
+    }
+
+    static func directories(of modelId: String) -> [URL] {
+        let drafterId = LLMPrompting.drafterId(for: modelId)
+        return storedModels().filter { $0.id == modelId || $0.id == drafterId }.map(\.directory)
+    }
+
+    private static func isDrafter(_ modelId: String) -> Bool {
+        modelId.contains("-assistant-")
     }
 
     private static func storedModels() -> [InstalledLLMModel] {
@@ -30,7 +40,7 @@ enum LLMModelStorage {
     }
 
     static func delete(_ modelId: String) throws {
-        let directories = installedModels().filter { $0.id == modelId }.map(\.directory)
+        let directories = directories(of: modelId)
         guard !directories.isEmpty else { throw CocoaError(.fileNoSuchFile) }
         for directory in directories {
             try FileManager.default.removeItem(at: directory)

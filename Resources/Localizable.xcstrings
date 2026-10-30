@@ -273,91 +273,6 @@
         }
       }
     },
-    "engine.parakeet": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fast (Parakeet)"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Szybki (Parakeet)"
-          }
-        }
-      }
-    },
-    "engine.parakeet.download": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Download Parakeet model (~600 MB)"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pobierz model Parakeet (~600 MB)"
-          }
-        }
-      }
-    },
-    "engine.parakeet.downloading": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Downloading the Parakeet model…"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pobieranie modelu Parakeet…"
-          }
-        }
-      }
-    },
-    "engine.parakeet.ready": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Many times faster, slightly less accurate with names."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wielokrotnie szybszy, nieco mniej dokładny przy nazwach własnych."
-          }
-        }
-      }
-    },
-    "engine.whisper": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accurate (Whisper)"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dokładny (Whisper)"
-          }
-        }
-      }
-    },
     "error.download.stt": {
       "extractionState": "manual",
       "localizations": {
@@ -1180,13 +1095,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hotkey:"
+            "value": "Hotkey"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skrót:"
+            "value": "Skrót"
           }
         }
       }
@@ -1214,13 +1129,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Free memory after:"
+            "value": "Free memory after"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zwalniaj pamięć po:"
+            "value": "Zwalniaj pamięć po"
           }
         }
       }
@@ -1418,13 +1333,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Microphone:"
+            "value": "Microphone"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mikrofon:"
+            "value": "Mikrofon"
           }
         }
       }
@@ -1452,13 +1367,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mode:"
+            "value": "Mode"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tryb:"
+            "value": "Tryb"
           }
         }
       }
@@ -1611,7 +1526,7 @@
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Język per aplikacja"
+            "value": "Język dla aplikacji"
           }
         }
       }
@@ -2039,6 +1954,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dobra dokładność, umiarkowany rozmiar."
+          }
+        }
+      }
+    },
+    "stt.parakeet_v3.desc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Many times faster, slightly less accurate with names."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wielokrotnie szybszy, nieco mniej dokładny przy nazwach."
           }
         }
       }

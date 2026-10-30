@@ -2,15 +2,14 @@ import SwiftUI
 
 @MainActor
 struct SetupSpeechRecognitionModelStep: View {
-    let whisperModelStore: WhisperModelStore
-    @Binding var selectedModelId: String
+    let speechModels: SpeechModelCatalog
     let isUnlocked: Bool
 
     var body: some View {
         SetupStepContent(
             stepNumber: 2,
             title: String(localized: "setup.step2.title", defaultValue: "Speech recognition model"),
-            isDone: whisperModelStore.downloadedModelIds.contains(selectedModelId)
+            isDone: speechModels.hasActiveModel
         ) {
             if isUnlocked {
                 modelChoices
@@ -25,42 +24,33 @@ struct SetupSpeechRecognitionModelStep: View {
 
     private var modelChoices: some View {
         VStack(spacing: 8) {
-            ForEach(WhisperModelStore.defaultModels) { model in
+            ForEach(SpeechModelCatalog.models) { model in
                 row(for: model)
             }
-            if let error = whisperModelStore.downloadError {
-                ModelDownloadErrorView(errorMessage: error, onDismiss: clearDownloadError)
+            if let error = speechModels.downloadError {
+                ModelDownloadErrorView(errorMessage: error, onDismiss: speechModels.clearDownloadError)
             }
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
     }
 
-    private func clearDownloadError() {
-        whisperModelStore.downloadError = nil
-    }
-
-    private func row(for model: WhisperModelInfo) -> some View {
-        let isDownloading = whisperModelStore.downloadingModelId == model.id
+    private func row(for model: SpeechModelInfo) -> some View {
+        let isDownloading = speechModels.isDownloading(model)
+        let isActive = speechModels.isActive(model)
         return SetupModelRow(
             name: model.displayName,
             description: isDownloading ? nil : model.description,
-            formattedSize: model.formattedSize,
+            formattedSize: speechModels.formattedSize(of: model),
             isRecommended: model.isRecommended,
-            isChecked: selectedModelId == model.id,
-            isSelected: selectedModelId == model.id,
-            isDownloaded: whisperModelStore.downloadedModelIds.contains(model.id),
+            isChecked: isActive,
+            isSelected: isActive,
+            isDownloaded: speechModels.isDownloaded(model),
             isDownloading: isDownloading,
-            downloadProgress: isDownloading ? whisperModelStore.downloadProgress : 0,
-            onSelect: {
-                selectedModelId = model.id
-                whisperModelStore.activeModelId = model.id
-            },
-            onDownload: {
-                selectedModelId = model.id
-                whisperModelStore.downloadAndActivate(model.id)
-            },
-            onCancel: whisperModelStore.cancelDownload
+            downloadProgress: speechModels.downloadProgress(of: model),
+            onSelect: { speechModels.select(model) },
+            onDownload: { speechModels.download(model) },
+            onCancel: { speechModels.cancelDownload(of: model) }
         )
     }
 }
