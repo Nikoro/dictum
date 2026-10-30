@@ -29,6 +29,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Dictum needs microphone access to transcribe speech to text.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Dictum moves the speech models it downloaded earlier out of your Documents folder.</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>

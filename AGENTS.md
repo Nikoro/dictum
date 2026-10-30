@@ -2,8 +2,11 @@
 
 ## Rules
 
-- After every code change run `spells run` and verify it with the `dictum-qa` skill. There are
-  no automated tests; don't add a test target without asking.
+- After every code change run `spells run` and `spells test`, then verify it with the `dictum-qa`
+  skill.
+- Every bug fix is red, green, refactor: first a test in `DictumTests/` that reproduces the bug and
+  fails, then the fix. The `commit-msg` hook blocks a `fix:` commit without one — details in
+  [docs/quality-gates.md](docs/quality-gates.md).
 - English everywhere except the Polish values in `Resources/*.xcstrings`.
 - `dlog` must never log dictated text, context or LLM output.
 

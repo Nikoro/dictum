@@ -93,3 +93,22 @@ targets:
       path: Resources/Dictum.entitlements
       properties:
         com.apple.security.device.audio-input: true
+    scheme:
+      testTargets:
+        - DictumTests
+
+  DictumTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: DictumTests
+    dependencies:
+      - target: Dictum
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        DEVELOPMENT_TEAM: "Y5T33B6749"
+        CODE_SIGN_STYLE: "Manual"

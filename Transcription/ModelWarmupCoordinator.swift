@@ -38,6 +38,7 @@ final class ModelWarmupCoordinator {
     func preloadModels() {
         guard hasSpeechModel else { return }
         Task {
+            await whisperModelStore.migrateLegacyModelsIfNeeded()
             do {
                 try await loadSTTModelIfNeeded()
                 if settings.llmCleanupEnabled {

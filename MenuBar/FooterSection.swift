@@ -78,6 +78,8 @@ struct FooterSection: View {
         let homeDirectory = fileManager.homeDirectoryForCurrentUser
 
         LLMModelStorage.deleteAll()
+        WhisperModelStorage.standard.deleteAll()
+        try? fileManager.removeItem(at: ParakeetEngine.modelDirectory)
 
         let appCacheDir = homeDirectory.appendingPathComponent("Library/Caches/com.dominikkrajcer.dictum")
         try? fileManager.removeItem(at: appCacheDir)

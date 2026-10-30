@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Dictum commit-msg hook: every fix commit ships a passing regression test.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+exec "$ROOT/scripts/quality/check_regression_test.sh" "$1"

@@ -55,10 +55,10 @@ actor TranscriptionEngine {
             switch source {
             case let .variant(name):
                 dlog("[STT] loading model: \(name)")
-                config = WhisperKitConfig(model: name)
+                config = WhisperKitConfig(model: name, downloadBase: WhisperModelStorage.standard.downloadBase)
             case let .folder(folder):
                 dlog("[STT] loading model from folder: \(folder)")
-                config = WhisperKitConfig(modelFolder: folder)
+                config = WhisperKitConfig(downloadBase: WhisperModelStorage.standard.downloadBase, modelFolder: folder)
             }
             try await loadWhisperKit(config)
             let loadTime = CFAbsoluteTimeGetCurrent() - startTime

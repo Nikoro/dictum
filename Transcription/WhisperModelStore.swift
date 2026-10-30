@@ -88,6 +88,18 @@ final class WhisperModelStore {
         UserDefaults.standard.set(Array(downloadedModelIds), forKey: Self.downloadedKey)
     }
 
+    func migrateLegacyModelsIfNeeded() async {
+        let modelIds = downloadedModelIds
+        let storage = WhisperModelStorage.standard
+        guard storage.needsMigration(modelIds) else { return }
+        let moved = await Task.detached(priority: .userInitiated) {
+            storage.migrateLegacyModels(modelIds)
+        }.value
+        guard !moved.isEmpty else { return }
+        dlog("[STT] moved \(moved.count) model(s) out of Documents")
+        refreshTotalSize()
+    }
+
     func downloadAndActivate(_ modelId: String) {
         isDownloading = true
         downloadingModelId = modelId
@@ -114,7 +126,10 @@ final class WhisperModelStore {
     }
 
     private func downloadIntoFirstHalfOfProgress(_ modelId: String) async throws -> URL {
-        try await WhisperKit.download(variant: modelId) { [weak self] progress in
+        try await WhisperKit.download(
+            variant: modelId,
+            downloadBase: WhisperModelStorage.standard.downloadBase
+        ) { [weak self] progress in
             Task { @MainActor in
                 self?.downloadProgress = progress.fractionCompleted * 0.5
             }
@@ -186,41 +201,19 @@ final class WhisperModelStore {
 
     private static let estimatedLoadProgressPerTick = 0.49 / (120 / 0.5)
 
-    private nonisolated static var whisperCacheDir: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Caches/huggingface/hub")
-    }
-
     private nonisolated static func totalSizeOnDisk(for entries: [(id: String, fallbackBytes: Int64)]) -> Int64 {
-        let cacheDir = whisperCacheDir
-        var total: Int64 = 0
-        for entry in entries {
-            if let realSize = modelDirectory(entry.id, cacheDir: cacheDir).map(FileManager.default.directorySize(at:)),
-               realSize > 0
-            {
-                total += realSize
-            } else {
-                total += entry.fallbackBytes
-            }
+        entries.reduce(0) { total, entry in
+            let realSize = WhisperModelStorage.standard.sizeOnDisk(of: entry.id)
+            return total + (realSize > 0 ? realSize : entry.fallbackBytes)
         }
-        return total
-    }
-
-    private nonisolated static func modelDirectory(_ modelId: String, cacheDir: URL) -> URL? {
-        guard let enumerator = FileManager.default.enumerator(at: cacheDir, includingPropertiesForKeys: nil) else {
-            return nil
-        }
-        while let url = enumerator.nextObject() as? URL {
-            if url.lastPathComponent == modelId, url.hasDirectoryPath {
-                return url
-            }
-        }
-        return nil
     }
 
     private nonisolated static func removeModelFiles(_ modelId: String) {
-        guard let url = modelDirectory(modelId, cacheDir: whisperCacheDir) else { return }
-        try? FileManager.default.removeItem(at: url)
-        dlog("[STT] deleted model files at \(url.path)")
+        do {
+            try WhisperModelStorage.standard.delete(modelId)
+            dlog("[STT] deleted model files of \(modelId)")
+        } catch {
+            dlog("[STT] deleting model files of \(modelId) failed: \(error)")
+        }
     }
 }

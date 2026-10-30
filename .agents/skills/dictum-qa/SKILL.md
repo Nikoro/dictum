@@ -1,6 +1,6 @@
 ---
 name: dictum-qa
-description: Manual QA checklist for the running Dictum app, the substitute for automated tests. Lists which scenarios to run for which change (dictation, hotkey modes, cancel, Bluetooth input, context mode, LLM cleanup, setup wizard, model management, prompts, permissions, microphone choice, long dictation, engines, dictionary) and what to look for in the app and in ~/Library/Logs/Dictum/dictum.log. Use after a change, before committing or releasing, or when the user asks to test or QA Dictum.
+description: Manual QA checklist for the running Dictum app, covering what the DictumTests unit tests cannot (UI, audio, permissions, models). Lists which scenarios to run for which change (dictation, hotkey modes, cancel, Bluetooth input, context mode, LLM cleanup, setup wizard, model management, prompts, permissions, microphone choice, long dictation, engines, dictionary) and what to look for in the app and in ~/Library/Logs/Dictum/dictum.log. Use after a change, before committing or releasing, or when the user asks to test or QA Dictum.
 ---
 
 # dictum-qa
