@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-30
+
+> Dictum is now signed with a Developer ID and notarized by Apple. The signature changed, so
+> macOS asks for Microphone and Accessibility once more after this update (System Settings →
+> Privacy & Security → Accessibility: remove the old Dictum entry and enable the new one). Later
+> updates keep the permissions.
+
+### Added
+
+- Developer ID signature and Apple notarization: the app opens without Gatekeeper warnings or the quarantine workaround
+- Live transcription: long dictations are decoded at pauses while you speak; 48 s of speech is ready about 5.5 s after key-up instead of ~17 s
+- Parakeet TDT v3, a many-times-faster speech model, in the same list as the Whisper models
+- Microphone picker, word replacement dictionary, and unloading models after a chosen idle time
+
+### Changed
+
+- LLM cleanup is about twice as fast with identical output (cached system prompt, Gemma 4 speculative decoding)
+- Latest WhisperKit, MLX, swift-transformers and Sparkle; models downloaded earlier keep working
+- LLM models are stored only in Dictum's own folder, each listed once; other tools' Hugging Face models no longer appear
+- Settings rows are aligned with consistent labels
+- Split the dictation pipeline into smaller parts and adopted Observation
+
+### Fixed
+
+- Bluetooth headsets left every recording empty (A2DP → HFP switch)
+- "Auto" language transcribed Polish speech as English
+- Silence, or holding the hotkey without speaking, pasted invented text
+- Switching the Whisper model only took effect after a restart
+- Missing Polish translations in several sections
+- The published app's signature was broken by zip packaging
+
 ## [0.9.0] - 2026-07-26
 
 ### Changed
@@ -173,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/Nikoro/dictum/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/Nikoro/dictum/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Nikoro/dictum/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Nikoro/dictum/compare/v0.6.1...v0.7.0
