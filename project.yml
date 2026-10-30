@@ -60,12 +60,15 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Resources/Dictum.entitlements
         ENABLE_APP_SANDBOX: "NO"
         ENABLE_HARDENED_RUNTIME: "YES"
-        CODE_SIGN_IDENTITY: "Dictum Development"
-        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        DEVELOPMENT_TEAM: "Y5T33B6749"
         CODE_SIGN_STYLE: "Manual"
         PRODUCT_NAME: Dictum
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Release:
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: "NO"
     dependencies:
       - package: WhisperKit
         product: WhisperKit
@@ -82,10 +85,11 @@ targets:
       - package: Sparkle
       - package: FluidAudio
         product: FluidAudio
+    postBuildScripts:
+      - name: Sign Sparkle helpers
+        script: scripts/signing/sign_sparkle_helpers.sh
+        basedOnDependencyAnalysis: false
     entitlements:
       path: Resources/Dictum.entitlements
       properties:
         com.apple.security.device.audio-input: true
-        # Edge case: the self-signed certificate has no Team ID, so hardened runtime's library
-        # validation would refuse our own embedded frameworks. Drop this with a Developer ID.
-        com.apple.security.cs.disable-library-validation: true

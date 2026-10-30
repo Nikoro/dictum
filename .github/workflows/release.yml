@@ -12,13 +12,6 @@ jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 30
-    env:
-      # Repository variables. Without them the app is signed with the self-signed identity and
-      # notarization is skipped. With a Developer ID set CODE_SIGN_IDENTITY to
-      # "Developer ID Application" and DEVELOPMENT_TEAM to the Team ID.
-      CODE_SIGN_IDENTITY: ${{ vars.CODE_SIGN_IDENTITY || 'Dictum Development' }}
-      DEVELOPMENT_TEAM: ${{ vars.DEVELOPMENT_TEAM }}
-      NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -65,9 +58,6 @@ jobs:
             -scheme Dictum \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
-            CODE_SIGN_STYLE="Manual" \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             OTHER_CODE_SIGN_FLAGS="--timestamp" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
@@ -85,8 +75,8 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent Dictum.app Dictum.zip
 
       - name: Notarize and staple
-        if: env.NOTARY_KEY_ID != ''
         env:
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
           NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
           NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
         run: |

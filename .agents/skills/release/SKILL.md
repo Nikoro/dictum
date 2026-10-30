@@ -6,11 +6,11 @@ description: Automate release preparation for Dictum. Determines version bump, u
 You are preparing a new release for **Dictum**, a native macOS menu bar app for voice dictation. The user may optionally provide a version number or bump keyword.
 
 
-The signing identity must not change between releases: macOS ties Microphone and Accessibility
-grants to it and silently revokes them for every user. Moving to a Developer ID is a one-time
-exception: set the `CODE_SIGN_IDENTITY` and `DEVELOPMENT_TEAM` repository variables and the
-`NOTARY_*` secrets (see `release.yml`), drop `disable-library-validation` from `project.yml`, and
-say in the changelog that users must grant permissions again.
+The signing identity (Developer ID, team `Y5T33B6749`, set in `project.yml`) must not change
+between releases: macOS ties Microphone and Accessibility grants to it and silently revokes them
+for every user. The first Developer ID release replaces the old self-signed "Dictum Development"
+one, so its changelog must say that users grant permissions again once. CI needs the
+`CERTIFICATE_*` and `NOTARY_*` secrets read in `release.yml`; the `.p12` and `.p8` go in base64.
 
 ## Step 1: Parse User Input
 
