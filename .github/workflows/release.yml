@@ -12,8 +12,15 @@ jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 30
+    env:
+      # Repository variables. Without them the app is signed with the self-signed identity and
+      # notarization is skipped. With a Developer ID set CODE_SIGN_IDENTITY to
+      # "Developer ID Application" and DEVELOPMENT_TEAM to the Team ID.
+      CODE_SIGN_IDENTITY: ${{ vars.CODE_SIGN_IDENTITY || 'Dictum Development' }}
+      DEVELOPMENT_TEAM: ${{ vars.DEVELOPMENT_TEAM }}
+      NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -22,7 +29,7 @@ jobs:
         run: xcodegen generate
 
       - name: Cache SPM packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages/checkouts
@@ -58,19 +65,45 @@ jobs:
             -scheme Dictum \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_IDENTITY="Dictum Development" \
+            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
             CODE_SIGN_STYLE="Manual" \
-            DEVELOPMENT_TEAM="" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            OTHER_CODE_SIGN_FLAGS="--timestamp" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
       - name: Cleanup keychain
         if: always()
         run: security delete-keychain $RUNNER_TEMP/build.keychain-db 2>/dev/null || true
 
+      - name: Verify signature
+        run: codesign --verify --deep --strict --verbose=2 build/Build/Products/Release/Dictum.app
+
       - name: Package app
         run: |
           cd build/Build/Products/Release
-          zip -r Dictum.zip Dictum.app
+          # zip -r flattens the framework symlinks and breaks the signature; ditto keeps them.
+          ditto -c -k --sequesterRsrc --keepParent Dictum.app Dictum.zip
+
+      - name: Notarize and staple
+        if: env.NOTARY_KEY_ID != ''
+        env:
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+        run: |
+          cd build/Build/Products/Release
+          echo "$NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          xcrun notarytool submit Dictum.zip --key "$RUNNER_TEMP/notary.p8" \
+            --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait
+          xcrun stapler staple Dictum.app
+          rm Dictum.zip
+          ditto -c -k --sequesterRsrc --keepParent Dictum.app Dictum.zip
+          spctl --assess --type execute --verbose Dictum.app
+
+      - name: Verify packaged app
+        run: |
+          mkdir -p "$RUNNER_TEMP/verify"
+          ditto -x -k build/Build/Products/Release/Dictum.zip "$RUNNER_TEMP/verify"
+          codesign --verify --deep --strict --verbose=2 "$RUNNER_TEMP/verify/Dictum.app"
 
       - name: Download Sparkle tools
         run: |
@@ -140,7 +173,7 @@ jobs:
           echo "$BODY" > release_notes.txt
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           body_path: release_notes.txt
           files: |

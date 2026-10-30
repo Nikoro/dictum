@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "enabledManagers": [
+    "github-actions",
+    "xcodegen",
+    "mise",
+    "custom.regex"
+  ],
+  "minimumReleaseAge": "7 days",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "release.yml downloads the same Sparkle version to sign updates.",
+      "matchPackageNames": [
+        "/sparkle-project/Sparkle/"
+      ],
+      "groupName": "Sparkle",
+      "prBodyNotes": [
+        "Also update `SPARKLE_SHA256` in `.github/workflows/release.yml` (shasum -a 256 of the release tarball)."
+      ]
+    },
+    {
+      "matchManagers": [
+        "mise"
+      ],
+      "groupName": "Quality tools",
+      "prBodyNotes": [
+        "Bump `REQUIRED_SWIFTLINT` / `REQUIRED_SWIFTFORMAT` in `scripts/hooks/pre-commit` and fix what the new versions report."
+      ]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/release\\.yml$/"
+      ],
+      "matchStrings": [
+        "SPARKLE_VERSION=\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "sparkle-project/Sparkle",
+      "datasourceTemplate": "github-releases"
+    }
+  ]
+}
