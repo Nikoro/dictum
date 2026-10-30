@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-31
+
+### Fixed
+
+- Dictation stopped working after updating to 0.10.0: the speech model sat in the Documents folder, which macOS locked for the newly signed app. Models now live in Dictum's own folder; existing ones are moved there once (macOS asks for Documents access) or downloaded again if access is denied
+- Deleting a Whisper model left its files on disk, and the size shown for it was an estimate instead of the real one
+- Uninstall now also removes the Whisper and Parakeet models
+
 ## [0.10.0] - 2026-10-30
 
 > Dictum is now signed with a Developer ID and notarized by Apple. The signature changed, so
@@ -204,7 +212,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/Nikoro/dictum/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/Nikoro/dictum/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/Nikoro/dictum/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Nikoro/dictum/compare/v0.7.0...v0.8.0
