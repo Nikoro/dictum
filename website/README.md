@@ -18,4 +18,4 @@ To add a language: copy `i18n/en.json` to `i18n/<code>.json`, translate all valu
 
 ## install.sh
 
-One-liner install script linked from the landing page. Downloads the latest release `.zip`, extracts to `/Applications`, and clears the quarantine attribute (`xattr -dr com.apple.quarantine`) since the app is ad-hoc signed and not notarized.
+One-liner install script linked from the landing page. Downloads the latest release `.zip` and extracts it with `ditto` (which keeps the framework symlinks the signature covers) into `/Applications`. Releases are Developer ID signed and notarized, so no quarantine handling is needed.

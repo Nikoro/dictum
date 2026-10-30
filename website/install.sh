@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Dictum installer — downloads latest release, installs to /Applications, clears quarantine.
+# Dictum installer — downloads the latest notarized release and installs it to /Applications.
 
 APP_NAME="Dictum"
 INSTALL_DIR="/Applications"
@@ -19,7 +19,7 @@ curl -fsSL "https://github.com/${REPO}/releases/latest/download/Dictum.zip" -o "
 
 # Extract
 echo "Extracting..."
-unzip -q "${TMPDIR_INSTALL}/Dictum.zip" -d "${TMPDIR_INSTALL}"
+ditto -x -k "${TMPDIR_INSTALL}/Dictum.zip" "${TMPDIR_INSTALL}"
 
 # Remove old version if present
 if [ -d "${INSTALL_DIR}/${APP_NAME}.app" ]; then
@@ -30,9 +30,6 @@ fi
 # Move to Applications
 echo "Moving to ${INSTALL_DIR}..."
 mv "${TMPDIR_INSTALL}/${APP_NAME}.app" "${INSTALL_DIR}/"
-
-# Clear quarantine
-xattr -dr com.apple.quarantine "${INSTALL_DIR}/${APP_NAME}.app" 2>/dev/null || true
 
 echo ""
 echo "${APP_NAME} installed successfully!"
