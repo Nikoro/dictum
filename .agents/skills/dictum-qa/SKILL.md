@@ -1,22 +1,23 @@
 ---
 name: dictum-qa
-description: Manual QA checklist for the running Dictum app, the substitute for automated tests. Lists which scenarios to run for which change (dictation, hotkey modes, cancel, Bluetooth input, context mode, LLM cleanup, setup wizard, model management, prompts, permissions) and what to look for in the app and in ~/Library/Logs/Dictum/dictum.log. Use after a change, before committing or releasing, or when the user asks to test or QA Dictum.
+description: Manual QA checklist for the running Dictum app, the substitute for automated tests. Lists which scenarios to run for which change (dictation, hotkey modes, cancel, Bluetooth input, context mode, LLM cleanup, setup wizard, model management, prompts, permissions, microphone choice, long dictation, engines, dictionary) and what to look for in the app and in ~/Library/Logs/Dictum/dictum.log. Use after a change, before committing or releasing, or when the user asks to test or QA Dictum.
 ---
 
 # dictum-qa
 
 Run against a fresh build: `spells run`. Keep `tail -f ~/Library/Logs/Dictum/dictum.log` open.
-An agent that cannot press keys or speak runs the log and launch checks, then hands the
-interactive sections to the user as a short list, naming only the sections the change touches.
+An agent that cannot press keys or speak runs the log and launch checks plus the Debug
+transcription harness (`docs/development.md`) on synthetic speech, then hands the interactive
+sections to the user as a short list, naming only the sections the change touches.
 
 ## Pick the sections
 
 | Change touches | Sections |
 | --- | --- |
-| `Audio/`, `DictationPipeline`, `DictationProcessor` | 1, 2, 3, 4 |
+| `Audio/`, `DictationPipeline`, `DictationProcessor` | 1, 2, 3, 4, 12, 13 |
 | `HotkeyAndPaste/` | 1, 2, 3, 5 |
 | `Context/`, `TextProcessing/`, prompts | 5, 6, 9 |
-| `Transcription/`, `ModelBrowser/`, model views | 1, 7, 8 |
+| `Transcription/`, `ModelBrowser/`, model views | 1, 7, 8, 13, 14 |
 | `MenuBar/` setup or permission views | 7, 10 |
 | Settings or any view | the affected screen, plus 11 |
 | Release candidate | all |
@@ -86,3 +87,21 @@ interactive sections to the user as a short list, naming only the sections the c
 
 - With the system in Polish, every label in the touched screens is Polish (an English label
   means a missing key; `check_strings.py` should have caught it).
+
+## 12. Microphone choice
+
+- Pick a non-default input in Microphone; dictation records from it (log: `input device
+  selected, status 0`). Unplug it: the next recording falls back to the system default.
+
+## 13. Long dictation and silence
+
+- Speak for over 30 s with pauses: the log shows `[STT] chunk:` lines during recording, and the
+  text after key-up has no words cut at chunk borders.
+- Hold the hotkey without speaking: nothing is pasted (`no speech, going idle`).
+
+## 14. Engines, dictionary, idle unload
+
+- Switch to Fast (Parakeet), download the model, dictate: noticeably faster result.
+- Add a dictionary rule, dictate the heard word: the replacement is pasted.
+- With "Free memory after" set to 5 min, wait: the log shows `unloading models`; the next
+  dictation still works (models reload while you speak).

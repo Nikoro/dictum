@@ -1,6 +1,7 @@
 # Localization
 
-- `Localizable.strings` files are UTF-16 LE with BOM; writing them with a plain text tool
-  corrupts the Polish characters. Read and write them as `utf-16-le`, keeping the BOM.
-- `String.LocalizationValue("key \(value)")` is looked up as `"key %@"`, but a key passed to
-  `String(localized:defaultValue:)` is looked up as written, even when the default interpolates.
+- Every key needs a translated `en` and `pl` value in `Resources/Localizable.xcstrings` (plural
+  keys in every form); the pre-commit hook fails otherwise.
+- `String.LocalizationValue("key \(value)")` is looked up as `"key %@"` for a String and
+  `"key %lld"` for an Int, while a key passed to `String(localized:defaultValue:)` is looked up as
+  written even when the default interpolates. Interpolate Strings so the gate can match the key.

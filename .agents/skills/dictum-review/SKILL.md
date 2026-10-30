@@ -1,6 +1,6 @@
 ---
 name: dictum-review
-description: Review pending Dictum changes before committing. Runs a correctness review of the diff and audits it against Dictum's own rules in AGENTS.md and docs/ (privacy of dictated text in logs, event-tap fast path, .strings encoding and key parity, comment policy, Observation injection, project.yml vs xcodeproj, dependency pins). Use before committing, when the user asks to review Dictum changes, or when the user runs /dictum-review.
+description: Review pending Dictum changes before committing. Runs a correctness review of the diff and audits it against Dictum's own rules in AGENTS.md and docs/ (privacy of dictated text in logs, event-tap fast path, .xcstrings translations, comment policy, Observation injection, project.yml vs xcodeproj, dependency pins). Use before committing, when the user asks to review Dictum changes, or when the user runs /dictum-review.
 ---
 
 # dictum-review
@@ -23,7 +23,7 @@ git diff HEAD
 ```
 
 Untracked files are part of the change. Note which areas are touched: Swift sources by module,
-`Resources/*.strings`, `project.yml`, `.github/workflows/`, `scripts/`, `docs/`.
+`Resources/*.xcstrings`, `project.yml`, `.github/workflows/`, `scripts/`, `docs/`.
 
 ## Step 3: Gates
 
@@ -45,7 +45,7 @@ Check each item that applies to the touched files. Report a finding with file an
 | --- | --- |
 | No dictated text, context or LLM output in logs | Every new or changed `dlog(` interpolates only counts, flags, ids, durations |
 | Event tap stays fast | Nothing in `GlobalHotkeyMonitor.handleEvent` and its callees does I/O, logging per event, locks held long, or synchronous waits |
-| `.strings` encoding and parity | Files still UTF-16 LE with BOM; new keys in both tables; `check_strings.py` passes |
+| Localization | New keys in `Resources/Localizable.xcstrings` with translated `en` and `pl`; `check_strings.py` passes |
 | New `@Observable` store used by views | Injected with `.environment(...)` in `MenuBarController.setupPopover` |
 | New root-level Swift file | Listed in `project.yml` `sources`; `Dictum.xcodeproj` regenerated, not hand-edited |
 | Dependency bump | Matches the pin comments in `project.yml`; Sparkle bump also updates `release.yml` version and SHA |

@@ -7,7 +7,10 @@ You are preparing a new release for **Dictum**, a native macOS menu bar app for 
 
 
 The signing identity must not change between releases: macOS ties Microphone and Accessibility
-grants to it and silently revokes them for every user.
+grants to it and silently revokes them for every user. Moving to a Developer ID is a one-time
+exception: set the `CODE_SIGN_IDENTITY` and `DEVELOPMENT_TEAM` repository variables and the
+`NOTARY_*` secrets (see `release.yml`), drop `disable-library-validation` from `project.yml`, and
+say in the changelog that users must grant permissions again.
 
 ## Step 1: Parse User Input
 
