@@ -1,34 +1,49 @@
 #!/usr/bin/env python3
-"""Localization gate for Resources/*.lproj/Localizable.strings.
+"""Localization gate for Resources/*.xcstrings.
 
-Fails when a table is not UTF-16 LE with a BOM (the encoding the files use; a plain text
-writer silently converts them and mangles Polish characters), fails `plutil -lint`, has keys
-the other table lacks, misses a key the code uses (the UI then falls back to the English
-default even in Polish), or carries a key no code references.
+Fails when a catalog is not valid JSON, a key lacks a translated English or Polish value
+(including every plural form), the code uses a key the catalog lacks (the UI would fall back
+to the English default even in Polish), or the catalog carries a key no code references.
 """
 
 import glob
+import json
 import re
 import subprocess
 import sys
 
-TABLES = sorted(glob.glob("Resources/*.lproj/Localizable.strings"))
+LANGUAGES = ("en", "pl")
+LOCALIZABLE = "Resources/Localizable.xcstrings"
 SOURCE_EXCLUDES = ("build/", ".agents/", ".tools/", "website/", "Dictum.xcodeproj/")
 LOCALIZED_KEY = re.compile(r'(?:String\(\s*localized:\s*|LocalizationValue\()"((?:[^"\\]|\\.)*)"')
 KEY_LIKE_LITERAL = re.compile(r'"([a-z][a-z0-9_]*(?:\.[A-Za-z0-9_]+)+(?: \\\([^)]*\))?)"')
 INTERPOLATION = re.compile(r"\\\([^)]*\)")
 
 
-def table_keys(path, errors):
-    raw = open(path, "rb").read()
-    if not raw.startswith(b"\xff\xfe"):
-        errors.append(f"{path}: not UTF-16 LE with BOM")
-        return set()
-    lint = subprocess.run(["plutil", "-lint", path], capture_output=True, text=True)
-    if lint.returncode:
-        errors.append(lint.stdout.strip())
-    text = raw[2:].decode("utf-16-le")
-    return set(re.findall(r'^"((?:[^"\\]|\\.)*)"\s*=', text, re.M))
+def untranslated(localization):
+    if "stringUnit" in localization:
+        unit = localization["stringUnit"]
+        return [] if unit.get("state") == "translated" and unit.get("value") else ["value"]
+    forms = localization.get("variations", {}).get("plural", {})
+    if "other" not in forms:
+        return ["plural other"]
+    return [f"plural {form}" for form, unit in forms.items() if untranslated(unit)]
+
+
+def catalog_errors(path):
+    try:
+        catalog = json.load(open(path, encoding="utf-8"))
+    except ValueError as error:
+        return [f"{path}: invalid JSON: {error}"], set()
+    errors = []
+    for key, entry in catalog.get("strings", {}).items():
+        for language in LANGUAGES:
+            localization = entry.get("localizations", {}).get(language)
+            if localization is None:
+                errors.append(f"{path}: \"{key}\" has no {language} translation")
+                continue
+            errors += [f"{path}: \"{key}\" {language} {part} not translated" for part in untranslated(localization)]
+    return errors, set(catalog.get("strings", {}))
 
 
 def swift_sources():
@@ -37,27 +52,23 @@ def swift_sources():
     return [f for f in files if not f.startswith(SOURCE_EXCLUDES)]
 
 
-def as_table_key(literal):
+def as_catalog_key(literal):
     return INTERPOLATION.sub("%@", literal)
 
 
 def main():
     errors = []
-    keys_by_table = {path: table_keys(path, errors) for path in TABLES}
-    all_keys = set().union(*keys_by_table.values()) if keys_by_table else set()
-    for path, keys in keys_by_table.items():
-        for key in sorted(all_keys - keys):
-            errors.append(f"{path}: missing key \"{key}\"")
+    for path in sorted(glob.glob("Resources/*.xcstrings")):
+        errors += catalog_errors(path)[0]
+    keys = catalog_errors(LOCALIZABLE)[1]
 
     used, referenced = set(), set()
     for path in swift_sources():
         source = open(path, encoding="utf-8").read()
-        used |= {as_table_key(k) for k in LOCALIZED_KEY.findall(source)}
-        referenced |= {as_table_key(k) for k in KEY_LIKE_LITERAL.findall(source)}
-    for key in sorted(used - all_keys):
-        errors.append(f"key used in code but missing from every table: \"{key}\"")
-    for key in sorted(all_keys - used - referenced):
-        errors.append(f"key not referenced by any Swift file: \"{key}\"")
+        used |= {as_catalog_key(k) for k in LOCALIZED_KEY.findall(source)}
+        referenced |= {as_catalog_key(k) for k in KEY_LIKE_LITERAL.findall(source)}
+    errors += [f"key used in code but missing from {LOCALIZABLE}: \"{k}\"" for k in sorted(used - keys)]
+    errors += [f"key not referenced by any Swift file: \"{k}\"" for k in sorted(keys - used - referenced)]
 
     for error in errors:
         print(f"error: {error}", file=sys.stderr)

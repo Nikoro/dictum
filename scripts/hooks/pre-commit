@@ -9,13 +9,16 @@ REQUIRED_SWIFTFORMAT="0.64.4"
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise env -s bash 2>/dev/null)"
+fi
 
 swift_files=()
 strings_changed=false
 while IFS= read -r -d '' file; do
     case "$file" in
         .agents/* | build/* | website/*) continue ;;
-        *.strings) strings_changed=true ;;
+        *.xcstrings) strings_changed=true ;;
         *.swift) swift_files+=("$file") ;;
     esac
 done < <(git diff --cached --name-only --diff-filter=ACMR -z)
@@ -37,13 +40,13 @@ fi
 check_version() {
     local tool="$1" required="$2" installed
     if ! command -v "$tool" >/dev/null 2>&1; then
-        echo "pre-commit: $tool $required is required — brew install $tool" >&2
+        echo "pre-commit: $tool $required is required — run \`mise install\`" >&2
         return 1
     fi
     installed="$("$tool" --version | tail -1)"
     if [[ "$installed" != "$required" ]]; then
-        echo "pre-commit: $tool $installed found, $required required. Results differ between" >&2
-        echo "  versions; install $required, or bump REQUIRED_* here and fix what the new version reports." >&2
+        echo "pre-commit: $tool $installed found, $required required — run \`mise install\`." >&2
+        echo "  To upgrade, bump .mise.toml and REQUIRED_* here, then fix what the new version reports." >&2
         return 1
     fi
 }
@@ -66,6 +69,10 @@ if ! scripts/quality/check_nesting.py "${swift_files[@]}"; then
 fi
 
 if ! scripts/quality/check_comments.py "${swift_files[@]}"; then
+    status=1
+fi
+
+if ! scripts/quality/check_log_privacy.py "${swift_files[@]}"; then
     status=1
 fi
 
