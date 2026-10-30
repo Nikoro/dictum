@@ -19,6 +19,7 @@ struct ModelDownloadErrorView: View {
                     .font(.caption)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.dismiss", defaultValue: "Dismiss"))
         }
     }
 }

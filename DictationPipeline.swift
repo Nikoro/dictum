@@ -1,19 +1,18 @@
 import AppKit
 import Foundation
+import os
 
 @MainActor
 final class DictationPipeline {
     static let shared = DictationPipeline()
 
     let audioRecorder = AudioRecorder()
-    let hotkeyMonitor = GlobalHotkeyMonitor.shared
+    private let hotkeyMonitor = GlobalHotkeyMonitor.shared
 
     private let settings = AppSettings.shared
     private let runtimeState = AppRuntimeState.shared
-    private let permissionStore = SystemPermissionStore.shared
-    private let whisperModelStore = WhisperModelStore.shared
     private let modelWarmup = ModelWarmupCoordinator.shared
-    private var isRecording = false
+    private(set) var isRecording = false
     private var isCancelled = false
     private var isAborted: Bool {
         isCancelled || Task.isCancelled
@@ -30,73 +29,14 @@ final class DictationPipeline {
     }
 
     private var dictationContext: DictationContext?
+    private var activeProcessor: DictationProcessor?
+    private var recordingSignpost: OSSignpostIntervalState?
 
     private init() {}
 
     func start() {
-        setupHotkey()
-        observePermissions()
+        DictationHotkeyController.shared.start()
         modelWarmup.preloadModels()
-    }
-
-    private func observePermissions() {
-        let permissionStore = permissionStore
-        Task { [weak self] in
-            var wasGranted = false
-            for await isGranted in Observations({ permissionStore.accessibilityGranted }) {
-                defer { wasGranted = isGranted }
-                guard isGranted, !wasGranted, let self else { continue }
-                dlog("[Dictum] Accessibility granted via SystemPermissionStore, restarting hotkey")
-                if !hotkeyMonitor.isListening {
-                    setupHotkey()
-                }
-            }
-        }
-    }
-
-    func setupHotkey() {
-        hotkeyMonitor.start(
-            onKeyDown: { [weak self] in
-                guard let self else { return }
-                Task { @MainActor in
-                    await self.handleKeyDown()
-                }
-            },
-            onKeyUp: { [weak self] in
-                guard let self else { return }
-                Task { @MainActor in
-                    await self.handleKeyUp()
-                }
-            },
-            onCancel: { [weak self] in
-                guard let self else { return }
-                Task { @MainActor in
-                    self.cancelOperation()
-                }
-            }
-        )
-    }
-
-    private func handleKeyDown() async {
-        dlog("[Dictum] handleKeyDown called, mode=\(settings.recordingMode), isRecording=\(isRecording)")
-        switch settings.recordingMode {
-        case .hold:
-            if !isRecording {
-                startRecording()
-            }
-        case .toggle:
-            if isRecording {
-                await stopRecordingAndProcess()
-            } else {
-                startRecording()
-            }
-        }
-    }
-
-    private func handleKeyUp() async {
-        if settings.recordingMode == .hold, isRecording {
-            await stopRecordingAndProcess()
-        }
     }
 
     func cancelOperation() {
@@ -104,6 +44,7 @@ final class DictationPipeline {
         if isRecording {
             _ = audioRecorder.stopRecording()
             isRecording = false
+            endRecordingSignpost()
         }
         recordingTimeoutTask?.cancel()
         recordingTimeoutTask = nil
@@ -111,6 +52,8 @@ final class DictationPipeline {
         // after the pill has disappeared.
         processingTask?.cancel()
         processingTask = nil
+        activeProcessor?.cancel()
+        activeProcessor = nil
         hotkeyMonitor.isActive = false
         isCancelled = true
         dictationContext = nil
@@ -132,7 +75,7 @@ final class DictationPipeline {
         }
 
         do {
-            try audioRecorder.startRecording()
+            try audioRecorder.startRecording(inputDeviceUID: settings.inputDeviceUID)
             isRecording = true
             hotkeyMonitor.isActive = true
             runtimeState.appState = .recording
@@ -140,6 +83,8 @@ final class DictationPipeline {
             dlog("[Dictum] recording started, target app: \(frontmostApp?.bundleIdentifier ?? "nil"), showing floating indicator")
             FloatingIndicatorPanelController.shared.captureTargetApp()
             FloatingIndicatorPanelController.shared.show(audioRecorder: audioRecorder)
+            recordingSignpost = DictumSignposts.pipeline.beginInterval("Recording")
+            startProcessor()
             startRecordingTimeout()
         } catch {
             dlog("[Dictum] startRecording error: \(error)")
@@ -150,8 +95,25 @@ final class DictationPipeline {
         }
     }
 
+    private func endRecordingSignpost() {
+        guard let recordingSignpost else { return }
+        DictumSignposts.pipeline.endInterval("Recording", recordingSignpost)
+        self.recordingSignpost = nil
+    }
+
+    private func startProcessor() {
+        let processor = DictationProcessor(
+            targetAppAtRecordingStart: frontmostApp,
+            selectedTextAtHotkeyPress: pendingSelectedContext,
+            audioRecorder: audioRecorder
+        ) { [weak self] in self?.isAborted ?? true }
+        modelWarmup.prepareForDictation()
+        processor.recordingStarted()
+        activeProcessor = processor
+    }
+
     private func requireDownloadedSTTModel() -> Bool {
-        guard !whisperModelStore.downloadedModelIds.contains(settings.sttModelId) else { return true }
+        guard !modelWarmup.hasSpeechModel else { return true }
         dlog("[Dictum] STT model not downloaded, showing popover")
         runtimeState.appState = .error(String(
             localized: "error.download.stt",
@@ -193,6 +155,7 @@ final class DictationPipeline {
         isCancelled = false
         let samples = audioRecorder.stopRecording()
         isRecording = false
+        endRecordingSignpost()
         hotkeyMonitor.isActive = false
         dlog("[Dictum] stopRecording, samples=\(samples.count)")
         await waitForWarmupIfNeeded()
@@ -221,11 +184,8 @@ private extension DictationPipeline {
     }
 
     func process(_ samples: [Float]) async throws {
-        let processor = DictationProcessor(
-            targetAppAtRecordingStart: frontmostApp,
-            selectedTextAtHotkeyPress: pendingSelectedContext
-        ) { [weak self] in self?.isAborted ?? true }
-        let rawText = try await processor.transcribe(samples: samples)
+        guard let processor = activeProcessor else { return }
+        let rawText = try await processor.transcribe(allSamples: samples)
         guard !rawText.isEmpty else {
             transitionToIdleAfterEmptyRecording()
             return
@@ -253,7 +213,9 @@ private extension DictationPipeline {
     }
 
     func finishProcessing() {
+        modelWarmup.scheduleIdleUnload()
         FloatingIndicatorPanelController.shared.hide()
+        activeProcessor = nil
         dictationContext = nil
         frontmostApp = nil
         runtimeState.appState = .idle
@@ -261,13 +223,17 @@ private extension DictationPipeline {
     }
 
     func transitionToIdleAfterEmptyRecording() {
-        dlog("[Dictum] no samples, going idle")
+        dlog("[Dictum] no speech, going idle")
+        activeProcessor?.cancel()
+        activeProcessor = nil
         runtimeState.appState = .idle
         FloatingIndicatorPanelController.shared.hide()
     }
 
     func handleProcessingError(_ error: Error) {
         dlog("[Dictum] ERROR: \(error)")
+        activeProcessor?.cancel()
+        activeProcessor = nil
         FloatingIndicatorPanelController.shared.hide()
         runtimeState.appState = .error(error.localizedDescription)
         errorResetTask?.cancel()

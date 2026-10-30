@@ -8,6 +8,7 @@ struct SetupFooterView: View {
                 Image(systemName: "power")
             })
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.quit", defaultValue: "Quit Dictum"))
             .foregroundStyle(.secondary)
             .font(.caption)
 

@@ -22,6 +22,10 @@ enum UserDefaultsKey: String {
     case contextScreenshot
     case contextSelectedText
     case contextClipboard
+    case inputDeviceUID
+    case modelIdleUnloadMinutes
+    case wordReplacements
+    case sttEngine
 }
 
 @MainActor
@@ -79,6 +83,21 @@ final class AppSettings {
     var hotkeyModifiers: Int {
         get { stored(.hotkeyModifiers, default: 0) }
         set { store(newValue, for: .hotkeyModifiers) }
+    }
+
+    var inputDeviceUID: String {
+        get { stored(.inputDeviceUID, default: "") }
+        set { store(newValue, for: .inputDeviceUID) }
+    }
+
+    var sttEngine: SpeechEngine {
+        get { SpeechEngine(rawValue: stored(.sttEngine, default: SpeechEngine.whisper.rawValue)) ?? .whisper }
+        set { store(newValue.rawValue, for: .sttEngine) }
+    }
+
+    var modelIdleUnloadMinutes: Int {
+        get { stored(.modelIdleUnloadMinutes, default: 30) }
+        set { store(newValue, for: .modelIdleUnloadMinutes) }
     }
 
     var hotkeyIsModifierOnly: Bool {

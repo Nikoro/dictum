@@ -12,7 +12,7 @@ final class HotkeyRecorderModel {
         guard !isRecording else { return }
         isRecording = true
 
-        DictationPipeline.shared.hotkeyMonitor.stop()
+        DictationHotkeyController.shared.unregister()
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
@@ -46,7 +46,7 @@ final class HotkeyRecorderModel {
     func stopRecording() {
         removeMonitors()
         isRecording = false
-        DictationPipeline.shared.setupHotkey()
+        DictationHotkeyController.shared.register()
     }
 
     private func applyHotkey(keyCode: Int, modifiers: Int, isModifierOnly: Bool) {
@@ -77,7 +77,7 @@ final class HotkeyRecorderModel {
             NSEvent.removeMonitor(flagsMonitor)
         }
         Task { @MainActor in
-            DictationPipeline.shared.setupHotkey()
+            DictationHotkeyController.shared.register()
         }
     }
 }

@@ -10,13 +10,22 @@ final class ModelWarmupCoordinator {
     private let whisperModelStore = WhisperModelStore.shared
     private(set) var isWarmedUp = false
     private var warmupTask: Task<Void, Never>?
+    private var idleUnloadTask: Task<Void, Never>?
 
     var isWarmingUp: Bool {
         !isWarmedUp && warmupTask != nil
     }
 
+    var activeSpeechEngine: SpeechEngine {
+        settings.sttEngine == .parakeet && ParakeetEngine.isModelDownloaded ? .parakeet : .whisper
+    }
+
+    var hasSpeechModel: Bool {
+        activeSpeechEngine == .parakeet || whisperModelStore.downloadedModelIds.contains(settings.sttModelId)
+    }
+
     func preloadModels() {
-        guard whisperModelStore.downloadedModelIds.contains(settings.sttModelId) else { return }
+        guard hasSpeechModel else { return }
         Task {
             do {
                 try await loadSTTModelIfNeeded()
@@ -40,12 +49,41 @@ final class ModelWarmupCoordinator {
                     group.addTask { await TranscriptionEngine.shared.warmup() }
                 }
                 if await LLMProcessor.shared.isModelLoaded {
-                    group.addTask { await LLMProcessor.shared.warmup() }
+                    let systemPrompt = settings.resolvePrompt(for: nil)
+                    group.addTask { await LLMProcessor.shared.warmup(systemPrompt: systemPrompt) }
                 }
             }
             guard !Task.isCancelled else { return }
             isWarmedUp = true
             dlog("[Dictum] warmup complete")
+            scheduleIdleUnload()
+        }
+    }
+
+    // Edge case: loading starts with the recording, so a model unloaded while idle is usually
+    // back before the user stops talking.
+    func prepareForDictation() {
+        idleUnloadTask?.cancel()
+        Task {
+            try? await loadSTTModelIfNeeded()
+            if settings.llmCleanupEnabled {
+                try? await loadLLMModelIfNeeded()
+            }
+        }
+    }
+
+    func scheduleIdleUnload() {
+        idleUnloadTask?.cancel()
+        let minutes = settings.modelIdleUnloadMinutes
+        guard minutes > 0 else { return }
+        idleUnloadTask = Task {
+            try? await Task.sleep(for: .seconds(minutes * 60))
+            guard !Task.isCancelled else { return }
+            dlog("[Dictum] idle for \(minutes) min, unloading models")
+            isWarmedUp = false
+            await TranscriptionEngine.shared.unloadModel()
+            await ParakeetEngine.shared.unloadModel()
+            await LLMProcessor.shared.unloadModel()
         }
     }
 
@@ -54,6 +92,10 @@ final class ModelWarmupCoordinator {
     }
 
     func loadSTTModelIfNeeded() async throws {
+        if activeSpeechEngine == .parakeet {
+            try await ParakeetEngine.shared.loadModel()
+            return
+        }
         guard await !TranscriptionEngine.shared.isModelLoaded else { return }
         dlog("[Dictum] loading STT model: \(settings.sttModelId)")
         try await TranscriptionEngine.shared.loadModel(settings.sttModelId)

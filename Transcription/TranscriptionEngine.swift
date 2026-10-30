@@ -82,22 +82,35 @@ actor TranscriptionEngine {
         isModelLoaded = true
     }
 
-    func transcribe(audioSamples: [Float], language: String? = nil) async throws -> String {
+    func transcribe(audioSamples: [Float], language: String?, precedingText: String? = nil) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
-
-        let options = DecodingOptions(
-            language: language,
-            skipSpecialTokens: true,
-            withoutTimestamps: true
-        )
-
+        let promptTokens = TranscriptionPrompt.text(language: language, precedingText: precedingText)
+            .flatMap { whisperKit.tokenizer?.encode(text: " " + $0) }
         let results = try await whisperKit.transcribe(
             audioArray: audioSamples,
-            decodeOptions: options
+            decodeOptions: Self.decodingOptions(
+                language: language,
+                sampleCount: audioSamples.count,
+                promptTokens: promptTokens
+            )
         )
-
         let text = results.map(\.text).joined(separator: " ")
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // Edge case: with `language: nil` WhisperKit skips detection and decodes as English unless
+    // `detectLanguage` is set. Without timestamps it also cuts audio past one 30 s window
+    // mid-word, so longer audio keeps timestamps and is split at pauses instead.
+    private static func decodingOptions(language: String?, sampleCount: Int, promptTokens: [Int]?) -> DecodingOptions {
+        let fitsOneWindow = sampleCount <= sampleRate * 30
+        return DecodingOptions(
+            language: language,
+            detectLanguage: language == nil,
+            skipSpecialTokens: true,
+            withoutTimestamps: fitsOneWindow,
+            promptTokens: promptTokens,
+            chunkingStrategy: fitsOneWindow ? nil : .vad
+        )
     }
 
     func warmup() async {

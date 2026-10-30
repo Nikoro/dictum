@@ -1,88 +1,20 @@
-import CoreImage
 import Foundation
-import Hub
 import MLX
 import MLXLLM
 import MLXLMCommon
 import MLXVLM
-import Tokenizers
-
-private struct HubDownloader: MLXLMCommon.Downloader {
-    func download(
-        id: String,
-        revision: String?,
-        matching patterns: [String],
-        useLatest: Bool,
-        progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> URL {
-        try await HubApi.shared.snapshot(
-            from: id,
-            revision: revision ?? "main",
-            matching: patterns,
-            progressHandler: progressHandler
-        )
-    }
-}
-
-private struct TransformersTokenizerLoader: MLXLMCommon.TokenizerLoader {
-    func load(from directory: URL) async throws -> any MLXLMCommon.Tokenizer {
-        let upstream = try await AutoTokenizer.from(modelFolder: directory)
-        return TokenizerBridge(upstream)
-    }
-}
-
-private struct TokenizerBridge: MLXLMCommon.Tokenizer {
-    private let upstream: any Tokenizers.Tokenizer
-
-    init(_ upstream: any Tokenizers.Tokenizer) {
-        self.upstream = upstream
-    }
-
-    func encode(text: String, addSpecialTokens: Bool) -> [Int] {
-        upstream.encode(text: text, addSpecialTokens: addSpecialTokens)
-    }
-
-    func decode(tokenIds: [Int], skipSpecialTokens: Bool) -> String {
-        upstream.decode(tokens: tokenIds, skipSpecialTokens: skipSpecialTokens)
-    }
-
-    func convertTokenToId(_ token: String) -> Int? {
-        upstream.convertTokenToId(token)
-    }
-
-    func convertIdToToken(_ id: Int) -> String? {
-        upstream.convertIdToToken(id)
-    }
-
-    var bosToken: String? {
-        upstream.bosToken
-    }
-
-    var eosToken: String? {
-        upstream.eosToken
-    }
-
-    var unknownToken: String? {
-        upstream.unknownToken
-    }
-
-    func applyChatTemplate(
-        messages: [[String: any Sendable]],
-        tools: [[String: any Sendable]]?,
-        additionalContext: [String: any Sendable]?
-    ) throws -> [Int] {
-        try upstream.applyChatTemplate(messages: messages, tools: tools, additionalContext: additionalContext)
-    }
-}
 
 enum LLMError: LocalizedError {
     case modelNotLoaded
+    case invalidModelId(String)
     case generationFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .modelNotLoaded:
             String(localized: "error.llm.notLoaded", defaultValue: "LLM model not loaded.")
+        case let .invalidModelId(modelId):
+            String(localized: "error.llm.invalidModelId", defaultValue: "Invalid model:") + " " + modelId
         case let .generationFailed(reason):
             String(localized: "error.llm.generationFailed", defaultValue: "Text generation failed:") + " " + reason
         }
@@ -98,6 +30,8 @@ actor LLMProcessor {
     private(set) var isVisionModel = false
     private var loadingTask: Task<Void, Error>?
     private var loadingModelId: String?
+    private let prefixCache = PromptPrefixCache()
+    private var drafter: DrafterBox?
 
     // Edge case: concurrent calls for the same model share one load, so only the first caller's
     // progressHandler reports.
@@ -131,18 +65,21 @@ actor LLMProcessor {
         defer { isLoading = false }
 
         modelContainer = nil
+        drafter = nil
+        prefixCache.reset()
         isModelLoaded = false
         isVisionModel = false
 
         let config = ModelConfiguration(id: modelId)
 
         let container = try await loadModelContainer(
-            from: HubDownloader(),
+            from: OfflineFirstHubDownloader(),
             using: TransformersTokenizerLoader(),
             configuration: config,
             progressHandler: progressHandler ?? { _ in }
         )
         modelContainer = container
+        Memory.cacheLimit = Self.gpuCacheLimitBytes
 
         isVisionModel = await container.perform { context in
             context.model is VLMModel
@@ -150,86 +87,106 @@ actor LLMProcessor {
 
         isModelLoaded = true
         dlog("[LLM] loaded \(isVisionModel ? "VLM" : "LLM"): \(modelId)")
+        if let drafterId = LLMPrompting.drafterId(for: modelId) {
+            do {
+                try await loadDrafter(drafterId)
+            } catch {
+                dlog("[LLM] MTP drafter unavailable, generating without it: \(error)")
+            }
+        }
     }
+
+    func loadDrafter(_ drafterId: String) async throws {
+        drafter = try await DrafterBox.load(drafterId)
+        dlog("[LLM] MTP drafter loaded: \(drafterId)")
+    }
+
+    #if DEBUG
+    var debugModelContainer: ModelContainer? {
+        modelContainer
+    }
+    #endif
 
     func cleanText(rawText: String, prompt: String, context: DictationContext? = nil) async throws -> String {
         guard let modelContainer else { throw LLMError.modelNotLoaded }
-
-        let userMessage = context.map { Self.userMessage(rawText: rawText, context: $0) } ?? rawText
-        var images: [UserInput.Image] = []
-        if let context, isVisionModel {
-            images = Self.visionImages(from: context)
+        let userMessage = LLMPrompting.userMessage(rawText: rawText, context: context)
+        let parameters = GenerateParameters(maxTokens: LLMPrompting.outputTokenBudget(for: rawText), temperature: 0)
+        let imageContext = isVisionModel ? context.flatMap { LLMPrompting.hasImage($0) ? $0 : nil } : nil
+        let result = if let imageContext {
+            try await generateWithImages(
+                modelContainer,
+                prompt: prompt,
+                userMessage: userMessage,
+                imageContext: imageContext,
+                parameters: parameters
+            )
+        } else {
+            try await generateFromCachedPrefix(modelContainer, prompt: prompt, userMessage: userMessage, parameters: parameters)
         }
+        return LLMPrompting.removingReasoningBlock(from: result).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
+    // Edge case: a screenshot changes the prompt's token layout, so image requests always prefill
+    // from scratch through ChatSession instead of the cached text prefix.
+    private func generateWithImages(
+        _ modelContainer: ModelContainer,
+        prompt: String,
+        userMessage: String,
+        imageContext: DictationContext,
+        parameters: GenerateParameters
+    ) async throws -> String {
+        let images = LLMPrompting.visionImages(from: imageContext)
         let session = ChatSession(
             modelContainer,
             instructions: prompt,
-            generateParameters: GenerateParameters(
-                maxTokens: 2048,
-                temperature: 0.7,
-                topP: 0.9
-            )
+            generateParameters: parameters,
+            additionalContext: LLMPrompting.disableThinking
         )
-
-        let result = try await session.respond(to: userMessage, images: images, videos: [], audios: [])
-        return Self.removingReasoningBlock(from: result).trimmingCharacters(in: .whitespacesAndNewlines)
+        return try await session.respond(to: userMessage, images: images, videos: [], audios: [])
     }
 
-    private static func userMessage(rawText: String, context: DictationContext) -> String {
-        var parts: [String] = []
-        if let appName = context.appName {
-            parts.append("App: \(appName)")
+    private func generateFromCachedPrefix(
+        _ modelContainer: ModelContainer,
+        prompt: String,
+        userMessage: String,
+        parameters: GenerateParameters
+    ) async throws -> String {
+        let generator = CachedPrefixGenerator(prefixCache: prefixCache, drafter: drafter)
+        return try await modelContainer.perform { context in
+            try await generator.generate(context: context, prompt: prompt, userMessage: userMessage, parameters: parameters)
         }
-        if let selectedText = context.selectedText, !selectedText.isEmpty {
-            parts.append("Selected text:\n\(selectedText)")
-        }
-        if let clipboardText = context.clipboardText, !clipboardText.isEmpty {
-            parts.append("Clipboard:\n\(clipboardText)")
-        }
-        if let ocrText = context.ocrText, !ocrText.isEmpty {
-            parts.append("Screen text (OCR):\n\(ocrText)")
-            dlog("[LLM] attached OCR \(ocrText.count) chars")
-        }
-        parts.append("Spoken words: \(rawText)")
-        return parts.joined(separator: "\n\n")
     }
 
-    private static func visionImages(from context: DictationContext) -> [UserInput.Image] {
-        if let screenshot = context.screenshot {
-            dlog("[LLM] passing screenshot to vision model")
-            return [.ciImage(CIImage(cgImage: screenshot))]
-        }
-        if let clipboardImage = context.clipboardImage {
-            dlog("[LLM] passing clipboard image to vision model")
-            return [.ciImage(CIImage(cgImage: clipboardImage))]
-        }
-        return []
-    }
+    private static let gpuCacheLimitBytes = 64 * 1024 * 1024
 
-    private static func removingReasoningBlock(from result: String) -> String {
-        guard let thinkEnd = result.range(of: "</think>") else { return result }
-        return String(result[thinkEnd.upperBound...])
-    }
-
-    func warmup() async {
+    // Edge case: warming with the real prompt and a sentence-sized input also prefills the cached
+    // system prompt, so the first dictation pays neither shader compilation nor that prefill.
+    func warmup(systemPrompt: String) async {
         guard let modelContainer else { return }
-        dlog("[LLM] warmup: generating dummy completion (vision=\(isVisionModel))")
-        let session = ChatSession(
+        dlog("[LLM] warmup with the real system prompt (vision=\(isVisionModel))")
+        _ = try? await generateFromCachedPrefix(
             modelContainer,
-            instructions: "",
-            generateParameters: GenerateParameters(
-                maxTokens: 2,
-                temperature: 0.0,
-                topP: 1.0
-            )
+            prompt: systemPrompt,
+            userMessage: LLMPrompting.userMessage(
+                rawText: "Dzień dobry, chciałbym umówić spotkanie na jutro rano.",
+                context: nil
+            ),
+            parameters: GenerateParameters(maxTokens: 8, temperature: 0)
         )
-        _ = try? await session.respond(to: "Hi")
         dlog("[LLM] warmup complete")
     }
 
+    // Edge case: GPU work still queued would keep buffers alive past the release, so the stream is
+    // drained first and the cache limit dropped to zero while the model is freed.
     func unloadModel() {
+        Stream.gpu.synchronize()
+        Memory.cacheLimit = 0
         modelContainer = nil
+        drafter = nil
+        prefixCache.reset()
         isModelLoaded = false
         isVisionModel = false
+        Stream.gpu.synchronize()
+        Memory.clearCache()
     }
 }

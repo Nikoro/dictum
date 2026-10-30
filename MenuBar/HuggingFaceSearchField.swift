@@ -34,6 +34,7 @@ struct HuggingFaceSearchField: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "a11y.clearSearch", defaultValue: "Clear search"))
             }
         }
         .padding(8)

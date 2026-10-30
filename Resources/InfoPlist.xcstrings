@@ -1,0 +1,23 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSMicrophoneUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictum needs microphone access to transcribe speech to text."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictum potrzebuje mikrofonu do transkrypcji mowy na tekst."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -62,6 +62,7 @@ struct InstalledAppPickerSheet: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.close", defaultValue: "Close"))
         }
         .padding()
     }

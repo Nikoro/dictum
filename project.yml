@@ -12,20 +12,19 @@ packages:
   WhisperKit:
     url: https://github.com/argmaxinc/argmax-oss-swift.git
     exactVersion: 1.1.1
-  # 3.32+ requires mlx-swift 0.32.3, which still has the Encuda problem below.
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm.git
-    exactVersion: 3.31.4
-  # Pinned transitively: mlx-swift 0.31.5+ adds an Encuda target and a CudaBuild build plugin.
-  # The plugin needs interactive trust (breaks CI) and Encuda does not compile under the
-  # current toolchain. 0.31.4 satisfies mlx-swift-lm's `.upToNextMinor(from: "0.31.4")`.
-  mlx-swift:
-    url: https://github.com/ml-explore/mlx-swift.git
-    exactVersion: 0.31.4
-  # 1.2 removes the Downloader protocol that the HubDownloader bridge in LLMProcessor.swift uses.
+    exactVersion: 3.32.3
   swift-transformers:
     url: https://github.com/huggingface/swift-transformers.git
-    minorVersion: "1.1.6"
+    exactVersion: 1.3.5
+  swift-huggingface:
+    url: https://github.com/huggingface/swift-huggingface.git
+    exactVersion: 1.0.0
+  # Parakeet speech recognition on the Neural Engine (the "fast" engine).
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    exactVersion: 0.18.0
   # A bump must also update SPARKLE_VERSION and SPARKLE_SHA256 in .github/workflows/release.yml.
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle.git
@@ -60,6 +59,7 @@ targets:
         INFOPLIST_FILE: Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/Dictum.entitlements
         ENABLE_APP_SANDBOX: "NO"
+        ENABLE_HARDENED_RUNTIME: "YES"
         CODE_SIGN_IDENTITY: "Dictum Development"
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_STYLE: "Manual"
@@ -76,11 +76,16 @@ targets:
       - package: mlx-swift-lm
         product: MLXLMCommon
       - package: swift-transformers
-        product: Hub
-      - package: swift-transformers
         product: Tokenizers
+      - package: swift-huggingface
+        product: HuggingFace
       - package: Sparkle
+      - package: FluidAudio
+        product: FluidAudio
     entitlements:
       path: Resources/Dictum.entitlements
       properties:
-        com.apple.security.device.microphone: true
+        com.apple.security.device.audio-input: true
+        # Edge case: the self-signed certificate has no Team ID, so hardened runtime's library
+        # validation would refuse our own embedded frameworks. Drop this with a Developer ID.
+        com.apple.security.cs.disable-library-validation: true

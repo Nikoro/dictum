@@ -36,16 +36,13 @@ enum SelectedTextCapture {
         // through that thread, so blocking it here would wait forever.
         Thread.sleep(forTimeInterval: 0.05)
 
-        let text: String?
-        if pasteboard.changeCount != changeCount {
-            text = pasteboard.string(forType: .string)
-            dlog("[SelectedText] got \(text?.count ?? 0) chars")
-        } else {
+        guard pasteboard.changeCount != changeCount else {
             dlog("[SelectedText] clipboard unchanged (no selection)")
-            text = nil
+            return nil
         }
-
-        savedContents.restore(to: pasteboard)
+        let text = pasteboard.string(forType: .string)
+        dlog("[SelectedText] got \(text?.count ?? 0) chars")
+        savedContents.restore(to: pasteboard, ifUnchangedSince: pasteboard.changeCount)
 
         guard let text, !text.isEmpty else { return nil }
         return text

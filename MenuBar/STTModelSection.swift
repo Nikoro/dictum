@@ -21,6 +21,7 @@ struct STTModelSection: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "section.stt", defaultValue: "STT Model"))
                 .font(.headline)
+            SpeechEnginePicker()
 
             if !downloadedModels.isEmpty {
                 DownloadedSTTModelsList(

@@ -7,7 +7,7 @@ import Accelerate
 // Edge case: @unchecked Sendable holds because `engine`, `configurationObserver`,
 // `isRecording` and `audioLevel` are only touched on the main actor, and `audioBuffer` only
 // under `bufferLock`.
-final class AudioRecorder: @unchecked Sendable {
+final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
     var isRecording = false
     var audioLevel: Float = 0
 
@@ -15,6 +15,7 @@ final class AudioRecorder: @unchecked Sendable {
     static let maxRecordingSeconds = 300
 
     private var engine: AVAudioEngine?
+    private var engineDeviceUID: String?
     private var configurationObserver: (any NSObjectProtocol)?
     private var audioBuffer: [Float] = []
     private let bufferLock = NSLock()
@@ -25,11 +26,12 @@ final class AudioRecorder: @unchecked Sendable {
     }
 
     @MainActor
-    func startRecording() throws {
-        audioBuffer = []
-        audioBuffer.reserveCapacity(targetSampleRate * expectedRecordingSeconds)
-        let engine = AVAudioEngine()
-        self.engine = engine
+    func startRecording(inputDeviceUID: String) throws {
+        bufferLock.withLock {
+            audioBuffer = []
+            audioBuffer.reserveCapacity(targetSampleRate * expectedRecordingSeconds)
+        }
+        let engine = reusableEngine(for: inputDeviceUID)
 
         let inputNode = engine.inputNode
         let hardwareFormat = inputNode.outputFormat(forBus: 0)
@@ -42,6 +44,22 @@ final class AudioRecorder: @unchecked Sendable {
         try engine.start()
         isRecording = true
         dlog("[Audio] engine started")
+    }
+
+    // Edge case: the engine is kept between recordings so the next one starts faster; a stopped
+    // engine does not hold the microphone, so the privacy indicator stays off while idle.
+    @MainActor
+    private func reusableEngine(for inputDeviceUID: String) -> AVAudioEngine {
+        if let engine, engineDeviceUID == inputDeviceUID, engine.inputNode.outputFormat(forBus: 0).sampleRate > 0 {
+            return engine
+        }
+        let engine = AVAudioEngine()
+        if !inputDeviceUID.isEmpty {
+            AudioInputDevices.select(inputDeviceUID, on: engine)
+        }
+        self.engine = engine
+        engineDeviceUID = inputDeviceUID
+        return engine
     }
 
     // Edge case: Bluetooth headsets switch from A2DP to HFP when their microphone opens. The
@@ -80,6 +98,14 @@ final class AudioRecorder: @unchecked Sendable {
         }
     }
 
+    var capturedSampleCount: Int {
+        bufferLock.withLock { audioBuffer.count }
+    }
+
+    func capturedSamples(in range: Range<Int>) -> [Float] {
+        bufferLock.withLock { Array(audioBuffer[range.clamped(to: 0 ..< audioBuffer.count)]) }
+    }
+
     @MainActor
     func stopRecording() -> [Float] {
         if let configurationObserver {
@@ -88,14 +114,13 @@ final class AudioRecorder: @unchecked Sendable {
         }
         engine?.inputNode.removeTap(onBus: 0)
         engine?.stop()
-        engine = nil
         isRecording = false
         audioLevel = 0
 
-        bufferLock.lock()
-        let samples = audioBuffer
-        audioBuffer = []
-        bufferLock.unlock()
+        let samples = bufferLock.withLock {
+            defer { audioBuffer = [] }
+            return audioBuffer
+        }
 
         dlog("[Audio] stopped, \(samples.count) samples captured")
         return samples

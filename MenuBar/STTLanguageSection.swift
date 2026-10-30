@@ -59,6 +59,7 @@ struct STTLanguageSection: View {
                     .font(.body)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.addApp", defaultValue: "Add app"))
         }
     }
 }
@@ -121,6 +122,7 @@ private struct AppSTTLanguageRow: View {
                 .font(.caption)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "a11y.remove", defaultValue: "Remove"))
     }
 
     @ViewBuilder

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os
 
 private let _logger = DictumLogger()
 
@@ -7,7 +8,14 @@ func dlog(_ message: String) {
     _logger.log(message)
 }
 
+enum DictumSignposts {
+    static let pipeline = OSSignposter(subsystem: DictumLogger.subsystem, category: "pipeline")
+}
+
 private final class DictumLogger: @unchecked Sendable {
+    static let subsystem = "com.dominikkrajcer.dictum"
+    private var systemLoggers: [String: Logger] = [:]
+
     // Edge case: log() must never block its caller; it is called from the event tap callback,
     // and a slow callback makes macOS disable the tap.
     private let queue = DispatchQueue(label: "com.dominikkrajcer.dictum.logger", qos: .utility)
@@ -47,7 +55,22 @@ private final class DictumLogger: @unchecked Sendable {
                 handle?.seekToEndOfFile()
             }
             handle?.write(data)
+            systemLogger(for: message).log("\(message, privacy: .public)")
         }
+    }
+
+    // Edge case: messages are public in the unified log because dlog never carries dictated
+    // content (enforced by scripts/quality/check_log_privacy.py); the category is the "[Tag]".
+    private func systemLogger(for message: String) -> Logger {
+        let category = message.hasPrefix("[")
+            ? String(message.dropFirst().prefix { $0 != "]" })
+            : "general"
+        if let logger = systemLoggers[category] {
+            return logger
+        }
+        let logger = Logger(subsystem: Self.subsystem, category: category)
+        systemLoggers[category] = logger
+        return logger
     }
 
     private func ensureFileExists() {

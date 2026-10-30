@@ -3,7 +3,6 @@ import SwiftUI
 @MainActor
 struct PopoverView: View {
     @Environment(AppSettings.self) private var settings
-    @Environment(AppRuntimeState.self) private var runtimeState
     @Environment(WhisperModelStore.self) private var whisperModelStore
     @Environment(SystemPermissionStore.self) private var permissionStore
 
@@ -44,6 +43,7 @@ struct PopoverView: View {
                 PopoverStatusHeader()
                 Divider()
                 RecordingPreferencesSection()
+                AudioPreferencesSection()
                 if settings.llmCleanupEnabled {
                     UnifiedPromptSection()
                         .padding(.horizontal)
@@ -53,6 +53,8 @@ struct PopoverView: View {
                 STTModelSection()
                 Divider()
                 STTLanguageSection()
+                Divider()
+                DictionarySection()
                 if settings.llmCleanupEnabled {
                     Divider()
                     LLMModelSection()

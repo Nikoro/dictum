@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         menuBarController = MenuBarController()
         DictationPipeline.shared.start()
+        #if DEBUG
+        DebugTranscriptionHarness.runIfRequested()
+        #endif
     }
 
     func applicationWillTerminate(_ notification: Notification) {

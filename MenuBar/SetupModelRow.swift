@@ -93,6 +93,7 @@ struct SetupModelRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.cancelDownload", defaultValue: "Cancel download"))
         } else if isDownloaded {
             Image(systemName: "checkmark")
                 .foregroundStyle(.green)

@@ -27,11 +27,23 @@ struct FloatingIndicatorView: View {
             .padding(.vertical, 8)
             .background(.black.opacity(0.35), in: .capsule)
             .glassEffect(.regular, in: .capsule)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityStateLabel)
             .onChange(of: context.date) { _, _ in
                 if runtimeState.appState == .recording {
                     sampleLevel()
                 }
             }
+        }
+    }
+
+    private var accessibilityStateLabel: String {
+        switch runtimeState.appState {
+        case .recording: String(localized: "header.recording", defaultValue: "Recording...")
+        case .warmingUp: String(localized: "header.warmingUp", defaultValue: "Warming up...")
+        case .transcribing: String(localized: "header.transcribing", defaultValue: "Transcribing...")
+        case .processingLLM: String(localized: "header.processingLLM", defaultValue: "Cleaning text with LLM...")
+        default: ""
         }
     }
 

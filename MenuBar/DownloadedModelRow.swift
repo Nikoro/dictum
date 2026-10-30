@@ -42,6 +42,7 @@ struct DownloadedModelRow: View {
                 .font(.body)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "a11y.delete", defaultValue: "Delete"))
         .disabled(isDeletionBlocked)
         .help(isDeletionBlocked
             ? String(localized: "help.switchModelFirst", defaultValue: "Switch to another model first to delete this one")

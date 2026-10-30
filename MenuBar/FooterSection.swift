@@ -45,6 +45,7 @@ struct FooterSection: View {
                 Image(systemName: "power")
             })
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.quit", defaultValue: "Quit Dictum"))
             .foregroundStyle(.secondary)
             .font(.caption)
 
@@ -66,6 +67,7 @@ struct FooterSection: View {
                 Image(systemName: "trash")
             })
             .buttonStyle(.plain)
+            .accessibilityLabel(String(localized: "a11y.uninstall", defaultValue: "Uninstall Dictum"))
             .foregroundStyle(.secondary)
             .font(.caption)
         }
@@ -75,8 +77,7 @@ struct FooterSection: View {
         let fileManager = FileManager.default
         let homeDirectory = fileManager.homeDirectoryForCurrentUser
 
-        let mlxCacheDir = homeDirectory.appendingPathComponent("Library/Caches/models/mlx-community")
-        try? fileManager.removeItem(at: mlxCacheDir)
+        LLMModelStorage.deleteAll()
 
         let appCacheDir = homeDirectory.appendingPathComponent("Library/Caches/com.dominikkrajcer.dictum")
         try? fileManager.removeItem(at: appCacheDir)

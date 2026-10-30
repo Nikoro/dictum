@@ -132,5 +132,6 @@ struct AppPromptRow: View {
                 .font(.caption)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "a11y.remove", defaultValue: "Remove"))
     }
 }

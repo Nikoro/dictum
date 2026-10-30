@@ -25,6 +25,7 @@ final class MenuBarController {
 
         if let button = statusItem?.button {
             button.image = MenuBarIcon.microphone()
+            button.setAccessibilityLabel("Dictum")
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -45,6 +46,8 @@ final class MenuBarController {
                 .environment(SparkleUpdateController.shared)
                 .environment(SystemPermissionStore.shared)
                 .environment(HuggingFaceModelSearch.shared)
+                .environment(WordReplacementStore.shared)
+                .environment(ParakeetModelStore.shared)
         )
         self.popover = popover
     }
@@ -70,8 +73,10 @@ final class MenuBarController {
         switch state {
         case .recording:
             button.image = MenuBarIcon.recording()
+            button.setAccessibilityLabel(String(localized: "a11y.menuBar.recording", defaultValue: "Dictum, recording"))
         default:
             button.image = MenuBarIcon.microphone()
+            button.setAccessibilityLabel("Dictum")
         }
     }
 
