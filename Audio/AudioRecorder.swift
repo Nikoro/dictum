@@ -1,12 +1,10 @@
 import Accelerate
+import CoreAudio
+import Foundation
 
-// Edge case: AVFAudio tap and converter callbacks are @Sendable yet hand back non-Sendable
-// buffers; @preconcurrency keeps that unavoidable crossing a warning.
-@preconcurrency import AVFoundation
-
-// Edge case: @unchecked Sendable holds because `engine`, `configurationObserver`,
-// `isRecording` and `audioLevel` are only touched on the main actor, and `audioBuffer` only
-// under `bufferLock`.
+// Edge case: @unchecked Sendable holds because capture setup, `isRecording` and `audioLevel` are
+// only touched on the main actor, conversion only on `drainQueue`, and `audioBuffer` only under
+// `bufferLock`.
 final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
     var isRecording = false
     var audioLevel: Float = 0
@@ -14,88 +12,70 @@ final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
     // Edge case: only reached when a key-up event is lost; without it the buffer grows unbounded.
     static let maxRecordingSeconds = 300
 
-    private var engine: AVAudioEngine?
-    private var engineDeviceUID: String?
-    private var configurationObserver: (any NSObjectProtocol)?
+    private let capture = HALInputCapture()
+    private let drainQueue = DispatchQueue(label: "com.dominikkrajcer.dictum.audio-drain", qos: .userInitiated)
+    private var drainTimer: DispatchSourceTimer?
+    private var converter: SpeechSampleConverter?
+    private var awaitingFirstBufferSince: ContinuousClock.Instant?
     private var audioBuffer: [Float] = []
     private let bufferLock = NSLock()
+    private var selectedUID = ""
+    private var hardwareListener: AudioObjectPropertyListenerBlock?
     private let expectedRecordingSeconds = 60
-    private let targetSampleRate = 16000
     private var maxSamples: Int {
-        targetSampleRate * Self.maxRecordingSeconds
+        Int(SpeechSampleConverter.outputSampleRate) * Self.maxRecordingSeconds
+    }
+
+    // Edge case: preparing binds and initializes the input unit without starting it, so the
+    // microphone stays off (no privacy indicator) yet the next start skips device setup.
+    @MainActor
+    func prepare(inputDeviceUID: String) {
+        selectedUID = inputDeviceUID
+        observeHardwareChanges()
+        guard !isRecording, let deviceID = AudioInputDevices.resolve(selectedUID: inputDeviceUID) else { return }
+        do {
+            try capture.prepare(deviceID: deviceID)
+        } catch {
+            dlog("[Audio] preparing \(AudioInputDevices.name(of: deviceID)) failed: \(error)")
+        }
     }
 
     @MainActor
     func startRecording(inputDeviceUID: String) throws {
+        let requestedAt = ContinuousClock.now
+        selectedUID = inputDeviceUID
+        observeHardwareChanges()
         bufferLock.withLock {
             audioBuffer = []
-            audioBuffer.reserveCapacity(targetSampleRate * expectedRecordingSeconds)
+            audioBuffer.reserveCapacity(Int(SpeechSampleConverter.outputSampleRate) * expectedRecordingSeconds)
         }
-        let engine = reusableEngine(for: inputDeviceUID)
-
-        let inputNode = engine.inputNode
-        let hardwareFormat = inputNode.outputFormat(forBus: 0)
-        dlog("[Audio] hardware format: \(hardwareFormat.sampleRate)Hz, \(hardwareFormat.channelCount)ch")
-
-        let audioProcessing = makeAudioProcessingContext(hardwareFormat: hardwareFormat)
-        installInputTap(on: inputNode, hardwareFormat: hardwareFormat, context: audioProcessing)
-        observeConfigurationChanges(of: engine)
-
-        try engine.start()
+        try startCapture(requestedAt: requestedAt)
         isRecording = true
-        dlog("[Audio] engine started")
-    }
-
-    // Edge case: the engine is kept between recordings so the next one starts faster; a stopped
-    // engine does not hold the microphone, so the privacy indicator stays off while idle.
-    @MainActor
-    private func reusableEngine(for inputDeviceUID: String) -> AVAudioEngine {
-        if let engine, engineDeviceUID == inputDeviceUID, engine.inputNode.outputFormat(forBus: 0).sampleRate > 0 {
-            return engine
-        }
-        let engine = AVAudioEngine()
-        if !inputDeviceUID.isEmpty {
-            AudioInputDevices.select(inputDeviceUID, on: engine)
-        }
-        self.engine = engine
-        engineDeviceUID = inputDeviceUID
-        return engine
-    }
-
-    // Edge case: Bluetooth headsets switch from A2DP to HFP when their microphone opens. The
-    // format change stops AVAudioEngine, and without a restart the recording stays empty.
-    @MainActor
-    private func observeConfigurationChanges(of engine: AVAudioEngine) {
-        configurationObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange,
-            object: engine,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.restartAfterConfigurationChange()
-            }
-        }
+        startDrainTimer()
+        let setupTime = ContinuousClock.now - requestedAt
+        let deviceName = AudioInputDevices.name(of: capture.boundDeviceID)
+        dlog("[Audio] recording from \(deviceName) at \(capture.sampleRate) Hz, started in \(setupTime)")
     }
 
     @MainActor
-    private func restartAfterConfigurationChange() {
-        guard let engine, isRecording else { return }
-
-        let inputNode = engine.inputNode
-        inputNode.removeTap(onBus: 0)
-        let hardwareFormat = inputNode.outputFormat(forBus: 0)
-        dlog("[Audio] configuration changed, new format: \(hardwareFormat.sampleRate)Hz, \(hardwareFormat.channelCount)ch")
-        // Edge case: a device mid-switch briefly reports an empty format; another change follows.
-        guard hardwareFormat.sampleRate > 0, hardwareFormat.channelCount > 0 else { return }
-
-        let audioProcessing = makeAudioProcessingContext(hardwareFormat: hardwareFormat)
-        installInputTap(on: inputNode, hardwareFormat: hardwareFormat, context: audioProcessing)
-        do {
-            try engine.start()
-            dlog("[Audio] engine restarted")
-        } catch {
-            dlog("[Audio] engine restart failed: \(error)")
+    func stopRecording() -> [Float] {
+        capture.stop()
+        drainTimer?.cancel()
+        drainTimer = nil
+        drainQueue.sync { finishConversion() }
+        isRecording = false
+        audioLevel = 0
+        if capture.droppedRenderCycleCount > 0 {
+            dlog("[Audio] dropped \(capture.droppedRenderCycleCount) render cycles")
         }
+
+        let samples = bufferLock.withLock {
+            defer { audioBuffer = [] }
+            return audioBuffer
+        }
+        dlog("[Audio] stopped, \(samples.count) samples captured")
+        prepare(inputDeviceUID: selectedUID)
+        return samples
     }
 
     var capturedSampleCount: Int {
@@ -107,132 +87,104 @@ final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
     }
 
     @MainActor
-    func stopRecording() -> [Float] {
-        if let configurationObserver {
-            NotificationCenter.default.removeObserver(configurationObserver)
-            self.configurationObserver = nil
+    private func startCapture(requestedAt: ContinuousClock.Instant) throws {
+        guard let deviceID = AudioInputDevices.resolve(selectedUID: selectedUID) else {
+            throw HALInputError(step: "find an input device", status: kAudioHardwareBadDeviceError)
         }
-        engine?.inputNode.removeTap(onBus: 0)
-        engine?.stop()
-        isRecording = false
-        audioLevel = 0
-
-        let samples = bufferLock.withLock {
-            defer { audioBuffer = [] }
-            return audioBuffer
+        try capture.prepare(deviceID: deviceID)
+        let converter = try SpeechSampleConverter(inputSampleRate: capture.sampleRate)
+        drainQueue.sync {
+            self.converter = converter
+            awaitingFirstBufferSince = requestedAt
         }
-
-        dlog("[Audio] stopped, \(samples.count) samples captured")
-        return samples
+        try capture.start()
     }
 
-    private func makeAudioProcessingContext(hardwareFormat: AVAudioFormat) -> AudioProcessingContext {
-        let desiredSampleRate = Double(targetSampleRate)
-        guard let desiredFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: desiredSampleRate,
-            channels: 1,
-            interleaved: false
-        )
+    // Edge case: a device that disappears or changes its sample rate mid-recording (a Bluetooth
+    // headset switching profiles) leaves the bound unit silent; the capture is rebuilt on the
+    // current device and the samples recorded so far are kept.
+    @MainActor
+    private func handleHardwareChange() {
+        guard isRecording else {
+            prepare(inputDeviceUID: selectedUID)
+            return
+        }
+        guard let deviceID = AudioInputDevices.resolve(selectedUID: selectedUID),
+              !capture.isPrepared(for: deviceID)
         else {
-            fatalError("internal: failed to create 16kHz mono Float32 format")
+            return
         }
-
-        let converter: AVAudioConverter? = if hardwareFormat.sampleRate != desiredSampleRate || hardwareFormat.channelCount != 1 {
-            AVAudioConverter(from: hardwareFormat, to: desiredFormat)
-        } else {
-            nil
+        capture.stop()
+        drainQueue.sync { finishConversion() }
+        do {
+            try startCapture(requestedAt: .now)
+            dlog("[Audio] input changed, continuing on \(AudioInputDevices.name(of: deviceID)) at \(capture.sampleRate) Hz")
+        } catch {
+            dlog("[Audio] continuing on the new input failed: \(error)")
         }
-
-        return AudioProcessingContext(
-            desiredSampleRate: desiredSampleRate,
-            desiredFormat: desiredFormat,
-            converter: converter
-        )
     }
 
-    private func installInputTap(
-        on inputNode: AVAudioInputNode,
-        hardwareFormat: AVAudioFormat,
-        context: AudioProcessingContext
-    ) {
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: hardwareFormat) { [weak self] buffer, _ in
-            guard let self,
-                  let samplesBuffer = convertBuffer(buffer, hardwareFormat: hardwareFormat, context: context),
-                  let channelData = samplesBuffer.floatChannelData?[0]
-            else {
-                return
+    @MainActor
+    private func observeHardwareChanges() {
+        guard hardwareListener == nil else { return }
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.handleHardwareChange() }
+        }
+        hardwareListener = listener
+        for selector in [
+            kAudioHardwarePropertyDefaultInputDevice,
+            kAudioHardwarePropertyDevices
+        ] {
+            var address = AudioInputDevices.globalAddress(selector)
+            AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
+        }
+    }
+
+    private func startDrainTimer() {
+        let timer = DispatchSource.makeTimerSource(queue: drainQueue)
+        timer.schedule(deadline: .now(), repeating: .milliseconds(20))
+        timer.setEventHandler { [weak self] in self?.drainCapturedAudio() }
+        timer.resume()
+        drainTimer = timer
+    }
+
+    private func drainCapturedAudio() {
+        let deviceSamples = capture.drain()
+        guard !deviceSamples.isEmpty, let converter else { return }
+        if let requestedAt = awaitingFirstBufferSince {
+            awaitingFirstBufferSince = nil
+            dlog("[Audio] first audio \(ContinuousClock.now - requestedAt) after the hotkey")
+        }
+        append(converter.convert(deviceSamples))
+        publishLevel(of: deviceSamples)
+    }
+
+    private func finishConversion() {
+        drainCapturedAudio()
+        if let converter {
+            append(converter.flush())
+        }
+        converter = nil
+        awaitingFirstBufferSince = nil
+    }
+
+    private func append(_ samples: [Float]) {
+        guard !samples.isEmpty else { return }
+        bufferLock.withLock {
+            let remaining = maxSamples - audioBuffer.count
+            if remaining > 0 {
+                audioBuffer.append(contentsOf: samples.prefix(remaining))
             }
-
-            let frameLength = Int(samplesBuffer.frameLength)
-            let samples = UnsafeBufferPointer(start: channelData, count: frameLength)
-            appendSamples(samples)
         }
     }
 
-    private func convertBuffer(
-        _ buffer: AVAudioPCMBuffer,
-        hardwareFormat: AVAudioFormat,
-        context: AudioProcessingContext
-    ) -> AVAudioPCMBuffer? {
-        guard let converter = context.converter else {
-            return buffer
-        }
-
-        let frameCount = AVAudioFrameCount(
-            Double(buffer.frameLength) * context.desiredSampleRate / hardwareFormat.sampleRate
-        )
-        guard let convertedBuffer = AVAudioPCMBuffer(
-            pcmFormat: context.desiredFormat,
-            frameCapacity: frameCount
-        )
-        else {
-            return nil
-        }
-
-        // Edge case: the converter keeps calling this block until its output is full; handing
-        // back the same buffer twice would duplicate audio. The block runs synchronously inside
-        // `convert`, so the flag is never shared across threads.
-        nonisolated(unsafe) var consumed = false
-        var error: NSError?
-        let status = converter.convert(to: convertedBuffer, error: &error) { _, outStatus in
-            if consumed {
-                outStatus.pointee = .noDataNow
-                return nil
-            }
-            consumed = true
-            outStatus.pointee = .haveData
-            return buffer
-        }
-        guard status != .error, error == nil, convertedBuffer.frameLength > 0 else {
-            return nil
-        }
-
-        return convertedBuffer
-    }
-
-    private func appendSamples(_ samples: UnsafeBufferPointer<Float>) {
-        guard let baseAddress = samples.baseAddress, !samples.isEmpty else { return }
+    private func publishLevel(of samples: [Float]) {
         var sumOfSquares: Float = 0
-        vDSP_svesq(baseAddress, 1, &sumOfSquares, vDSP_Length(samples.count))
+        vDSP_svesq(samples, 1, &sumOfSquares, vDSP_Length(samples.count))
         let rms = sqrt(sumOfSquares / Float(samples.count))
-
-        bufferLock.lock()
-        let remaining = maxSamples - audioBuffer.count
-        if remaining > 0 {
-            audioBuffer.append(contentsOf: samples.prefix(remaining))
-        }
-        bufferLock.unlock()
-
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
+            guard let self, isRecording else { return }
             audioLevel = rms
         }
     }
-}
-
-private struct AudioProcessingContext {
-    let desiredSampleRate: Double
-    let desiredFormat: AVAudioFormat
-    let converter: AVAudioConverter?
 }

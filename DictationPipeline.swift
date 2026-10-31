@@ -36,6 +36,7 @@ final class DictationPipeline {
 
     func start() {
         DictationHotkeyController.shared.start()
+        audioRecorder.prepare(inputDeviceUID: settings.inputDeviceUID)
         modelWarmup.preloadModels()
     }
 

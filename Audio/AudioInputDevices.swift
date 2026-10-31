@@ -1,4 +1,3 @@
-@preconcurrency import AVFoundation
 import CoreAudio
 
 struct AudioInputDevice: Identifiable, Hashable {
@@ -20,24 +19,45 @@ enum AudioInputDevices {
         }
     }
 
-    static func deviceID(forUID uid: String) -> AudioDeviceID? {
-        all().first { $0.uid == uid }?.id
+    static func resolve(selectedUID: String) -> AudioDeviceID? {
+        resolve(selectedUID: selectedUID, among: all(), systemDefault: systemDefaultInputID())
     }
 
-    static func select(_ uid: String, on engine: AVAudioEngine) {
-        guard var deviceID = deviceID(forUID: uid), let audioUnit = engine.inputNode.audioUnit else {
-            dlog("[Audio] selected input device unavailable, using the system default")
-            return
-        }
-        let status = AudioUnitSetProperty(
-            audioUnit,
-            kAudioOutputUnitProperty_CurrentDevice,
-            kAudioUnitScope_Global,
-            0,
-            &deviceID,
-            UInt32(MemoryLayout<AudioDeviceID>.size)
+    static func resolve(
+        selectedUID: String,
+        among devices: [AudioInputDevice],
+        systemDefault: AudioDeviceID?
+    ) -> AudioDeviceID? {
+        devices.first { !selectedUID.isEmpty && $0.uid == selectedUID }?.id ?? systemDefault
+    }
+
+    static func systemDefaultInputID() -> AudioDeviceID? {
+        var address = globalAddress(kAudioHardwarePropertyDefaultInputDevice)
+        var deviceID = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &deviceID
         )
-        dlog("[Audio] input device selected, status \(status)")
+        return status == noErr && deviceID != 0 ? deviceID : nil
+    }
+
+    static func name(of deviceID: AudioDeviceID) -> String {
+        stringProperty(kAudioObjectPropertyName, of: deviceID) ?? "device \(deviceID)"
+    }
+
+    static func isAlive(_ deviceID: AudioDeviceID) -> Bool {
+        var address = globalAddress(kAudioDevicePropertyDeviceIsAlive)
+        var alive: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        return AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &alive) == noErr && alive != 0
+    }
+
+    static func globalAddress(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
+        AudioObjectPropertyAddress(
+            mSelector: selector,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
     }
 
     private static func deviceIDs() -> [AudioDeviceID] {
@@ -71,13 +91,5 @@ enum AudioInputDevices {
         var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
         guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value) == noErr else { return nil }
         return value?.takeRetainedValue() as String?
-    }
-
-    private static func globalAddress(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
-        AudioObjectPropertyAddress(
-            mSelector: selector,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
     }
 }
