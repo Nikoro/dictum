@@ -87,7 +87,7 @@ actor TranscriptionEngine {
 
     func transcribe(audioSamples: [Float], language: String?, precedingText: String? = nil) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
-        let promptTokens = TranscriptionPrompt.text(language: language, precedingText: precedingText)
+        let promptTokens = TranscriptionPrompt.text(precedingText: precedingText)
             .flatMap { whisperKit.tokenizer?.encode(text: " " + $0) }
         let results = try await whisperKit.transcribe(
             audioArray: audioSamples,
@@ -97,8 +97,24 @@ actor TranscriptionEngine {
                 promptTokens: promptTokens
             )
         )
+        if let timings = results.first?.timings {
+            Self.logTimings(timings)
+        }
         let text = results.map(\.text).joined(separator: " ")
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func logTimings(_ timings: TranscriptionTimings) {
+        let parts = [
+            ("mel", timings.logmels),
+            ("encode", timings.encoding),
+            ("decode", timings.decodingLoop),
+            ("fallback", timings.decodingFallback),
+            ("total", timings.fullPipeline)
+        ].map { "\($0.0) \(String(format: "%.2f", $0.1))s" }
+        let counts = "encodes \(Int(timings.totalEncodingRuns)), decode loops \(Int(timings.totalDecodingLoops)), "
+            + "fallbacks \(Int(timings.totalDecodingFallbacks))"
+        dlog("[STT] timings: \(parts.joined(separator: ", ")); \(counts)")
     }
 
     // Edge case: with `language: nil` WhisperKit skips detection and decodes as English unless

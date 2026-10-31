@@ -19,6 +19,7 @@ final class LiveChunkTranscriber {
     private var committedSampleCount = 0
     private var transcribedChunks: [String] = []
     private var loopTask: Task<Void, Never>?
+    private var chunkInFlight: Task<Void, Never>?
     private var isFinishing = false
 
     init(audioSource: any CapturedAudioSource, language: String?, isAborted: @escaping @MainActor () -> Bool) {
@@ -27,11 +28,17 @@ final class LiveChunkTranscriber {
         self.isAborted = isAborted
     }
 
+    // Edge case: the poll sleep is cancelled on finish so key-up never waits for it, while a chunk
+    // already being transcribed runs in its own task and is awaited, not cancelled with the loop.
     func start() {
         loopTask = Task { [weak self] in
-            while let self, !isFinishing, !isAborted(), !Task.isCancelled {
+            while !Task.isCancelled {
                 try? await Task.sleep(for: Self.pollInterval)
-                await transcribeNextChunkIfReady()
+                guard let self, !isFinishing, !isAborted(), !Task.isCancelled else { return }
+                let chunk = Task { await self.transcribeNextChunkIfReady() }
+                chunkInFlight = chunk
+                await chunk.value
+                chunkInFlight = nil
             }
         }
     }
@@ -43,7 +50,8 @@ final class LiveChunkTranscriber {
 
     func finish(allSamples: [Float]) async throws -> String {
         isFinishing = true
-        await loopTask?.value
+        loopTask?.cancel()
+        await chunkInFlight?.value
         let remainder = Array(allSamples[min(committedSampleCount, allSamples.count)...])
         if let text = try await transcribe(remainder) {
             transcribedChunks.append(text)
