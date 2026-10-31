@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -51,6 +51,7 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -project Dictum.xcodeproj -scheme Dictum
 
       - name: Build Release
+        # MLX runs only on Apple Silicon; an x86_64 slice of every package doubled the build time.
         run: |
           BUILD_NUMBER=$(date -u +"%Y%m%d%H%M")
           xcodebuild \
@@ -58,6 +59,7 @@ jobs:
             -scheme Dictum \
             -configuration Release \
             -derivedDataPath build \
+            ARCHS=arm64 \
             OTHER_CODE_SIGN_FLAGS="--timestamp" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
 
