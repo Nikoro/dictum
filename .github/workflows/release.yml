@@ -10,10 +10,20 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-26
+    # The release must be compiled by the Xcode the app is developed and tested with
+    # (.xcode-version); 0.10.1 was built by the image default, Xcode 26.6, and crashed while
+    # recording in a runtime isolation check that Xcode 27 compiles differently.
+    runs-on: xcode-27
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Check Xcode version
+        run: |
+          expected="$(cat .xcode-version)"
+          actual="$(xcodebuild -version | awk 'NR==1{print $2}')"
+          echo "Xcode $actual, expected $expected"
+          [[ "$actual" == "$expected" || "$actual" == "$expected".* ]]
 
       - name: Install XcodeGen
         run: brew install xcodegen
