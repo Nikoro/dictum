@@ -52,7 +52,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum
-        MARKETING_VERSION: "0.10.1"
+        MARKETING_VERSION: "0.10.2"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
