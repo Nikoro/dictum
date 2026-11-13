@@ -1,8 +1,5 @@
 import Foundation
 
-// Edge case: WhisperKit defaults to ~/Documents/huggingface. macOS guards Documents per code
-// signature, so every re-signed release lost access and could not even read its own models;
-// downloads now live next to the LLM models instead.
 struct WhisperModelStorage: Sendable {
     static let standard = WhisperModelStorage(
         downloadBase: LLMModelStorage.legacyRoot.appendingPathComponent("whisperkit"),

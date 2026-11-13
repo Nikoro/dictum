@@ -10,8 +10,6 @@ enum SpeechTrimmer {
     private static let absoluteFloorDecibels: Float = -55
     private static let speechAboveNoiseDecibels: Float = 10
 
-    // Edge case: Whisper hallucinates text ("Dziękuję.", subtitles credits) on long silent tails
-    // and on speechless recordings, so silence is cut and speechless audio is dropped entirely.
     static func speechOnly(_ samples: [Float]) -> [Float]? {
         let levels = frameLevels(samples)
         let threshold = speechThreshold(levels)

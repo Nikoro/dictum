@@ -12,8 +12,6 @@ struct ContextOptions: Sendable {
 
 @MainActor
 extension ContextOptions {
-    // Edge case: screenshot and clipboard only feed the LLM, so they are skipped without it.
-    // Selected text is not: it decides whether the result is copied instead of pasted over it.
     init(settings: AppSettings) {
         let llmEnabled = settings.llmCleanupEnabled
         self.init(
@@ -24,8 +22,6 @@ extension ContextOptions {
     }
 }
 
-// Edge case: NSRunningApplication is not Sendable and the frontmost app may change mid-dictation,
-// so the target is snapshotted into this value at recording start.
 struct TargetApp: Sendable {
     let pid: pid_t
     let name: String?
@@ -39,8 +35,6 @@ enum ContextGatherer {
         options: ContextOptions,
         ocrLanguages: [String]
     ) async -> DictationContext {
-        // Edge case: the clipboard is read first and synchronously, before the pipeline's own
-        // paste starts mutating it.
         let (clipText, clipImage): (String?, CGImage?) = options.clipboard
             ? readClipboard()
             : (nil, nil)

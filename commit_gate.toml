@@ -1,0 +1,4 @@
+exclude = [".agents", ".claude"]
+
+[instructions]
+enabled = true

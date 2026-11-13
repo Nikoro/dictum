@@ -11,8 +11,6 @@ struct HALInputError: LocalizedError {
     }
 }
 
-// Edge case: single producer (the real-time render thread) and single consumer (the drain queue);
-// the render thread must not allocate or lock, so samples go through fixed storage and atomics.
 final class SampleRing: @unchecked Sendable {
     private let storage: UnsafeMutablePointer<Float>
     private let capacity: Int
@@ -48,9 +46,6 @@ final class SampleRing: @unchecked Sendable {
     }
 }
 
-// Edge case: AVAudioEngine follows the system default input and re-resolves it on every
-// configuration change, so a chosen microphone was dropped and each start waited for the engine
-// to settle. An AUHAL bound to one device and initialized ahead of time starts in milliseconds.
 final class HALInputCapture: @unchecked Sendable {
     private(set) var boundDeviceID: AudioDeviceID = 0
     private(set) var sampleRate: Double = 0
@@ -196,8 +191,6 @@ final class HALInputCapture: @unchecked Sendable {
         return unit
     }
 
-    // Edge case: the input side of AUHAL converts formats but not sample rates, so the client
-    // format keeps the device rate; channel map 0 takes the first channel of multi-channel inputs.
     private static func configureMonoFloatOutput(_ unit: AudioUnit) throws -> Double {
         var deviceFormat = AudioStreamBasicDescription()
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)

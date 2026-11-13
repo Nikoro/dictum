@@ -75,8 +75,6 @@ final class GlobalHotkeyMonitor {
             if let runLoopSource {
                 CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
             }
-            // Edge case: without invalidation the mach port outlives the tap, and start()
-            // rebuilds the tap often.
             CFMachPortInvalidate(eventTap)
         }
         eventTap = nil
@@ -85,8 +83,6 @@ final class GlobalHotkeyMonitor {
         isModifierHotkeyHeld = false
     }
 
-    // Edge case: macOS disables a tap whose callback is slow, or on some user input. Unless it is
-    // re-enabled, the hotkey silently stays dead until the app restarts.
     private func reenableTap(disabledBy type: CGEventType) {
         guard let eventTap else { return }
         let reason = type == .tapDisabledByTimeout ? "timeout" : "user input"
@@ -214,8 +210,6 @@ final class GlobalHotkeyMonitor {
         }
     }
 
-    // Edge case: capturing the selection may post Cmd+C and wait for it, which would stall the
-    // event tap, so it runs detached.
     private nonisolated func beginPress(tracksModifier: Bool) {
         Task.detached(priority: .userInitiated) { [weak self] in
             let selectedText = SelectedTextCapture.readSelectedText()

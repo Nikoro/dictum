@@ -1,7 +1,5 @@
 import Foundation
 
-// Edge case: the first inference compiles Metal shaders and takes seconds, so a dummy one runs
-// right after loading instead of during the user's first dictation.
 @MainActor
 final class ModelWarmupCoordinator {
     static let shared = ModelWarmupCoordinator()
@@ -72,8 +70,6 @@ final class ModelWarmupCoordinator {
         }
     }
 
-    // Edge case: loading starts with the recording, so a model unloaded while idle is usually
-    // back before the user stops talking.
     func prepareForDictation() {
         idleUnloadTask?.cancel()
         Task {

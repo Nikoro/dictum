@@ -2,9 +2,6 @@ import Accelerate
 import CoreAudio
 import Foundation
 
-// Edge case: @unchecked Sendable holds because capture setup, `isRecording` and `audioLevel` are
-// only touched on the main actor, conversion only on `drainQueue`, and `audioBuffer` only under
-// `bufferLock`.
 final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
     var isRecording = false
     var audioLevel: Float = 0
@@ -26,8 +23,6 @@ final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
         Int(SpeechSampleConverter.outputSampleRate) * Self.maxRecordingSeconds
     }
 
-    // Edge case: preparing binds and initializes the input unit without starting it, so the
-    // microphone stays off (no privacy indicator) yet the next start skips device setup.
     @MainActor
     func prepare(inputDeviceUID: String) {
         selectedUID = inputDeviceUID
@@ -100,9 +95,6 @@ final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
         try capture.start()
     }
 
-    // Edge case: a device that disappears or changes its sample rate mid-recording (a Bluetooth
-    // headset switching profiles) leaves the bound unit silent; the capture is rebuilt on the
-    // current device and the samples recorded so far are kept.
     @MainActor
     private func handleHardwareChange() {
         guard isRecording else {

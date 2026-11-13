@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Points git at the versioned hooks in scripts/hooks. Idempotent; run once per clone.
 
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
-chmod +x "$ROOT/scripts/hooks/"* "$ROOT/scripts/quality/"* "$ROOT/scripts/test.sh"
+chmod +x "$ROOT/scripts/hooks/"* "$ROOT/scripts/quality/"*.sh "$ROOT/scripts/quality/"*.py "$ROOT/scripts/test.sh"
+"$ROOT/scripts/quality/install_commit_gate.sh"
 git -C "$ROOT" config core.hooksPath scripts/hooks
 echo "Installed git hooks: core.hooksPath = scripts/hooks"

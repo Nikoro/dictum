@@ -29,8 +29,6 @@ final class SystemPermissionStore {
     }
 
     func requestAccessibility() {
-        // Edge case: kAXTrustedCheckOptionPrompt is imported as a mutable global, which Swift 6
-        // refuses to read; its value is a constant string.
         let promptKey = "AXTrustedCheckOptionPrompt" as CFString
         let options = [promptKey: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
@@ -45,8 +43,6 @@ final class SystemPermissionStore {
         }
     }
 
-    // Edge case: macOS shows the microphone prompt only once; after a denial the only way back
-    // is System Settings.
     func request(_ permission: SystemPermission) {
         switch permission {
         case .microphone:
@@ -77,8 +73,6 @@ final class SystemPermissionStore {
 
     func startPolling() {
         guard pollingTimer == nil else { return }
-        // Edge case: the block must ignore its Timer argument (not Sendable); invalidation goes
-        // through `pollingTimer`. Scheduled from the main actor, so assumeIsolated is safe.
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }

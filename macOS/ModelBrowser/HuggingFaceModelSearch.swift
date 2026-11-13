@@ -49,8 +49,6 @@ final class HuggingFaceModelSearch {
     }
 
     private static func fetchMostDownloadedMLXModels(matching query: String) async throws -> [HuggingFaceModelInfo] {
-        // Edge case: URLComponents, not manual percent-encoding; `.urlQueryAllowed` lets `&` and
-        // `=` through, so a query could inject extra parameters.
         var components = URLComponents(string: "https://huggingface.co/api/models")
         components?.queryItems = [
             URLQueryItem(name: "author", value: "mlx-community"),

@@ -39,8 +39,6 @@ final class AppSettings {
     @ObservationIgnored private var savePromptsTask: Task<Void, Never>?
     @ObservationIgnored private var saveLanguagesTask: Task<Void, Never>?
 
-    // Edge case: Observation cannot see UserDefaults, so every stored read touches `revision`
-    // and every write bumps it. (@AppStorage is no fix: it only publishes binding writes.)
     var llmPrompt: String {
         get { stored(.llmPrompt, default: "") }
         set { store(newValue, for: .llmPrompt) }
@@ -179,8 +177,6 @@ final class AppSettings {
         loadAppSTTLanguages()
     }
 
-    // Edge case: older builds stored the default verbatim. An outdated copy never mentions the
-    // OCR block, so the model reproduces the screen text instead of following the command.
     private func migrateSupersededUnifiedPrompt() {
         let stored = unifiedSystemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !stored.isEmpty else { return }

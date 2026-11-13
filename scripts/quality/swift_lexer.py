@@ -1,5 +1,3 @@
-"""Minimal Swift lexer for the quality gates: finds comments and code braces, skipping string
-literals (including multi-line literals and `\\(...)` interpolations)."""
 
 from dataclasses import dataclass
 
@@ -20,7 +18,6 @@ class Brace:
 
 
 def tokens(source):
-    """Yields Comment and Brace tokens in source order."""
     i, line, n = 0, 1, len(source)
     line_has_code = False
     while i < n:

@@ -33,14 +33,10 @@ actor LLMProcessor {
     private let prefixCache = PromptPrefixCache()
     private var drafter: DrafterBox?
 
-    // Edge case: concurrent calls for the same model share one load, so only the first caller's
-    // progressHandler reports.
     func loadModel(
         _ modelId: String = "mlx-community/gemma-4-e4b-it-4bit",
         progressHandler: (@Sendable (Progress) -> Void)? = nil
     ) async throws {
-        // Edge case: a call for another model must wait and load its own, never return early;
-        // callers treat a clean return as "this model is ready".
         while let existing = loadingTask {
             if loadingModelId == modelId {
                 return try await existing.value
@@ -126,8 +122,6 @@ actor LLMProcessor {
         return LLMPrompting.removingReasoningBlock(from: result).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // Edge case: a screenshot changes the prompt's token layout, so image requests always prefill
-    // from scratch through ChatSession instead of the cached text prefix.
     private func generateWithImages(
         _ modelContainer: ModelContainer,
         prompt: String,
@@ -159,8 +153,6 @@ actor LLMProcessor {
 
     private static let gpuCacheLimitBytes = 64 * 1024 * 1024
 
-    // Edge case: warming with the real prompt and a sentence-sized input also prefills the cached
-    // system prompt, so the first dictation pays neither shader compilation nor that prefill.
     func warmup(systemPrompt: String) async {
         guard let modelContainer else { return }
         dlog("[LLM] warmup with the real system prompt (vision=\(isVisionModel))")
@@ -176,8 +168,6 @@ actor LLMProcessor {
         dlog("[LLM] warmup complete")
     }
 
-    // Edge case: GPU work still queued would keep buffers alive past the release, so the stream is
-    // drained first and the cache limit dropped to zero while the model is freed.
     func unloadModel() {
         Stream.gpu.synchronize()
         Memory.cacheLimit = 0

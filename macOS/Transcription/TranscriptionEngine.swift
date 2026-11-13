@@ -40,8 +40,6 @@ actor TranscriptionEngine {
     }
 
     private func load(_ source: ModelSource, modelId: String) async throws {
-        // Edge case: join an in-flight load only for the same model; a different model's load
-        // must not be reported as ours.
         while let existing = loadingTask {
             if loadingModelId == modelId {
                 return try await existing.value
@@ -117,9 +115,6 @@ actor TranscriptionEngine {
         dlog("[STT] timings: \(parts.joined(separator: ", ")); \(counts)")
     }
 
-    // Edge case: with `language: nil` WhisperKit skips detection and decodes as English unless
-    // `detectLanguage` is set. Without timestamps it also cuts audio past one 30 s window
-    // mid-word, so longer audio keeps timestamps and is split at pauses instead.
     private static func decodingOptions(language: String?, sampleCount: Int, promptTokens: [Int]?) -> DecodingOptions {
         let fitsOneWindow = sampleCount <= sampleRate * 30
         return DecodingOptions(

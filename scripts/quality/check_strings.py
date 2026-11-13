@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""Localization gate for Resources/*.xcstrings.
-
-Fails when a catalog is not valid JSON, a key lacks a translated English or Polish value
-(including every plural form), the code uses a key the catalog lacks (the UI would fall back
-to the English default even in Polish), or the catalog carries a key no code references.
-"""
 
 import glob
 import json

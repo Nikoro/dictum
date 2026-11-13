@@ -2,8 +2,6 @@ import AppKit
 import ScreenCaptureKit
 
 enum ScreenshotCapture {
-    // Edge case: `pid` must be the app frontmost when recording started; by the time this runs
-    // something else may be in front.
     static func captureWindow(ownedBy pid: pid_t) async -> CGImage? {
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)

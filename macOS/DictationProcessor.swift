@@ -11,9 +11,6 @@ final class DictationProcessor {
     private let liveTranscriber: LiveChunkTranscriber
     private static let llmTimeLimit: Duration = .seconds(30)
 
-    // Edge case: without context the output is a cleanup of the input, so a result shrunk below
-    // 30% means the model answered or refused instead of cleaning; commands with context may
-    // legitimately produce something shorter.
     private static func isPlausibleCleanup(_ cleaned: String, of raw: String, hasContext: Bool) -> Bool {
         guard !cleaned.isEmpty else { return false }
         return hasContext || Double(cleaned.count) >= Double(raw.count) * 0.3
@@ -63,8 +60,6 @@ final class DictationProcessor {
         return rawText
     }
 
-    // Edge case: the context is returned even without LLM cleanup, because a selection means
-    // "copy the result" rather than paste over it.
     func finalize(_ rawText: String) async -> (text: String, context: DictationContext?) {
         let context = await contextTask?.value
         guard settings.llmCleanupEnabled else {

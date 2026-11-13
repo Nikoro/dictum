@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# commit-msg gate: a fix commit must ship a regression test, and the tests must pass.
-#
-# A fix commit is one whose subject starts with fix:, fix(scope):, bug:, hotfix: or the Polish
-# napraw:/naprawia: (optional `!`). When it stages app Swift code, it must also add or modify a
-# test in the mirror location of the fixed file:
-#
-#     Transcription/WhisperModelStorage.swift → DictumTests/Transcription/WhisperModelStorageTests.swift
-#
-# Existing file: add the case to it. Missing file: create it. Write the test first and watch it
-# fail (red), then fix the code (green), then refactor. The gate then runs the whole suite.
-#
-# A fix that stages no app Swift code (website, workflow, scripts, strings) is skipped: there is
-# no Swift test that could reproduce it, and an unrelated one would only appease the hook.
 
 set -euo pipefail
 

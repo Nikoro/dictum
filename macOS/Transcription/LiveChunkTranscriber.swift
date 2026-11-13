@@ -28,8 +28,6 @@ final class LiveChunkTranscriber {
         self.isAborted = isAborted
     }
 
-    // Edge case: the poll sleep is cancelled on finish so key-up never waits for it, while a chunk
-    // already being transcribed runs in its own task and is awaited, not cancelled with the loop.
     func start() {
         loopTask = Task { [weak self] in
             while !Task.isCancelled {
@@ -93,8 +91,6 @@ final class LiveChunkTranscriber {
         return text.isEmpty ? nil : text
     }
 
-    // Edge case: cutting mid-word garbles both halves, so a chunk ends in the last pause after
-    // the minimum length; only a pause-free stretch is cut hard, below Whisper's 30 s window.
     private static func chunkCut(in pending: [Float]) -> Int? {
         let minimum = minimumChunkSeconds * sampleRate
         let forced = forcedCutSeconds * sampleRate

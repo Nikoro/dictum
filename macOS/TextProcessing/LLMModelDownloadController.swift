@@ -46,8 +46,6 @@ final class LLMModelDownloadController {
                         self?.downloadProgress = progress.fractionCompleted
                     }
                 }
-                // Edge case: select the model only after it loaded, or a failed download leaves a
-                // selected model that does not exist on disk.
                 settings.llmModelId = modelId
                 downloadedLLMModelStore.scanDownloadedModels()
             } catch is CancellationError {

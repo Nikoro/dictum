@@ -2,10 +2,6 @@
 import AppKit
 import AVFoundation
 
-// Edge case: debug-only entry point, so the STT path can be verified without a microphone.
-// `Dictum --transcribe-file a.wav --output out.txt [--language pl|auto] [--cleanup [--clipboard text]]`,
-// or `Dictum --llm-text "transcript" --output out.txt [--screenshot window.png [--ocr-only]] [--prompt-file p.txt]` for the LLM
-// alone.
 @MainActor
 enum DebugTranscriptionHarness {
     static func runIfRequested() {

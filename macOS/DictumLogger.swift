@@ -16,8 +16,6 @@ private final class DictumLogger: @unchecked Sendable {
     static let subsystem = "com.dominikkrajcer.dictum"
     private var systemLoggers: [String: Logger] = [:]
 
-    // Edge case: log() must never block its caller; it is called from the event tap callback,
-    // and a slow callback makes macOS disable the tap.
     private let queue = DispatchQueue(label: "com.dominikkrajcer.dictum.logger", qos: .utility)
     private var handle: FileHandle?
     private let path: String
@@ -59,8 +57,6 @@ private final class DictumLogger: @unchecked Sendable {
         }
     }
 
-    // Edge case: messages are public in the unified log because dlog never carries dictated
-    // content (enforced by scripts/quality/check_log_privacy.py); the category is the "[Tag]".
     private func systemLogger(for message: String) -> Logger {
         let category = message.hasPrefix("[")
             ? String(message.dropFirst().prefix { $0 != "]" })

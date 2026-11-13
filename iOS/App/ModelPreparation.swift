@@ -29,8 +29,6 @@ final class ModelPreparation {
             fraction = nil
         case .downloading:
             phase = .downloading
-            // Edge case: FluidAudio 0.18 assigns half of each package's progress to compilation.
-            // Show its byte progress as a package download, never as total model preparation.
             fraction = min(max(progress.fractionCompleted * 2, 0), 1)
         case .compiling:
             phase = .compiling

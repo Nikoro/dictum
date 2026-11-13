@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-"""Fail when a Swift file nests braces deeper than the limit (default 6).
-
-Usage: check_nesting.py [--max N] FILE...
-"""
 
 import sys
 

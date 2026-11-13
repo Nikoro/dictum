@@ -36,8 +36,6 @@ enum ScreenshotOCR {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
-        // Edge case: Vision throws on an unsupported language, and it supports fewer languages
-        // than Whisper transcribes.
         let supported = Set((try? request.supportedRecognitionLanguages()) ?? [])
         let usable = languages.filter(supported.contains)
         if !usable.isEmpty {

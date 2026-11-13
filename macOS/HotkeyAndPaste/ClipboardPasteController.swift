@@ -6,8 +6,6 @@ final class ClipboardPasteController {
     static let shared = ClipboardPasteController()
 
     private let clipboardSettleDelay: Duration = .milliseconds(150)
-    // Edge case: the target app reads the pasteboard asynchronously after Cmd+V; restoring the
-    // user's clipboard sooner pastes their old contents instead.
     private let clipboardRestoreDelay: Duration = .milliseconds(500)
 
     private var pasteTask: Task<Void, Never>?
@@ -35,8 +33,6 @@ final class ClipboardPasteController {
         }
     }
 
-    // Edge case: the nspasteboard.org markers tell clipboard managers to skip this entry, so
-    // every dictation does not land in the user's clipboard history.
     private func writeTransient(_ text: String, to pasteboard: NSPasteboard) -> Int {
         let item = NSPasteboardItem()
         item.setString(text, forType: .string)

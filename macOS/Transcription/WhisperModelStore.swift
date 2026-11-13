@@ -134,13 +134,8 @@ final class WhisperModelStore {
         }
     }
 
-    // Edge case: CoreML compilation reports no progress, so the second half of the bar creeps
-    // towards 99% over the typical ~120 s instead.
     private func loadWithEstimatedProgress(fromFolder modelFolder: URL) async throws {
         downloadProgress = 0.5
-        // Edge case: the block must ignore its Timer argument (not Sendable, so reaching it from
-        // the main actor is a cross-isolation send); `defer` invalidates instead. Scheduled from
-        // the main actor, the block runs on the main run loop, which makes assumeIsolated safe.
         let loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self, self.downloadProgress < 0.99 else { return }

@@ -16,3 +16,6 @@
 - Apple Foundation Models is not an alternative backend: it does not support Polish.
 - Live chunking (`LiveChunkTranscriber`) settled on 8 s minimum chunks and a 60-character
   preceding-text prompt: longer prompts are decoded token by token and made each chunk slower.
+
+Implementation constraints that do not belong in source comments are indexed in
+[implementation-constraints.md](implementation-constraints.md).

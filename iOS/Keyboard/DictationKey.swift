@@ -19,7 +19,7 @@ struct DictationKey: View {
                     .disabled(model.pending)
             case .recording:
                 Button { model.send(.stop) } label: {
-                    RoundedRectangle(cornerRadius: 4).fill(.red).frame(width: 19, height: 16)
+                    RoundedRectangle(cornerRadius: 4).fill(.red).frame(width: 16, height: 16)
                 }
                 .buttonStyle(KeyboardKeyStyle(palette: palette))
                 .accessibilityLabel(String(localized: "ios.stop"))

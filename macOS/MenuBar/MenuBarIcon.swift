@@ -68,8 +68,6 @@ enum MenuBarIcon {
         }
     }
 
-    // Edge case: the cutout must be a CGImage drawn with destinationOut; NSImage.draw does not
-    // punch through. Centering uses the symbol's alignment rect, not its full bounds.
     private static func punchOutMic(from context: CGContext, centeredIn rect: CGRect) {
         guard let mic = renderMicSymbol(pointSize: 11, weight: .bold) else { return }
         let micWidth = CGFloat(mic.image.width) / retinaScale

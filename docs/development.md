@@ -16,3 +16,9 @@
 
 - Platform targets and device signing: see [iOS development](ios.md). Mac app sources live in `macOS/`;
   the `Dictum` scheme and existing run/test scripts remain the macOS entry points.
+
+Install Git hooks with `scripts/hooks/install.sh`; this also installs the pinned commit_gate checkout.
+Run `scripts/quality/commit_gate.sh check` for its repository scan and
+`python3 DictumTests/Distribution/test_commit_gate.py` for the hook-installation/index integration tests.
+The tool's revision is pinned in `scripts/quality/commit_gate.ref`; update the pin only after reviewing
+and testing the upstream revision.

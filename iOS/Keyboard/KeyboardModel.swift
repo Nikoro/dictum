@@ -88,9 +88,9 @@ final class KeyboardModel {
         resizeKeyboard()
     }
 
-    func configureDeletion(_ action: @escaping () -> Void) {
+    func configureDeletion(_ action: @escaping (KeyboardDeletionUnit) -> Void) {
         deletion?.release()
-        deletion = RepeatingKeyAction(action: action)
+        deletion = RepeatingKeyAction(acceleratedAction: { action(.word) }, action: { action(.character) })
     }
 
     func startDeleting() {

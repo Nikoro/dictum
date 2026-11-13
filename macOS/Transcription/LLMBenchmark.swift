@@ -1,8 +1,6 @@
 #if DEBUG
 import MLXLMCommon
 
-// Edge case: debug-only benchmark of the plain ChatSession path against the cached-prefix
-// path (and an MTP drafter) at temperature 0, so outputs must match exactly.
 @MainActor
 enum LLMBenchmark {
     private static let transcripts = [

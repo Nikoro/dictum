@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Dictum pre-commit hook. Blocks the commit on any finding; gates and thresholds are described
-# in docs/quality-gates.md. Do not bypass with --no-verify.
 
 set -euo pipefail
 
@@ -12,6 +10,8 @@ cd "$ROOT"
 if command -v mise >/dev/null 2>&1; then
     eval "$(mise env -s bash 2>/dev/null)"
 fi
+
+scripts/quality/commit_gate.sh staged
 
 swift_files=()
 strings_changed=false
@@ -65,10 +65,6 @@ if ! format_report="$(swiftformat --lint "${swift_files[@]}" 2>&1)"; then
 fi
 
 if ! scripts/quality/check_nesting.py "${swift_files[@]}"; then
-    status=1
-fi
-
-if ! scripts/quality/check_comments.py "${swift_files[@]}"; then
     status=1
 fi
 

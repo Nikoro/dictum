@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct EmojiBrowserView: View {
     @Bindable var model: KeyboardModel
@@ -196,6 +197,7 @@ struct EmojiBrowserView: View {
     }
 
     private func pick(_ symbol: String) {
+        UIDevice.current.playInputClick()
         insert(symbol)
         model.emojiPreferences.record(symbol)
     }
@@ -203,7 +205,9 @@ struct EmojiBrowserView: View {
     private var searchChoices: [String] {
         catalog.search(model.emojiQuery).map { $0.symbol(tone: model.emojiPreferences.tone) }
     }
+}
 
+extension EmojiBrowserView {
     private var categories: [String] {
         [
             String(localized: "ios.emoji.people"),

@@ -1,4 +1,3 @@
-"""Measure cached Qwen3-ASR inference on the same manifest as Dictum's native harness."""
 import argparse
 import importlib.metadata
 import json

@@ -60,8 +60,8 @@ extension KeyboardAccentKeyControl {
         }
     }
 
-    private static let stopImage = UIGraphicsImageRenderer(size: CGSize(width: 19, height: 16)).image { _ in
+    private static let stopImage = UIGraphicsImageRenderer(size: CGSize(width: 16, height: 16)).image { _ in
         UIColor.white.setFill()
-        UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 19, height: 16), cornerRadius: 4).fill()
+        UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 16, height: 16), cornerRadius: 4).fill()
     }.withRenderingMode(.alwaysTemplate)
 }

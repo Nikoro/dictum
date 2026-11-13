@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""Fail when a dlog(...) call interpolates something that may carry dictated content.
-
-dlog lines go to a file and to the unified log as public text, so they may contain only counts,
-flags, ids and durations. Interpolating a value whose name suggests text (transcript, prompt,
-clipboard, selection, OCR, output...) is rejected unless it is reduced to `.count`, a nil or
-empty check, or an explicitly content-free summary.
-
-Usage: check_log_privacy.py FILE...
-"""
 
 import re
 import sys

@@ -8,10 +8,6 @@ struct InstalledLLMModel {
     let directory: URL
 }
 
-// Edge case: models downloaded before swift-transformers 1.2 live in ~/Library/Caches/models
-// as plain <org>/<name> folders; newer ones in a Hub-layout cache next to them. Both stay
-// usable, so an upgrade never re-downloads gigabytes. The shared ~/.cache/huggingface is
-// deliberately not used: other tools' models there would show up in, and be deleted from, Dictum.
 enum LLMModelStorage {
     static let organization = "mlx-community"
     static let legacyRoot = FileManager.default.homeDirectoryForCurrentUser
@@ -63,8 +59,6 @@ enum LLMModelStorage {
         return folder
     }
 
-    // Edge case: swift-transformers 1.1 fetched no chat_template.jinja and worked without it;
-    // 1.2+ refuses to apply a chat without one, so old folders need their sidecar files topped up.
     static func hasChatTemplate(_ folder: URL) -> Bool {
         let fileManager = FileManager.default
         if fileManager.fileExists(atPath: folder.appendingPathComponent("chat_template.jinja").path)
@@ -110,8 +104,6 @@ enum LLMModelStorage {
 struct OfflineFirstHubDownloader: MLXLMCommon.Downloader {
     private let client = HubClient(cache: LLMModelStorage.hubCache)
 
-    // Edge case: a complete local copy is used without touching the network, so a model loads
-    // offline and app launch does not depend on huggingface.co being reachable.
     func download(
         id: String,
         revision: String?,

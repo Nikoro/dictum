@@ -114,7 +114,7 @@ final class KeyboardAccentKeyControl: UIControl {
         if icon.accessibilityIdentifier == "logo" {
             icon.frame = key
         } else if icon.accessibilityIdentifier == "recording" {
-            icon.frame = CGRect(x: key.midX - 9.5, y: key.midY - 8, width: 19, height: 16)
+            icon.frame = CGRect(x: key.midX - 8, y: key.midY - 8, width: 16, height: 16)
         } else if tablet, loweredIcon {
             icon.frame.origin = CGPoint(x: iconEdge < 0 ? key.minX + 7 : key.maxX - size - 7, y: key.maxY - size - 5)
         }
@@ -135,11 +135,13 @@ final class KeyboardAccentKeyControl: UIControl {
     }
 
     override func accessibilityActivate() -> Bool {
+        UIDevice.current.playInputClick()
         activateTap()
         return true
     }
 
     override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+        UIDevice.current.playInputClick()
         activeTouch = true
         isHighlighted = true
         holding = false

@@ -4,8 +4,6 @@ import MLXLMCommon
 enum LLMPrompting {
     static let disableThinking: [String: any Sendable] = ["enable_thinking": false]
 
-    // Edge case: the output is a cleaned or rewritten version of the input, so its length tracks
-    // the input; a fixed large budget only lets a looping model run for a long time.
     static func outputTokenBudget(for rawText: String) -> Int {
         let estimatedInputTokens = rawText.count / 3
         return min(max(estimatedInputTokens * 2, 256), 2048)
@@ -54,8 +52,6 @@ enum LLMPrompting {
         return String(result[end.upperBound...])
     }
 
-    // Edge case: speculative decoding with Gemma 4's MTP drafter produced identical output at
-    // temperature 0 and roughly halved generation time on dictation-length text.
     static func drafterId(for modelId: String) -> String? {
         let name = modelId.lowercased()
         if name.contains("gemma-4-e4b") {

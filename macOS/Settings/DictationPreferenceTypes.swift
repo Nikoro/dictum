@@ -45,8 +45,6 @@ enum STTLanguage: String, CaseIterable, Codable, Sendable {
         self == .auto ? nil : rawValue
     }
 
-    // Edge case: English stays as a fallback because window chrome is usually English, whatever
-    // language the user dictates in.
     var ocrLanguages: [String] {
         guard self != .auto else {
             let system = Self.systemDefault

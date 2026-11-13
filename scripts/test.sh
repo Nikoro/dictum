@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Runs the DictumTests unit tests; prints only the failures. Usage: scripts/test.sh
 
 set -euo pipefail
 

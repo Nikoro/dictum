@@ -3,8 +3,6 @@ import MLX
 import MLXLMCommon
 import MLXVLM
 
-// Edge case: only touched inside ModelContainer.perform, which serializes access, so the
-// non-Sendable KV arrays are never shared across threads.
 final class PromptPrefixCache: @unchecked Sendable {
     private var prompt: String?
     private var tokens: [Int] = []
@@ -16,8 +14,6 @@ final class PromptPrefixCache: @unchecked Sendable {
         cache = []
     }
 
-    // Edge case: Gemma 4's sliding-window cache cannot be trimmed back once used, so the prefilled
-    // prefix is kept pristine and every generation continues from a copy of it.
     func copy(
         for systemPrompt: String,
         context: ModelContext,
@@ -77,8 +73,6 @@ final class PromptPrefixCache: @unchecked Sendable {
     }
 }
 
-// Edge case: MTP drafters hold no target-derived state and are documented as safe to share
-// across iterators; the box only carries the non-Sendable model into ModelContainer.perform.
 final class DrafterBox: @unchecked Sendable {
     let model: any MTPDrafterModel
 

@@ -11,7 +11,7 @@ final class KeyboardViewController: UIInputViewController {
     private var heightConstraint: NSLayoutConstraint?
 
     override func loadView() {
-        inputView = UIInputView(frame: .zero, inputViewStyle: .keyboard)
+        inputView = KeyboardInputView(frame: .zero, inputViewStyle: .keyboard)
         inputView?.clipsToBounds = true
     }
 
@@ -66,19 +66,6 @@ final class KeyboardViewController: UIInputViewController {
     private func configureEditing() {
         model.undoAction = { [weak self] in self?.undoManager?.undo() }
         model.redoAction = { [weak self] in self?.undoManager?.redo() }
-    }
-
-    private func configureDeletion() {
-        model.configureDeletion { [weak self] in
-            guard let self else { return }
-            if model.emojiSearchActive {
-                if !model.emojiQuery.isEmpty {
-                    model.emojiQuery.removeLast()
-                }
-            } else {
-                textDocumentProxy.deleteBackward()
-            }
-        }
     }
 
     override func viewWillLayoutSubviews() {
@@ -210,6 +197,38 @@ final class KeyboardViewController: UIInputViewController {
         )
         if heightConstraint?.constant != metrics.height {
             heightConstraint?.constant = metrics.height
+        }
+    }
+}
+
+extension KeyboardViewController {
+    private func configureDeletion() {
+        model.configureDeletion { [weak self] unit in self?.delete(unit: unit) }
+    }
+
+    private func delete(unit: KeyboardDeletionUnit) {
+        UIDevice.current.playInputClick()
+        if model.emojiSearchActive {
+            deleteFromSearch(unit: unit)
+        } else {
+            deleteFromDocument(unit: unit)
+        }
+    }
+
+    private func deleteFromSearch(unit: KeyboardDeletionUnit) {
+        guard !model.emojiQuery.isEmpty else { return }
+        let count = unit == .word ? KeyboardWordDeletion.count(in: model.emojiQuery) : 1
+        model.emojiQuery.removeLast(min(count, model.emojiQuery.count))
+    }
+
+    private func deleteFromDocument(unit: KeyboardDeletionUnit) {
+        guard unit == .word else { textDocumentProxy.deleteBackward(); return }
+        let count = KeyboardWordDeletion.count(
+            in: textDocumentProxy.documentContextBeforeInput,
+            hasSelection: textDocumentProxy.selectedText?.isEmpty == false
+        )
+        for _ in 0 ..< count {
+            textDocumentProxy.deleteBackward()
         }
     }
 }

@@ -49,8 +49,6 @@ final class DictationPipeline {
         }
         recordingTimeoutTask?.cancel()
         recordingTimeoutTask = nil
-        // Edge case: cancel the work itself, or transcription and generation keep the GPU busy
-        // after the pill has disappeared.
         processingTask?.cancel()
         processingTask = nil
         activeProcessor?.cancel()
@@ -139,8 +137,6 @@ final class DictationPipeline {
         }
     }
 
-    // Edge case: a key-up can be lost (e.g. the tap was disabled mid-press); stop and transcribe
-    // rather than record forever.
     private func startRecordingTimeout() {
         recordingTimeoutTask?.cancel()
         recordingTimeoutTask = Task { [weak self] in

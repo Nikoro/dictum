@@ -55,7 +55,10 @@ there is no empty prediction-bar placeholder.
 At 402 points, return is 45.5 points wide, matching backspace; space is approximately 188.7 points wide.
 The narrower return transfers its entire recovered width to space, retaining the 44-point Dictum key. Dictum is aligned above the system microphone,
 with the same 43-point height as the other keys and no additional trailing inset.
-Holding backspace deletes once immediately, then repeats after 500 ms at 100 ms intervals. Releasing, dragging
+Holding backspace deletes once immediately, then repeats after 500 ms at 100 ms intervals. After 20
+character repeats it switches to deleting one word every 200 ms; releasing resets the progression. Word
+deletes include trailing spaces, preserve paragraph boundaries and treat composed emoji as one character.
+Each operation is bounded to 64 characters, with single-character fallback when the host supplies no context. Releasing, dragging
 outside the key or dismissing the keyboard stops repetition. A regression test first failed against single-tap behavior.
 The emoji browser includes 1898 base emojis across eight categories, 48 persistent deduplicated recents, English
 and Polish keyword search, and skin-tone preferences and per-emoji variants. Five-row lazy grids scroll horizontally
@@ -94,7 +97,8 @@ for those. The emoji browser is Dictum's implementation and uses the system's na
 
 ## Privacy and storage
 
-The keyboard never reads surrounding document text. Transcripts are passed through an atomic App Group file
+The keyboard reads the immediate preceding text only while deleting a word to locate its boundary.
+That context is transient, is not logged or stored, and is never passed to the recognizer or sent over the network. Transcripts are passed through an atomic App Group file
 and removed after acknowledgment, discard, session termination or one minute while the app is running.
 Audio is written to an app-private temporary CAF file only during recording and deleted after processing or
 cancellation. New launches remove leftover Dictum audio files and reset the mailbox after an interrupted run.
@@ -530,3 +534,16 @@ the iPhone bottom-row alignment and wider space key, silent handling of empty re
 full-height dismissible keyboard errors that stay dismissed across polling and clear on retry. The iPad
 key layout remains unchanged by these final phone adjustments. Quality-gate cleanup only extracts small
 keyboard rendering helpers and diagnostic entry points without changing their behavior.
+
+
+## Keyboard feedback
+
+The extension uses a UIInputView that adopts UIInputViewAudioFeedback and calls UIDevice.playInputClick
+for letter/modifier presses, emoji insertion and each repeat-deletion operation. iOS controls whether
+keyboard clicks are audible, including its keyboard-feedback and silent-mode settings; no custom audio
+session or bundled sound bypasses those settings. The recording key retains its key dimensions and uses
+a centered 16-by-16-point red stop symbol with four-point rounded corners.
+
+The repeat timings are Dictum's explicit policy, not an undocumented Apple API contract. A direct timing
+comparison on the Simulator could not complete because its text-entry runner timed out after a read-back
+mismatch; unit tests cover the transition, word boundaries, selection fallback and release cancellation.

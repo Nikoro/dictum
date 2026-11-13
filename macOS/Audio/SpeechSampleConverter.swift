@@ -1,7 +1,5 @@
 @preconcurrency import AVFoundation
 
-// Edge case: one AVAudioConverter per recording keeps its filter state between chunks, so chunk
-// borders do not click; it is not thread-safe and is only used on the recorder's drain queue.
 final class SpeechSampleConverter {
     static let outputSampleRate: Double = 16000
 
@@ -35,8 +33,6 @@ final class SpeechSampleConverter {
         let inputFrames = Double(input?.frameLength ?? 0)
         let capacity = AVAudioFrameCount(inputFrames * outputFormat.sampleRate / inputFormat.sampleRate) + 512
         guard let output = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: capacity) else { return [] }
-        // Edge case: the block runs synchronously inside `convert`, so the flag is never shared
-        // across threads; handing the same buffer back twice would duplicate audio.
         nonisolated(unsafe) var pending = input
         var error: NSError?
         converter.convert(to: output, error: &error) { _, status in

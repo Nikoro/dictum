@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Xcode signs the embedded Sparkle.framework but not the helper tools nested inside it, which
-# keep Sparkle's own signature and fail notarization. Re-signs them, innermost first, with our
-# identity; Xcode then seals the app around them. Order and flags follow Sparkle's docs.
 
 set -euo pipefail
 

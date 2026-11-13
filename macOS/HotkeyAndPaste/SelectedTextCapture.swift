@@ -32,8 +32,6 @@ enum SelectedTextCapture {
             return nil
         }
 
-        // Edge case: never call this on the event tap thread; the synthetic Cmd+C is delivered
-        // through that thread, so blocking it here would wait forever.
         Thread.sleep(forTimeInterval: 0.05)
 
         guard pasteboard.changeCount != changeCount else {

@@ -88,8 +88,6 @@ struct FloatingIndicatorView: View {
     private func startDotAnimation() {
         guard dotTimer == nil else { return }
         dotCount = 0
-        // Edge case: hop to the main actor explicitly; annotating the @Sendable Timer block with
-        // @MainActor silently drops the isolation.
         dotTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
             Task { @MainActor in
                 dotCount = (dotCount + 1) % 3

@@ -12,8 +12,6 @@ final class SparkleUpdateController {
     var canCheckForUpdates = false
     @ObservationIgnored private var canCheckObservation: NSKeyValueObservation?
 
-    // Edge case: a Debug build has build number 1, so Sparkle sees every release as newer and
-    // installs it over the build output; development builds must never start the updater.
     #if DEBUG
     private static let startsUpdater = false
     #else

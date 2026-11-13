@@ -69,8 +69,6 @@ struct UnifiedPromptSection: View {
         .background(.quaternary)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .onChange(of: localPrompt) { _, newValue in
-            // Edge case: store only a real override. The editor is seeded with the default, and
-            // saving that verbatim would freeze the user on today's wording.
             settings.unifiedSystemPrompt =
                 newValue == DefaultPrompts.unified ? "" : newValue
         }

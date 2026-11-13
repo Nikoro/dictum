@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Kills the running Dictum, builds Debug, launches the fresh build and confirms it stays up.
-# Usage: scripts/run.sh [--no-launch]
 
 set -euo pipefail
 

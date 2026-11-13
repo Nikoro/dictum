@@ -1,8 +1,6 @@
 import AVFoundation
 import Foundation
 
-// Edge case: AVAudioEngine calls write on its audio thread; the lock protects every access
-// to the file and error, including closing the file before transcription starts.
 final class RecordingSink: @unchecked Sendable {
     private let lock = NSLock()
     private var file: AVAudioFile?

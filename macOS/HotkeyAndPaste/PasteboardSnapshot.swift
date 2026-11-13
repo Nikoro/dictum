@@ -15,8 +15,6 @@ struct PasteboardSnapshot {
         } ?? []
     }
 
-    // Edge case: if the user copied something after `changeCount` was taken, putting the old
-    // contents back would silently destroy their copy.
     func restore(to pasteboard: NSPasteboard, ifUnchangedSince changeCount: Int) {
         guard pasteboard.changeCount == changeCount else {
             dlog("[Paste] clipboard changed meanwhile, not restoring")
