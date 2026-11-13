@@ -13,3 +13,6 @@
 - Launch at login only works from `/Applications`, not from DerivedData.
 - `log show --predicate 'process == "Dictum"'` shows TCC decisions and CoreAudio device switches
   that the app log does not.
+
+- Platform targets and device signing: see [iOS development](ios.md). Mac app sources live in `macOS/`;
+  the `Dictum` scheme and existing run/test scripts remain the macOS entry points.

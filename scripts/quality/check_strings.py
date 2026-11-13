@@ -8,6 +8,7 @@ to the English default even in Polish), or the catalog carries a key no code ref
 
 import glob
 import json
+import os
 import re
 import subprocess
 import sys
@@ -49,7 +50,7 @@ def catalog_errors(path):
 def swift_sources():
     files = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "*.swift"],
                            capture_output=True, text=True).stdout.split()
-    return [f for f in files if not f.startswith(SOURCE_EXCLUDES)]
+    return [f for f in files if not f.startswith(SOURCE_EXCLUDES) and os.path.isfile(f)]
 
 
 def as_catalog_key(literal):
@@ -63,6 +64,10 @@ def main():
     keys = catalog_errors(LOCALIZABLE)[1]
 
     used, referenced = set(), set()
+    emoji_path = "Resources/Emoji/EmojiCatalog.json"
+    if os.path.exists(emoji_path):
+        with open(emoji_path, encoding="utf-8") as file:
+            used |= {entry["localizationKey"] for entry in json.load(file)}
     for path in swift_sources():
         source = open(path, encoding="utf-8").read()
         used |= {as_catalog_key(k) for k in LOCALIZED_KEY.findall(source)}

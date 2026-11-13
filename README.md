@@ -117,3 +117,9 @@ Or visit the [landing page](https://nikoro.github.io/dictum/) for install instru
 - First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
 - Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
 - ~5 GB disk space needed for models, ~5.5 GB unified memory at runtime
+
+## iPhone and iPad
+
+Dictum includes an iOS app and a Polish dictation keyboard, with local Parakeet Ultra/v3 recognition.
+See [iOS setup, signing and limitations](docs/ios.md). Choose the `DictumIOS` scheme in Xcode.
+Mac sources are under `macOS/`, iOS app and keyboard sources under `iOS/`, and the shared session protocol under `Shared/`.

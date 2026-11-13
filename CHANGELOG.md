@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Empty iOS recordings and recognition results return to readiness without an error or inserted text
+- Keyboard errors show their full text, can be dismissed, and clear when starting another attempt
+
+### Added
+
+- Consistent desktop model recommendations for Polish accuracy/speed, compact-download labels and scoped M4 benchmark notes
+- Desktop Parakeet Ultra and Redux options with independent download/storage/selection and configured language hints
+- Reproducible M4 Polish ASR benchmark harness and MLX Qwen comparison runner
+- Dictus-based communication and AI host catalogue, including Claude, Gemini, Gmail, Signal, Messenger and Telegram
+- Native iPad key layout with Tab, separate Caps Lock, both Shift keys, auxiliary flick characters and a keyboard-dismiss control
+- Three-row iPad emoji browser with dedicated emoji and system keyboard-switch controls
+- Guarded Dictus-style host discovery and automatic return after microphone-session readiness on physical iOS devices
+- Keyboard language hints for local iOS transcription, reducing Latin/Cyrillic confusion in both Parakeet models
+- Long-press frequent emoji shortcuts with persistent usage counts and touch tracking outside the popup
+- Caps Lock by double-tapping Shift
+- Simulator-only keyboard comparison host with black and colored backgrounds
+
+### Changed
+
+- TestFlight candidate 0.11.0 (26111302) includes the latest iPhone layout and keyboard error handling
+
+- iPhone Return matches backspace width, allocating the recovered width to space; iPad layout is unchanged
+- Phone keyboard key planes bottom-align within surplus input-view height instead of leaving extra space below the last row
+- iOS build 26111301 retains 0.11.0 and is available to the Internal TestFlight group after a fresh upload
+- Compact desktop speech-model rows show names and recommendation badges; descriptions and benchmark notes move to hover help
+- UIKit keyboard touch dispatcher preserves simultaneous touches and routes gap taps to the closest key
+- Letter and modifier controls are reused while typing; touch handling runs outside the SwiftUI keyboard layout
+- Local iOS build 26111206 expands app return targets without a TestFlight upload
+- Local iOS build 26111205 retains version 0.11.0 and is not uploaded to TestFlight
+- Five-row horizontal emoji categories, native-reference emoji glyphs and calibrated key/material colors
+- Dictum key matches the other keys' height; recording uses a red rounded rectangle on a normal key
+- Accent popup width and ordering match the native O reference; popup spacing is reserved only when needed
+- Local build 26111204 retains version 0.11.0; subsequent TestFlight uploads require explicit permission
+
+## [0.11.0] - 2026-11-12
+
+### Added
+
+- iOS keyboard emoji browser with eight categories, English and Polish search, recent emoji, and skin-tone variants
+- Horizontal long-press accent selection with European letter variants, including umlauts, and selection while dragging outside the popup
+
+### Changed
+
+- iOS keyboard key geometry and return width calibrated against the native keyboard on the same Simulator, with a dedicated 50-point Dictum slot
+- iOS model preparation shows progress, elapsed time, approximate download size and actual stored size
+- iOS microphone state is shown by the toolbar icon without a duplicate idle status row
+- TestFlight builds keep the current semantic version until explicitly changed and increment BirthMinder's date-based build counter
+- iOS model selection lists both models with selection indicators, installed status and measured storage
+- iOS app footer displays the installed semantic version and build number
+- Tapping outside the iOS test editor dismisses the keyboard without intercepting model buttons
+- Keyboard activation links resume a paused microphone without a second tap; unused sessions stop after five minutes
+
 ## [0.10.3] - 2026-10-31
 
 ### Fixed

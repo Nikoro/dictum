@@ -6,6 +6,11 @@ options:
   xcodeVersion: "26.0"
   minimumXcodeGenVersion: "2.38.0"
 
+settings:
+  base:
+    MARKETING_VERSION: "0.11.0"
+    CURRENT_PROJECT_VERSION: "26111302"
+
 packages:
   # WhisperKit graduated into the Argmax OSS SDK at 1.0.0; the repo was renamed and the
   # package no longer depends on swift-transformers (Hub/Tokenizers are vendored internally).
@@ -35,29 +40,16 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: DictumLogger.swift
-      - path: DictationPipeline.swift
-      - path: DictationProcessor.swift
-      - path: DictumApp.swift
-      - path: Audio
-      - path: Context
-      - path: FloatingIndicator
-      - path: HotkeyAndPaste
-      - path: MenuBar
-      - path: ModelBrowser
+      - path: macOS
+      - path: Shared
       - path: Resources
-      - path: Settings
-      - path: TextProcessing
-      - path: Transcription
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum
-        MARKETING_VERSION: "0.10.3"
-        CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
-        INFOPLIST_FILE: Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: Resources/Dictum.entitlements
+        INFOPLIST_FILE: macOS/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: macOS/Resources/Dictum.entitlements
         ENABLE_APP_SANDBOX: "NO"
         ENABLE_HARDENED_RUNTIME: "YES"
         CODE_SIGN_IDENTITY: "Developer ID Application"
@@ -90,7 +82,7 @@ targets:
         script: scripts/signing/sign_sparkle_helpers.sh
         basedOnDependencyAnalysis: false
     entitlements:
-      path: Resources/Dictum.entitlements
+      path: macOS/Resources/Dictum.entitlements
       properties:
         com.apple.security.device.audio-input: true
     scheme:
@@ -102,6 +94,9 @@ targets:
     platform: macOS
     sources:
       - path: DictumTests
+        excludes:
+          - iOS
+          - iOSUI
     dependencies:
       - target: Dictum
     settings:
@@ -112,3 +107,119 @@ targets:
         CODE_SIGN_IDENTITY: "Developer ID Application"
         DEVELOPMENT_TEAM: "Y5T33B6749"
         CODE_SIGN_STYLE: "Manual"
+
+  DictumIOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: iOS/App
+      - path: Shared
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum
+        PRODUCT_NAME: Dictum
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        DEVELOPMENT_TEAM: Y5T33B6749
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: iOS/Resources/Dictum.entitlements
+        INFOPLIST_FILE: iOS/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SUPPORTS_MACCATALYST: "NO"
+    dependencies:
+      - package: FluidAudio
+        product: FluidAudio
+      - target: DictumKeyboard
+        embed: true
+    scheme:
+      testTargets:
+        - DictumIOSTests
+        - DictumIOSUITests
+
+  DictumKeyboard:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: iOS/Keyboard
+      - path: Shared
+      - path: Resources/Localizable.xcstrings
+      - path: Resources/Assets.xcassets
+      - path: Resources/Licenses
+      - path: Resources/Emoji
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum.keyboard
+        PRODUCT_NAME: DictumKeyboard
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        DEVELOPMENT_TEAM: Y5T33B6749
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: iOS/Resources/Dictum.entitlements
+        INFOPLIST_FILE: iOS/Resources/Keyboard-Info.plist
+        APPLICATION_EXTENSION_API_ONLY: "YES"
+        SWIFT_OBJC_BRIDGING_HEADER: iOS/Keyboard/HostRuntime.h
+        SKIP_INSTALL: "YES"
+
+  DictumIOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: DictumTests/iOS
+    dependencies:
+      - target: DictumIOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Dictum.app/Dictum"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        SWIFT_VERSION: "6.0"
+        DEVELOPMENT_TEAM: Y5T33B6749
+        CODE_SIGN_STYLE: Automatic
+
+  DictumIOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: DictumTests/iOSUI
+    dependencies:
+      - target: DictumIOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        SWIFT_VERSION: "6.0"
+        DEVELOPMENT_TEAM: Y5T33B6749
+        CODE_SIGN_STYLE: Automatic
+
+  DictumKeyboardPreview:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: iOS/Preview
+      - path: iOS/Keyboard
+        excludes:
+          - KeyboardViewController.swift
+          - KeyboardHostResolver.swift
+          - HostRuntime.h
+          - HostRuntime.m
+      - path: Shared
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dominikkrajcer.dictum.keyboardpreview
+        PRODUCT_NAME: DictumKeyboardPreview
+        SWIFT_VERSION: "6.0"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+        SUPPORTED_PLATFORMS: iphonesimulator
+        CODE_SIGNING_ALLOWED: "NO"
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_FILE: iOS/Preview/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

@@ -11,7 +11,7 @@ fi
 
 files=()
 while IFS= read -r file; do
-    files+=("$file")
+    [[ -f "$file" ]] && files+=("$file")
 done < <(git ls-files --cached --others --exclude-standard '*.swift' | grep -vE '^(\.agents|build|website)/')
 
 status=0

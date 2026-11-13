@@ -8,8 +8,8 @@
   per-event logging or waiting on that path.
 - No transcription history is stored, by design.
 - Uninstall deletes the shared MLX cache root, not only Dictum-owned models.
-- Whisper stays the default engine: on Polish test speech Parakeet had about twice the word error
-  rate (3.4% vs 1.7%, mostly proper names) while being 20–60× faster.
+- Whisper stays the default engine. Desktop Parakeet variants have separate persisted selections and caches;
+  see [the M4 Polish ASR benchmark](asr-benchmark.md) for the measured quality/speed tradeoff.
 - LLM cleanup runs at temperature 0 through a cached system-prompt prefix plus Gemma 4's MTP
   drafter. On five Polish transcripts this matched plain `ChatSession` output exactly and took
   0.96 s on average instead of 1.78 s; requests with a screenshot still use `ChatSession`.
