@@ -25,13 +25,21 @@ struct DictumIOSApp: App {
     private func resumeFromKeyboard(_ url: URL) {
         returnTask?.cancel()
         returnTask = Task {
-            await KeyboardHostReturn.perform(activation: url, activate: prepareReturn) { destination in
-                await UIApplication.shared.open(
-                    destination,
-                    options: destination.scheme == "https" ? [.universalLinksOnly: true] : [:]
-                )
-            }
+            await KeyboardHostReturn.perform(
+                activation: url,
+                isForeground: { foregroundSceneIsActive },
+                isReady: { dictation.isActive && !dictation.isSuspended },
+                activate: prepareReturn,
+                open: openHost
+            )
         }
+    }
+
+    private func openHost(_ destination: URL) async {
+        await UIApplication.shared.open(
+            destination,
+            options: destination.scheme == "https" ? [.universalLinksOnly: true] : [:]
+        )
     }
 
     private func prepareReturn() async -> Bool {
@@ -41,7 +49,11 @@ struct DictumIOSApp: App {
             guard ContinuousClock.now < deadline else { return false }
             do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
         }
-        return dictation.isActive && !dictation.isSuspended && UIApplication.shared.applicationState == .active
+        return dictation.isActive && !dictation.isSuspended
+    }
+
+    private var foregroundSceneIsActive: Bool {
+        UIApplication.shared.connectedScenes.contains { $0.activationState == .foregroundActive }
     }
 
     private func activateIfRunningNormally() async {
@@ -49,7 +61,8 @@ struct DictumIOSApp: App {
         guard !ProcessInfo.processInfo.arguments.contains("--ui-testing") else { return }
         #endif
         guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
-              NSClassFromString("XCTestCase") == nil else { return }
+              NSClassFromString("XCTestCase") == nil,
+              foregroundSceneIsActive else { return }
         await dictation.activate()
     }
 }

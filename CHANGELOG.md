@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Host-app return waits for the Dictum scene to become active before starting audio and returning; cancelled or timed-out requests cannot redirect later
+
 - Empty iOS recordings and recognition results return to readiness without an error or inserted text
 - Keyboard errors show their full text, can be dismissed, and clear when starting another attempt
 

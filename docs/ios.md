@@ -547,3 +547,17 @@ a centered 16-by-16-point red stop symbol with four-point rounded corners.
 The repeat timings are Dictum's explicit policy, not an undocumented Apple API contract. A direct timing
 comparison on the Simulator could not complete because its text-entry runner timed out after a read-back
 mismatch; unit tests cover the transition, word boundaries, selection fallback and release cancellation.
+
+
+## Foreground activation before returning to the host
+
+Automatic return waits for an active Dictum scene before starting microphone activation, then waits
+again after activation and checks that the microphone session remains ready. Each foreground wait is
+bounded to ten seconds. Cancellation prevents stale requests from starting audio or returning to an
+older host. The app's normal automatic activation also requires a foreground-active scene. This avoids
+a one-shot application-state check discarding a return while an iPad window or permission dialog is
+still transitioning. It does not change the PID-matched host resolver or the allowed return URL catalogue.
+
+The host resolver is disabled in Simulator builds; unit tests exercise delayed scene activation,
+cancellation, timeout, readiness loss and exactly-once return. End-to-end host discovery and T3 Code
+return on physical iPhone/iPad still require device verification; private host APIs are best effort.

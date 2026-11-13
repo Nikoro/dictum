@@ -9,7 +9,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "0.11.0"
-    CURRENT_PROJECT_VERSION: "26111302"
+    CURRENT_PROJECT_VERSION: "26111303"
 
 packages:
   # WhisperKit graduated into the Argmax OSS SDK at 1.0.0; the repo was renamed and the
