@@ -13,7 +13,7 @@ import Foundation
     var modifier = true
 
     init(role: KeyboardKeyRole, model: KeyboardModel, tablet: Bool) {
-        modifier = role != .space && role != .dictation
+        modifier = !tablet && role != .space && role != .dictation
         switch role {
         case .tab: symbol = "arrow.right.to.line"; label = String(localized: "ios.keyboard.tab")
         case .capsLock: configureCapsLock(model)
@@ -42,6 +42,9 @@ import Foundation
         symbol = model.shift.mode == .locked && !tablet ? "capslock.fill" : model.uppercase ? "shift.fill" : "shift"
         label = String(localized: "ios.keyboard.shift")
         selected = model.uppercase
+        if !tablet, selected {
+            modifier = false
+        }
     }
 
     private mutating func configureNumbers(_ model: KeyboardModel, tablet: Bool) {

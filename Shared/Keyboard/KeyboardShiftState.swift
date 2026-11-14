@@ -22,6 +22,13 @@ struct KeyboardShiftState {
         }
     }
 
+    mutating func hold() {
+        if mode != .locked {
+            mode = .uppercase
+        }
+        lastTap = nil
+    }
+
     mutating func didTypeLetter() {
         if mode == .uppercase {
             mode = .lowercase

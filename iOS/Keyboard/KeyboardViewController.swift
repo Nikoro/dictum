@@ -6,6 +6,7 @@ final class KeyboardViewController: UIInputViewController {
     private let model = KeyboardModel()
     private let hostResolver = KeyboardHostResolver()
     private let plane = KeyboardPlaneView()
+    private var spaceShortcut = KeyboardSpaceShortcut()
     private weak var hostedView: UIView?
     private var pollingTask: Task<Void, Never>?
     private var heightConstraint: NSLayoutConstraint?
@@ -20,6 +21,10 @@ final class KeyboardViewController: UIInputViewController {
         hasDictationKey = true
         model.keysChanged = { [weak self] in self?.refreshKeyboard() }
         configureEditing()
+        model.moveCursor = { [weak self] offset in
+            self?.spaceShortcut.reset()
+            self?.textDocumentProxy.adjustTextPosition(byCharacterOffset: offset)
+        }
         model.resizeKeyboard = { [weak self] in self?.refreshKeyboard() }
         model.activationURLProvider = { [weak self] in
             guard let self else { return nil }
@@ -29,7 +34,7 @@ final class KeyboardViewController: UIInputViewController {
         configureDeletion()
         let host = UIHostingController(rootView: KeyboardView(
             model: model,
-            insert: { [weak self] text in self?.textDocumentProxy.insertText(text) },
+            insert: { [weak self] text in self?.insertTypedText(text) },
             start: { [weak self] in
                 guard let self else { return }
                 model.beginDictation(in: textDocumentProxy.documentIdentifier, language: primaryLanguage)
@@ -109,6 +114,8 @@ final class KeyboardViewController: UIInputViewController {
         pollingTask?.cancel()
         pollingTask = nil
         model.cancelAutomaticInsertion()
+        plane.cancelGestures()
+        spaceShortcut.reset()
         model.stopDeleting()
         model.accentPopup = nil
     }
@@ -130,6 +137,7 @@ final class KeyboardViewController: UIInputViewController {
         updateHeight()
         updatePlane()
         model.insertReadyResult(in: textDocumentProxy.documentIdentifier) { [weak self] text in
+            self?.spaceShortcut.reset()
             self?.textDocumentProxy.insertText(text)
         }
     }
@@ -157,7 +165,7 @@ final class KeyboardViewController: UIInputViewController {
             layout: layout,
             model: model,
             palette: KeyboardPalette(dark: traitCollection.userInterfaceStyle == .dark),
-            insert: { [weak self] in self?.textDocumentProxy.insertText($0) },
+            insert: { [weak self] in self?.insertTypedText($0) },
             start: { [weak self] in self?.beginRecording() },
             nextKeyboard: { [weak self] in self?.advanceToNextInputMode() },
             dismiss: { [weak self] in self?.dismissKeyboard() },
@@ -202,11 +210,39 @@ final class KeyboardViewController: UIInputViewController {
 }
 
 extension KeyboardViewController {
+    private func insertTypedText(_ text: String) {
+        let proxy = textDocumentProxy
+        let enabled = ![UIKeyboardType.URL, .emailAddress, .numberPad, .decimalPad, .asciiCapableNumberPad]
+            .contains(proxy.keyboardType ?? .default)
+        if spaceShortcut.replacesSpace(
+            inserting: text,
+            before: proxy.documentContextBeforeInput,
+            hasSelection: proxy.selectedText?.isEmpty == false,
+            enabled: enabled
+        ) {
+            proxy.deleteBackward()
+            proxy.insertText(". ")
+            if proxy.autocapitalizationType != UITextAutocapitalizationType.none {
+                model.shift.hold()
+                model.keysChanged()
+            }
+        } else {
+            proxy.insertText(text)
+        }
+    }
+
+    override func selectionWillChange(_ textInput: (any UITextInput)?) {
+        super.selectionWillChange(textInput)
+        plane.cancelGestures()
+        spaceShortcut.reset()
+    }
+
     private func configureDeletion() {
         model.configureDeletion { [weak self] unit in self?.delete(unit: unit) }
     }
 
     private func delete(unit: KeyboardDeletionUnit) {
+        spaceShortcut.reset()
         UIDevice.current.playInputClick()
         if model.emojiSearchActive {
             deleteFromSearch(unit: unit)

@@ -97,7 +97,7 @@ for those. The emoji browser is Dictum's implementation and uses the system's na
 
 ## Privacy and storage
 
-The keyboard reads the immediate preceding text only while deleting a word to locate its boundary.
+The keyboard reads the immediate preceding text while deleting a word or checking double-space punctuation.
 That context is transient, is not logged or stored, and is never passed to the recognizer or sent over the network. Transcripts are passed through an atomic App Group file
 and removed after acknowledgment, discard, session termination or one minute while the app is running.
 Audio is written to an app-private temporary CAF file only during recording and deleted after processing or
@@ -561,3 +561,103 @@ still transitioning. It does not change the PID-matched host resolver or the all
 The host resolver is disabled in Simulator builds; unit tests exercise delayed scene activation,
 cancellation, timeout, readiness loss and exactly-once return. End-to-end host discovery and T3 Code
 return on physical iPhone/iPad still require device verification; private host APIs are best effort.
+
+
+## Apple keyboard gestures research (2026-11-14)
+
+Apple's [iPhone keyboard guide](https://support.apple.com/guide/iphone/iph3c50f96e/ios)
+describes space-bar trackpad mode, second-finger selection, Shift-to-letter dragging,
+double-Shift Caps Lock, double-space punctuation, long-press alternatives and QuickPath.
+The [iPad keyboard guide](https://support.apple.com/guide/ipad/ipad997da459/ipados)
+covers the corresponding tablet interactions.
+
+This implementation adds:
+
+- Hold space for 350 ms: hide key labels, fade key surfaces until release and move the insertion point horizontally.
+  Each eight points of travel moves one character; fractional movement accumulates in both directions.
+  Activation cancels the pending space and other key actions. Dismissal cancels the gesture.
+  Emoji search does not activate a host-document trackpad.
+- Drag from Shift to a letter, or hold Shift while tapping letters: type capitals temporarily.
+  Existing single-tap Shift and double-tap Caps Lock remain available.
+- Drag from 123 or the symbol-page key to a character: insert once and restore the previous page.
+  Holding the modifier with one finger while tapping with another also supports temporary entry.
+  Tapping the modifier alone retains the selected page. Space returns to letters.
+- Two spaces within 300 ms after a letter or number replace the first space with a period.
+  Selection, cursor movement, deletion, intervening input, missing context and unsuitable field
+  types suppress replacement. Existing punctuation and repeated whitespace remain intact.
+  Capitalization after the shortcut respects the host's no-capitalization trait.
+
+These timing and movement thresholds are Dictum policy, not measured Apple constants.
+Existing features include accented-letter popups, Caps Lock, emoji variants, accelerating delete
+and iPad downward symbol flicks. Their presence is based on source inspection, not a new device comparison.
+
+### Limits and remaining differences
+
+Full equivalence is not possible through public keyboard-extension APIs. Apple's
+[custom keyboard guide](https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/CustomKeyboard.html)
+explicitly leaves selection and editing menus with the host app. The current
+[UITextDocumentProxy API](https://developer.apple.com/documentation/uikit/uitextdocumentproxy)
+provides character-offset movement and read-only selected text, but no selection-range setter or
+visual line geometry. Consequently Shift+space and second-finger range selection are not implemented;
+vertical movement through wrapped visual lines cannot be faithfully reproduced. The trackpad moves
+through the text in storage order, including across line boundaries, using horizontal movement.
+It never rewrites text to imitate selection or invokes private selection APIs.
+
+QuickPath, Apple's prediction/autocorrection engine, full automatic capitalization, smart punctuation,
+text-replacement expansion, field-specific layouts/domain suffixes, one-handed layouts and floating/split
+keyboard controls are not supplied by this change. Some can be implemented independently, but cannot
+be imported as Apple's keyboard engine. Most global keyboard preferences are unavailable to extensions.
+The host owns three-finger editing gestures, cut/copy/paste menus and text-selection handles.
+The existing undo/redo buttons are not evidence that cross-process undo works in every host.
+
+### Gesture QA
+
+Unit tests exercise movement accumulation/reversal, fresh-gesture reset, double-space eligibility,
+interruption, selection and missing context, plus Shift's held state. Build the extension as well as the
+Mac test host; Mac tests alone do not compile UIKit gesture code.
+
+On both iPhone and iPad, in Dictum and Notes, verify:
+
+1. A short space tap inserts one space; holding inserts none, hides keys and moves the cursor left/right.
+   Release, keyboard dismissal and changing fields must restore normal typing. Test emoji and Polish letters.
+2. Shift-drag types one capital and restores the prior mode; held Shift works for multiple letters.
+   Both release orders, canceled drags and double-tap Caps Lock retain correct state.
+3. 123-drag inserts a digit and returns; a tap stays on numbers; number-space returns to letters.
+4. Double-space punctuation works after a word, but not after punctuation, selection, cursor movement,
+   a slow second tap, or in an email/URL field. Emoji search must not modify the host document.
+
+Simulator follow-up (2026-11-14): installed the current extension on Appshot Capture (iOS 27.2,
+440-point phone viewport) and enabled it through Settings. Confirmed actual key taps, native double-tap
+space producing a period, Shift-drag inserting a capital, 123-drag inserting a digit and restoring letters,
+and a held-space pan repositioning the cursor without inserting a space. Inserting a subsequent character
+confirmed the new position in the host text value. The native double-tap gesture is required for this check:
+automation's separate repeated taps can exceed the 300 ms threshold.
+
+Captured Apple and Dictum in the same editor, including screenshots during each held-space gesture.
+Adjusted the active phone Shift fill and preserved faded blank key surfaces in trackpad mode after comparing
+those screenshots. Rebuilt, reinstalled, and visually verified both changes. The extension's remote key
+accessibility tree was unavailable to this runner, so key coordinates came from current screenshots;
+host text values provided independent insertion evidence.
+
+Remaining visual differences include the prediction strip, phone key/row geometry at 440 points, modifier
+fills and glyphs, and the bottom-row widths needed for Dictum's extra dictation key. This is not pixel parity.
+iPad, dark mode, orientation changes, modifier chords with two fingers and selection were unverified in
+that phone follow-up. The simulator reported an audio-session error, so this check makes no claim about dictation.
+
+### iPad simulator follow-up
+
+On the iPad Air (5th generation), iOS 27.2, compared Apple and Dictum in the same editor at
+820 × 1180 and 1180 × 820 points. Tablet action and delete keys now use the character-key fill,
+matching Apple's uniform tablet surfaces. Rebuilt and installed the extension, then captured both
+orientations. Bottom-row widths, glyph sizes, punctuation-key legends and the prediction strip still
+differ; these captures do not establish pixel parity.
+
+Verified a downward Q flick inserts `1`, tapping A and double-tapping space produces `1a. `,
+and a held-space left pan followed by Q produces `1aQ. `, proving cursor movement without an added
+space. The retained uppercase state after moving back into the word remains a capitalization difference.
+All 87 tests in 29 suites and quality gates passed; the macOS launch log confirms event-tap startup
+and completed STT warmup. The iOS simulator still reports an audio-session error.
+
+Dark Apple reference was captured, but dark Dictum verification stopped when the device runner refused
+the keyboard-switcher item as occluded and its suggested keyboard dismissal returned unsupported.
+Two-finger modifier chords, range selection and Notes-host testing remain unverified.

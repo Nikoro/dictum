@@ -15,6 +15,7 @@ final class KeyboardModel {
         shift.isUppercase
     }
 
+    @ObservationIgnored var moveCursor: (Int) -> Void = { _ in }
     var numbers = false
     var symbols = false
     var emoji = false

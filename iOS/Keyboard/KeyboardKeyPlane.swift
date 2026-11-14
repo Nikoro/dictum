@@ -24,6 +24,9 @@ struct KeyboardKeyPlane: UIViewRepresentable {
     }
 
     func render(_ view: KeyboardPlaneView) {
+        view.trackpadFill = UIColor(palette.key)
+        view.model = model
+        view.activateRole = activate
         view.layout = layout
         for slot in layout.slots {
             let control = view.control(for: slot)
@@ -42,12 +45,13 @@ struct KeyboardKeyPlane: UIViewRepresentable {
             }
         }
         view.removeUnusedControls()
+        view.updateTrackpadAppearance()
     }
 
     private func configure(_ button: DeleteKeyButton) {
         button.onPress = model.startDeleting
         button.onRelease = model.stopDeleting
-        button.normalFill = UIColor(palette.modifier)
+        button.normalFill = UIColor(layout.tablet ? palette.key : palette.modifier)
         button.pressedFill = UIColor(palette.pressedKey)
         button.backgroundColor = button.isHighlighted ? button.pressedFill : button.normalFill
         button.tintColor = UIColor(palette.foreground)
@@ -97,7 +101,10 @@ struct KeyboardKeyPlane: UIViewRepresentable {
             } else {
                 type("\n")
             }
-        case .space: type(" ")
+        case .space:
+            type(" ")
+            model.numbers = false
+            model.symbols = false
         case .shift: model.shift.tap()
         case .capsLock: model.shift.toggleLock()
         case .numbers: model.numbers.toggle()
@@ -108,7 +115,10 @@ struct KeyboardKeyPlane: UIViewRepresentable {
         case .undo: model.undoAction()
         case .redo: model.redoAction()
         case .dictation: activateDictation()
-        case .character, .delete: break
+        case let .character(text, _):
+            type(model.uppercase ? text.uppercased() : text)
+            model.shift.didTypeLetter()
+        case .delete: break
         }
     }
 
@@ -128,106 +138,6 @@ struct KeyboardKeyPlane: UIViewRepresentable {
             model.emojiQuery += text
         } else {
             insert(text)
-        }
-    }
-}
-
-final class KeyboardPlaneView: UIView {
-    var layout = KeyboardKeyLayout(width: 402, tablet: false)
-    private var controls: [Int: UIControl] = [:]
-    private var touches: [ObjectIdentifier: UIControl] = [:]
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        isMultipleTouchEnabled = true
-        backgroundColor = UIColor.black.withAlphaComponent(0.01)
-    }
-
-    required init?(coder: NSCoder) {
-        nil
-    }
-
-    func control(for slot: KeyboardKeySlot) -> UIControl {
-        if let control = controls[slot.id], (control is DeleteKeyButton) == (slot.role == .delete) {
-            return control
-        }
-        controls[slot.id]?.removeFromSuperview()
-        let control: UIControl
-        if slot.role == .delete {
-            let button = DeleteKeyButton(type: .custom)
-            button.setImage(UIImage(systemName: "delete.left"), for: .normal)
-            button.setPreferredSymbolConfiguration(.init(pointSize: layout.tablet ? 22 : 20), forImageIn: .normal)
-            button.layer.cornerRadius = 8
-            button.accessibilityLabel = String(localized: "ios.keyboard.delete")
-            control = button
-        } else {
-            control = KeyboardAccentKeyControl()
-        }
-        controls[slot.id] = control
-        addSubview(control)
-        return control
-    }
-
-    func removeUnusedControls() {
-        let retained = Set(layout.slots.map(\.id))
-        for id in controls.keys where !retained.contains(id) {
-            controls.removeValue(forKey: id)?.removeFromSuperview()
-        }
-    }
-
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        isUserInteractionEnabled && !isHidden && bounds.contains(point) ? self : nil
-    }
-
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
-            guard let slot = layout.nearest(to: touch.location(in: self)),
-                  let control = controls[slot.id], control.isEnabled else { continue }
-            self.touches[ObjectIdentifier(touch)] = control
-            if let key = control as? KeyboardAccentKeyControl {
-                _ = key.beginTracking(touch, with: event)
-            }
-            if let key = control as? DeleteKeyButton {
-                key.isHighlighted = true; key.onPress?()
-            }
-        }
-    }
-
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
-            if let key = self.touches[ObjectIdentifier(touch)] as? KeyboardAccentKeyControl {
-                _ = key.continueTracking(touch, with: event)
-            } else if let key = self.touches[ObjectIdentifier(touch)] as? DeleteKeyButton,
-                      !key.bounds.contains(touch.location(in: key))
-            {
-                key.onRelease?()
-                key.isHighlighted = false
-                self.touches.removeValue(forKey: ObjectIdentifier(touch))
-            }
-        }
-    }
-
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
-            let control = self.touches.removeValue(forKey: ObjectIdentifier(touch))
-            if let key = control as? KeyboardAccentKeyControl {
-                key.endTracking(touch, with: event)
-            }
-            if let key = control as? DeleteKeyButton {
-                key.isHighlighted = false; key.onRelease?()
-            }
-        }
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches {
-            let control = self.touches.removeValue(forKey: ObjectIdentifier(touch))
-            if let key = control as? KeyboardAccentKeyControl {
-                key.cancel()
-            }
-            if let key = control as? DeleteKeyButton {
-                key.isHighlighted = false; key.onRelease?()
-            }
         }
     }
 }

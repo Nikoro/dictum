@@ -29,4 +29,14 @@ struct KeyboardShiftStateTests {
         shift.didTypeLetter()
         #expect(shift.mode == .lowercase)
     }
+
+    @Test func `holding shift capitalizes without unlocking caps lock`() {
+        var shift = KeyboardShiftState()
+        shift.didTypeLetter()
+        shift.hold()
+        #expect(shift.mode == .uppercase)
+        shift.toggleLock()
+        shift.hold()
+        #expect(shift.mode == .locked)
+    }
 }

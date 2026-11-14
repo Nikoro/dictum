@@ -121,6 +121,15 @@ final class KeyboardAccentKeyControl: UIControl {
         progress?.center = CGPoint(x: key.midX, y: key.midY)
     }
 
+    func showTrackpad(_ active: Bool, fill: UIColor) {
+        title.isHidden = active
+        hintLabel.isHidden = active
+        icon.isHidden = active
+        progress?.isHidden = active
+        surface.backgroundColor = active ? fill : isHighlighted ? pressedColor : normalColor
+        surface.alpha = active ? 0.5 : 1
+    }
+
     func useFill(_ color: UIColor) {
         normalColor = color
         surface.backgroundColor = isHighlighted ? pressedColor : normalColor
