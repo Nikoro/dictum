@@ -80,6 +80,8 @@ On first launch, the onboarding flow guides you through:
 
 ## Features
 
+Planned work and research: [Dictum roadmap](docs/roadmap.md).
+
 - **On-device pipeline** — WhisperKit or Parakeet STT + MLX LLM, no network required
 - **Live transcription** — long dictations are transcribed in chunks while you speak, so the text is ready seconds after you stop
 - **Dictionary** — fix words the recognizer always gets wrong
