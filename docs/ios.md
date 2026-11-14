@@ -661,3 +661,14 @@ and completed STT warmup. The iOS simulator still reports an audio-session error
 Dark Apple reference was captured, but dark Dictum verification stopped when the device runner refused
 the keyboard-switcher item as occluded and its suggested keyboard dismissal returned unsupported.
 Two-finger modifier chords, range selection and Notes-host testing remain unverified.
+
+### TestFlight build 26111401
+
+Version 0.11.0 (26111401) packages the keyboard gesture work and tablet appearance adjustments.
+The Release archive and manual export succeeded; validation confirmed matching app/keyboard versions
+and both shared App Group entitlements. All 87 hosted tests, 15 distribution tests and quality gates passed.
+The macOS launch check confirmed the event tap and STT warmup. Device QA limitations remain as listed above.
+
+Apple accepted delivery `c6cfc6ed-249e-4437-b609-4d8096387d4d` on 2026-11-14. Processing completed with
+no errors or warnings: the build is VALID, INTERNAL_ONLY and IN_BETA_TESTING. Access through the existing
+Internal group is confirmed. English TestFlight notes describe the gestures and their selection limitations.
