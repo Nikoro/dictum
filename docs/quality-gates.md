@@ -9,12 +9,12 @@
 - Tests use Swift Testing and run hosted in the app; `DictumApp` skips its startup under XCTest.
   Logic that touches the file system takes its directories as parameters so tests use temp folders.
 - `scripts/hooks/install.sh` installs the pinned commit_gate revision in `.tools/commit_gate` and both Git hooks.
-  The pre-commit hook scans staged content; commit-msg enforces note-review trailers before the regression test gate.
+  The pre-commit hook scans staged content; commit-msg runs commit_gate's message checks, then the regression test gate.
   `scripts/quality/check_all.sh` also scans the full working tree. Python 3.11 or newer is required.
 - Comments follow commit_gate defaults: recognized tool directives or a single-line `Edge case:` /
   `Workaround: <issue URL>` note, at most 100 characters after the prefix, three notes per file and two net new
-  notes per commit. No TODO/FIXME, prose or private documentation comments. Retained changed-file notes need
-  `Notes-reviewed: path:line` trailers after checking why each retained note is still necessary; the `trailers` command lists requirements.
+  notes per commit. No TODO/FIXME, prose or private documentation comments, also in YAML and TOML: move the reason
+  to `docs/implementation-constraints.md`. Notes kept in changed files are reported as advice.
 - The instruction-file gate is enabled. `.agents` and `.claude` contain externally maintained skill packages and
   are excluded from source scanning; application, test, script and website sources remain in scope. No policy
   limit is relaxed. The optional independent-review and universal mirror-test gates are not enabled; Dictum's

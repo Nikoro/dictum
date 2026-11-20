@@ -2,6 +2,22 @@
 
 Constraints and usage notes that cannot be inferred from code. Source files keep only the short local notes allowed by commit_gate.
 
+## [.github/workflows/release.yml](../.github/workflows/release.yml)
+
+- The release must be compiled by the Xcode the app is developed and tested with (`.xcode-version`); 0.10.1 was built by the image default, Xcode 26.6, and crashed while recording in a runtime isolation check that Xcode 27 compiles differently.
+- The release builds only `arm64`: MLX runs only on Apple Silicon, and an x86_64 slice of every package doubled the build time.
+
+## [.periphery.yml](../.periphery.yml)
+
+- `retain_codable_properties`: Codable fields are read by synthesized conformances the indexer cannot attribute.
+
+## [.swiftlint.yml](../.swiftlint.yml)
+
+- `only_rules` is an explicit list, so a SwiftLint upgrade cannot change results by enabling new defaults.
+- `closure_body_length` is what bounds SwiftUI `body`: `function_body_length` ignores computed properties.
+- `opening_brace` ignores multiline headers because SwiftFormat's `wrapMultilineStatementBraces` moves `{` onto its own line after a wrapped header; accept that layout instead of fighting the formatter.
+- `modifier_order` matches SwiftFormat's `modifierOrder` (access level before `nonisolated`), so the two agree.
+
 ## [Shared/Audio/RecordingSink.swift](../Shared/Audio/RecordingSink.swift)
 
 - AVAudioEngine calls write on its audio thread; the lock protects every access to the file and error, including closing the file before transcription starts.
@@ -223,6 +239,12 @@ Constraints and usage notes that cannot be inferred from code. Source files keep
 - CoreML compilation reports no progress, so the second half of the bar creeps towards 99% over the typical ~120 s instead.
 
 - the block must ignore its Timer argument (not Sendable, so reaching it from the main actor is a cross-isolation send); `defer` invalidates instead. Scheduled from the main actor, the block runs on the main run loop, which makes assumeIsolated safe.
+
+## [project.yml](../project.yml)
+
+- WhisperKit graduated into the Argmax OSS SDK at 1.0.0; the repo was renamed and the package no longer depends on swift-transformers (Hub/Tokenizers are vendored internally).
+- FluidAudio provides Parakeet speech recognition on the Neural Engine (the "fast" engine).
+- A Sparkle bump must also update `SPARKLE_VERSION` and `SPARKLE_SHA256` in `.github/workflows/release.yml`.
 
 ## [scripts/benchmarks/speech_mlx.py](../scripts/benchmarks/speech_mlx.py)
 

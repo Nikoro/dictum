@@ -10,9 +10,6 @@ permissions:
 
 jobs:
   build:
-    # The release must be compiled by the Xcode the app is developed and tested with
-    # (.xcode-version); 0.10.1 was built by the image default, Xcode 26.6, and crashed while
-    # recording in a runtime isolation check that Xcode 27 compiles differently.
     runs-on: xcode-27
     timeout-minutes: 60
     steps:
@@ -66,7 +63,6 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -project Dictum.xcodeproj -scheme Dictum
 
       - name: Build Release
-        # MLX runs only on Apple Silicon; an x86_64 slice of every package doubled the build time.
         run: |
           BUILD_NUMBER=$(date -u +"%Y%m%d%H%M")
           xcodebuild \

@@ -18,9 +18,6 @@ reporter: xcode
 analyzer_rules:
   - unused_import
 
-# Explicit rule list, so a SwiftLint upgrade cannot change results by enabling new defaults.
-# closure_body_length is what bounds SwiftUI `body`: function_body_length ignores computed
-# properties.
 only_rules:
   - accessibility_trait_for_button
   - async_without_await
@@ -214,8 +211,6 @@ large_tuple:
 todo:
   severity: warning
 
-# SwiftFormat's wrapMultilineStatementBraces moves `{` onto its own line after a wrapped
-# header; accept that layout instead of fighting the formatter.
 opening_brace:
   ignore_multiline_statement_conditions: true
   ignore_multiline_type_headers: true
@@ -227,7 +222,6 @@ trailing_whitespace:
 vertical_whitespace:
   max_empty_lines: 1
 
-# Matches SwiftFormat's modifierOrder (access level before `nonisolated`), so the two agree.
 modifier_order:
   preferred_modifier_order:
     - override
