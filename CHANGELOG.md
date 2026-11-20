@@ -7,43 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Host-app return waits for the Dictum scene to become active before starting audio and returning; cancelled or timed-out requests cannot redirect later
-
-- Empty iOS recordings and recognition results return to readiness without an error or inserted text
-- Keyboard errors show their full text, can be dismissed, and clear when starting another attempt
+## [0.12.0] - 2026-11-20
 
 ### Added
 
-- Consistent desktop model recommendations for Polish accuracy/speed, compact-download labels and scoped M4 benchmark notes
-- Desktop Parakeet Ultra and Redux options with independent download/storage/selection and configured language hints
-- Reproducible M4 Polish ASR benchmark harness and MLX Qwen comparison runner
-- Dictus-based communication and AI host catalogue, including Claude, Gemini, Gmail, Signal, Messenger and Telegram
-- Native iPad key layout with Tab, separate Caps Lock, both Shift keys, auxiliary flick characters and a keyboard-dismiss control
-- Three-row iPad emoji browser with dedicated emoji and system keyboard-switch controls
-- Guarded Dictus-style host discovery and automatic return after microphone-session readiness on physical iOS devices
-- Keyboard language hints for local iOS transcription, reducing Latin/Cyrillic confusion in both Parakeet models
-- Long-press frequent emoji shortcuts with persistent usage counts and touch tracking outside the popup
+- Parakeet Ultra and Redux speech models on the Mac, each with its own download, storage and selection, plus language hints
+- Clearer Mac speech-model recommendations for Polish accuracy and speed, with compact rows and details on hover
+- iOS keyboard trackpad: hold space to move the cursor; double space types a period
+- Native iPad keyboard layout with Tab, Caps Lock, both Shift keys, extra flick characters and a dismiss key
+- Three-row iPad emoji browser and long-press shortcuts to your most used emoji
 - Caps Lock by double-tapping Shift
-- Simulator-only keyboard comparison host with black and colored backgrounds
+- Automatic return to Claude, Gemini, Gmail, Signal, Messenger, Telegram and other apps after dictating from the keyboard
+- Keyboard language hints that reduce Latin/Cyrillic mix-ups in iOS transcription
+
+### Fixed
+
+- The Mac app no longer crashes occasionally when a long dictation ends
+- The dictation pill appears next to the text field on multi-display setups instead of at the top of the screen
+- Returning to the host app waits for Dictum to become active; cancelled or timed-out requests no longer redirect later
+- Empty iOS recordings return to ready without an error or inserted text
+- Keyboard errors show their full text, can be dismissed, and clear on the next attempt
 
 ### Changed
 
-- TestFlight candidate 0.11.0 (26111302) includes the latest iPhone layout and keyboard error handling
-
-- iPhone Return matches backspace width, allocating the recovered width to space; iPad layout is unchanged
-- Phone keyboard key planes bottom-align within surplus input-view height instead of leaving extra space below the last row
-- iOS build 26111301 retains 0.11.0 and is available to the Internal TestFlight group after a fresh upload
-- Compact desktop speech-model rows show names and recommendation badges; descriptions and benchmark notes move to hover help
-- UIKit keyboard touch dispatcher preserves simultaneous touches and routes gap taps to the closest key
-- Letter and modifier controls are reused while typing; touch handling runs outside the SwiftUI keyboard layout
-- Local iOS build 26111206 expands app return targets without a TestFlight upload
-- Local iOS build 26111205 retains version 0.11.0 and is not uploaded to TestFlight
-- Five-row horizontal emoji categories, native-reference emoji glyphs and calibrated key/material colors
-- Dictum key matches the other keys' height; recording uses a red rounded rectangle on a normal key
-- Accent popup width and ordering match the native O reference; popup spacing is reserved only when needed
-- Local build 26111204 retains version 0.11.0; subsequent TestFlight uploads require explicit permission
+- Faster, more accurate iOS keyboard touch handling, including simultaneous touches and taps between keys
+- iPhone Return key matches the backspace width, and key rows align to the bottom of the keyboard
+- Emoji categories, glyphs and key colors match the native keyboard more closely
 
 ## [0.11.0] - 2026-11-12
 
@@ -282,7 +271,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Localized UI (Polish)
 - 100% on-device — no data leaves the device
 
-[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.10.3...HEAD
+[Unreleased]: https://github.com/Nikoro/dictum/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/Nikoro/dictum/compare/v0.10.3...v0.12.0
 [0.10.3]: https://github.com/Nikoro/dictum/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/Nikoro/dictum/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/Nikoro/dictum/compare/v0.10.0...v0.10.1
