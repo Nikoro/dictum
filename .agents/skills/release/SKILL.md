@@ -3,173 +3,138 @@ name: release
 description: Automate release preparation for Dictum. Determines version bump, updates project.yml/CHANGELOG.md, commits, tags, and pushes. Use when the user wants to publish a new release.
 ---
 
-You are preparing a new release for **Dictum**, a native macOS menu bar app for voice dictation. The user may optionally provide a version number or bump keyword.
+You are preparing a new release of the **Dictum macOS app**, a menu bar app for voice dictation.
+The user may optionally provide a version number or bump keyword.
 
+Facts this skill relies on:
 
-The signing identity (Developer ID, team `Y5T33B6749`, set in `project.yml`) must not change
-between releases: macOS ties Microphone and Accessibility grants to it and silently revokes them
-for every user. The first Developer ID release replaces the old self-signed "Dictum Development"
-one, so its changelog must say that users grant permissions again once. CI needs the
-`CERTIFICATE_*` and `NOTARY_*` secrets read in `release.yml`; the `.p12` and `.p8` go in base64.
+- Pushing a `v*` tag runs `.github/workflows/release.yml`. It builds the Release app with the
+  Developer ID certificate (team `Y5T33B6749`), notarizes and staples it, and publishes `Dictum.zip`
+  plus a Sparkle `appcast.xml` as a GitHub Release with the changelog section as notes. Nothing is
+  signed or notarized locally.
+- The signing identity must never change between releases: macOS ties Microphone and Accessibility
+  grants to it and silently revokes them for every user.
+- CI needs the `CERTIFICATE_P12`, `CERTIFICATE_PASSWORD`, `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID`,
+  `NOTARY_KEY_P8` and `SPARKLE_EDDSA_KEY` secrets; the `.p12` and `.p8` go in base64.
+- `MARKETING_VERSION` in `project.yml` is shared with the iOS app. TestFlight builds may already use a
+  version that was never tagged, and `CHANGELOG.md` may contain a dated section for it. The latest
+  `v*` tag is the last public macOS release.
+- CI overrides the macOS build number with a UTC timestamp for Sparkle ordering; the
+  `CURRENT_PROJECT_VERSION` in `project.yml` is the iOS `YYMMDDNN` counter.
 
 ## Step 1: Parse User Input
 
 Extract from `$ARGUMENTS`:
-- **Explicit version** (e.g., `1.1.0`, `2.0.0`) — use this exact version
-- **Bump keyword** (`major`, `minor`, or `patch`) — apply this bump to the current version
-- **Empty** — auto-determine the bump type from commit analysis
+- **Explicit version** (e.g., `1.1.0`) — use this exact version
+- **Bump keyword** (`major`, `minor`, or `patch`)
+- **Empty** — auto-determine the bump from commit analysis
 
 ## Step 2: Pre-flight Checks
 
-Run these checks before doing anything else. If any fail, **abort immediately** with a clear error message.
+Abort with a clear message if any check fails:
 
-1. **Clean working tree**: Run `git status --porcelain`. If there is any output, abort — tell the user to commit or stash their changes first.
-2. **On main branch**: Run `git branch --show-current`. If the result is not `main`, abort — tell the user to switch to `main`.
-3. **In sync with remote**: Run `git fetch origin main` then compare `git rev-parse HEAD` with `git rev-parse origin/main`. If they differ, abort — tell the user to pull or push first.
+1. **Clean working tree**: `git status --porcelain` prints nothing.
+2. **On main**: `git branch --show-current` is `main`.
+3. **In sync**: after `git fetch origin main`, `git rev-parse HEAD` equals `git rev-parse origin/main`.
+   If local is only ahead, offer to push first.
+4. **Secrets present**: `gh secret list` shows all six secrets listed above.
 
 ## Step 3: Quality Gates
 
-Build the project to ensure it compiles. If it fails, **abort** and ask the user to fix the issues first.
+All must pass; otherwise abort and report the failing output:
 
 ```bash
-xcodegen generate && xcodebuild -project Dictum.xcodeproj -scheme Dictum -configuration Release CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" 2>&1 | tail -5
+scripts/test.sh
+scripts/quality/check_all.sh
+xcodegen generate && xcodebuild -project Dictum.xcodeproj -scheme Dictum -configuration Release \
+  CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" ARCHS=arm64 build 2>&1 | tail -3
 ```
+
+The last command only proves the Release configuration compiles; never ship that ad-hoc build.
 
 ## Step 4: Analyze Commits & Determine Version
 
-1. Get the latest git tag: `git describe --tags --abbrev=0` (if no tags exist, treat all commits as new)
-2. Get current version from `project.yml` (the `MARKETING_VERSION` field)
-3. List all commits since the latest tag: `git log <latest_tag>..HEAD --oneline`
-4. Parse each commit using Conventional Commits format (`type(scope): description`):
-   - Extract the **type** (e.g., `feat`, `fix`, `refactor`)
-   - Extract the **scope** if present
-   - Extract the **description**
-   - Check for breaking changes: `BREAKING CHANGE:` in body/footer or `!` after type (e.g., `feat!:`)
-
-5. **Determine version bump** (unless user provided explicit version or keyword):
-   - Any breaking change → **MAJOR** bump
-   - Any `feat` commit → **MINOR** bump
-   - Only `fix`, `refactor`, `style`, `perf`, `docs` → **PATCH** bump
-   - No user-facing commits (only `chore`, `test`, `ci`, `build`) → Use `AskUserQuestion` to ask whether to proceed with a PATCH release or abort
-
-6. If user provided a bump keyword (`major`/`minor`/`patch`), apply it to the current version.
-7. If user provided an explicit version, validate it is higher than the current version.
+1. Latest public release: `git describe --tags --abbrev=0 --match 'v*'`.
+2. Current `MARKETING_VERSION` from `project.yml`.
+3. Commits since the tag: `git log <tag>..HEAD --format='%h %s%n%b'`.
+4. Parse Conventional Commits; `!` after the type or `BREAKING CHANGE:` means breaking.
+5. Bump, applied to the **higher** of the tag version and `MARKETING_VERSION`:
+   - breaking → MAJOR; any `feat` → MINOR; only `fix`/`refactor`/`perf`/`style`/`docs` → PATCH
+   - only `chore`/`test`/`ci`/`build` → ask whether to release a PATCH or abort
+   - If `MARKETING_VERSION` is above the tag, has no tag and no dated CHANGELOG section, it was
+     prepared but never released: release it as is unless commits demand more.
+6. An explicit version must be higher than the latest tag and not lower than `MARKETING_VERSION`.
 
 ## Step 5: Generate CHANGELOG Entry
 
-Map commits to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) categories:
+Turn `## [Unreleased]` plus the commits since the tag into a `## [X.Y.Z] - YYYY-MM-DD` section in
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
 
-| Commit type          | CHANGELOG category | Include? |
-|----------------------|--------------------|----------|
-| `feat`               | **Added**          | Yes      |
-| `fix`                | **Fixed**          | Yes      |
-| `refactor`           | **Changed**        | Yes      |
-| `style`              | **Changed**        | Yes      |
-| `perf`               | **Changed**        | Yes      |
-| `chore`              | —                  | Skip     |
-| `test`               | —                  | Skip     |
-| `ci`                 | —                  | Skip     |
-| `build`              | —                  | Skip     |
-| `docs`               | —                  | Skip     |
-| `chore(release)`     | —                  | Skip     |
+| Commit type | Category |
+| --- | --- |
+| `feat` | Added |
+| `fix` | Fixed |
+| `refactor`, `perf`, `style` | Changed |
+| `chore`, `test`, `ci`, `build`, `docs`, `chore(release)` | skipped |
 
-Rules:
-- **Only include categories that have actual entries.** Do NOT add empty categories.
-- Write **human-friendly descriptions**, not raw commit messages.
-- Group related commits when appropriate.
-
-Format:
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-
-- Feature description
-
-### Fixed
-
-- Fix description
-```
+- Only categories with entries; human-friendly wording, related commits grouped.
+- Drop internal bookkeeping from `[Unreleased]`: local or TestFlight build numbers, upload notes.
+- Keep any dated but untagged section (an iOS TestFlight version) where it is.
+- Links at the bottom: `[Unreleased]` compares `vX.Y.Z...HEAD`; `[X.Y.Z]` compares the previous tag
+  with `vX.Y.Z`. An untagged version gets no link.
 
 ## Step 6: Review & Confirm
 
-Present a summary to the user before making any file changes:
-
-```
-Release Summary
-───────────────
-Current version: A.B.C
-New version:     X.Y.Z (BUMP_TYPE bump)
-
-Commits since last release: N total (M user-facing, K skipped)
-
-CHANGELOG preview:
-──────────────────
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-- ...
-
-### Fixed
-- ...
-```
-
-Use `AskUserQuestion` to confirm: "Does this release summary look correct? Should I proceed with updating files?"
-
-Allow the user to request edits to the CHANGELOG content before proceeding.
+Show current tag, current `MARKETING_VERSION`, new version and bump type, commit counts, and the
+CHANGELOG preview. Unless the user already asked to release without further confirmation, ask:
+"Does this release summary look correct? Should I proceed?" and apply requested edits.
 
 ## Step 7: Update Files
 
-1. **`project.yml`**: Update the `MARKETING_VERSION` field to the new version.
-
-2. **`CHANGELOG.md`**: Insert the new version section directly after the `## [Unreleased]` heading. Move any entries from `[Unreleased]` into the new version section. Add a new empty `## [Unreleased]` at the top. Update the comparison links at the bottom of the file.
+1. `python3 scripts/version.py --version X.Y.Z` — sets `MARKETING_VERSION` and advances the shared
+   build counter.
+2. Write the CHANGELOG section and links from Step 5, leaving an empty `## [Unreleased]` on top.
 
 ## Step 8: Commit & Tag
 
-1. Stage changes: `git add project.yml CHANGELOG.md`
-2. Create commit:
-   ```
-   git commit -m "chore(release): bump version to X.Y.Z"
-   ```
-3. Create annotated tag:
-   ```
-   git tag -a vX.Y.Z -m "Release version X.Y.Z"
-   ```
+```bash
+xcodegen generate
+git add project.yml CHANGELOG.md Dictum.xcodeproj
+git commit -m "chore(release): bump version to X.Y.Z"
+git tag -a vX.Y.Z -m "Release version X.Y.Z"
+```
 
-## Step 9: Rebuild Locally
+## Step 9: Push
 
-Rebuild the app so the local build carries the new version number:
+Pushing the tag publishes the release to every user through Sparkle. Unless the user already asked
+to push, confirm first: "Ready to push? This builds, notarizes and publishes Dictum X.Y.Z."
 
 ```bash
-pkill -x Dictum || true
-xcodegen generate && xcodebuild -project Dictum.xcodeproj -scheme Dictum -configuration Release CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" 2>&1 | tail -5
-```
-
-If the build fails, warn the user but do **not** abort — the release commit and tag are already created. Proceed to push.
-
-## Step 10: Push to Repository
-
-**IMPORTANT**: Pushing the tag will trigger the GitHub Actions `release.yml` workflow, which builds the app and creates a GitHub Release with `Dictum.zip`.
-
-Use `AskUserQuestion` to confirm: "Ready to push? This will trigger the GitHub Actions build and create a GitHub Release with Dictum.app."
-
-If confirmed:
-```
 git push origin main --follow-tags
 ```
 
-After pushing, inform the user:
-- The `release.yml` workflow has been triggered
-- It will: build the Release .app, zip it, and create a GitHub Release with the changelog
-- They can monitor progress at the repository's Actions tab
+## Step 10: Verify the Published Release
 
-If something goes wrong after push, provide rollback instructions:
+1. Find the run: `gh run list --workflow release.yml --limit 1`. Tell the user it is running; check
+   it again when they ask or when it should be done (about 15–25 minutes), and show the failing step
+   log with `gh run view <id> --log-failed` if it failed.
+2. When it succeeded:
+   - `gh release view vX.Y.Z` lists `Dictum.zip` and `appcast.xml`.
+   - Download and check notarization in a fresh temporary directory:
+     ```bash
+     dir=$(mktemp -d) && gh release download vX.Y.Z -p Dictum.zip -D "$dir" \
+       && ditto -x -k "$dir/Dictum.zip" "$dir" \
+       && spctl --assess --type execute --verbose "$dir/Dictum.app" \
+       && xcrun stapler validate "$dir/Dictum.app"
+     ```
+   - The appcast `sparkle:shortVersionString` is `X.Y.Z`.
+
+If something goes wrong after the push:
+
 ```bash
-# Delete remote tag
+gh release delete vX.Y.Z --yes
 git push origin :refs/tags/vX.Y.Z
-# Delete local tag
 git tag -d vX.Y.Z
-# Revert the release commit
 git revert HEAD
 git push origin main
 ```

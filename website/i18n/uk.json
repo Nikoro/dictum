@@ -23,7 +23,7 @@
   "highlights.vision.v_selection": "Виділений текст",
   "highlights.vision.v_voice": "Ваш голос",
   "highlights.private.title": "100% на пристрої. Нуль мережі.",
-  "highlights.private.desc": "WhisperKit на Neural Engine, LLM на Metal через MLX. Ваш голос, ваш екран, ваші дані — ніщо не залишає ваш Mac. Навіть DNS-запиту немає.",
+  "highlights.private.desc": "WhisperKit або Parakeet на Neural Engine, LLM на Metal через MLX. Ваш голос, ваш екран, ваші дані — ніщо не залишає ваш Mac. Навіть DNS-запиту немає.",
   "highlights.smart.title": "Інтелект для кожного додатку.",
   "highlights.smart.desc": "Інший промпт для Slack, інший для Xcode, інший для Mail. Dictum знає, в якому додатку ви перебуваєте, і автоматично адаптує свою поведінку.",
   "features.label": "Функції",

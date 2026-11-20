@@ -23,7 +23,7 @@
   "highlights.vision.v_selection": "Selected text",
   "highlights.vision.v_voice": "Your voice",
   "highlights.private.title": "100% on-device. Zero network.",
-  "highlights.private.desc": "WhisperKit on Neural Engine, LLM on Metal via MLX. Your voice, your screen, your data — nothing ever leaves your Mac. Not even a DNS lookup.",
+  "highlights.private.desc": "WhisperKit or Parakeet on Neural Engine, LLM on Metal via MLX. Your voice, your screen, your data — nothing ever leaves your Mac. Not even a DNS lookup.",
   "highlights.smart.title": "Per-app intelligence.",
   "highlights.smart.desc": "Different prompt for Slack, different for Xcode, different for Mail. Dictum knows which app you’re in and adapts its behavior automatically.",
   "features.label": "Features",

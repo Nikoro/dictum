@@ -48,8 +48,8 @@ Check each item that applies to the touched files. Report a finding with file an
 | Localization | New keys in `Resources/Localizable.xcstrings` with translated `en` and `pl`; `check_strings.py` passes |
 | New `@Observable` store used by views | Injected with `.environment(...)` in `MenuBarController.setupPopover` |
 | New root-level Swift file | Listed in `project.yml` `sources`; `Dictum.xcodeproj` regenerated, not hand-edited |
-| Dependency bump | Matches the pin comments in `project.yml`; Sparkle bump also updates `release.yml` version and SHA |
-| Comments | Only `// Edge case:` (≤ 4 lines), `TODO:`/`FIXME:`, directives; edge-case notes still true for the code beside them |
+| Dependency bump | Matches the `project.yml` notes in `docs/implementation-constraints.md`; Sparkle bump also updates `release.yml` version and SHA |
+| Comments | Only tool directives and one-line `Edge case:` / `Workaround: <issue URL>` notes (commit_gate, also in YAML/TOML); no TODO/FIXME; notes still true for the code beside them; longer reasons in `docs/implementation-constraints.md` |
 | Naming | New types, functions and properties say what they do without a comment |
 | Docs | A change to behavior described in `docs/` updates that doc in the same change |
 | Tests | No new test target added without the owner's consent |

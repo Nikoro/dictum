@@ -23,7 +23,7 @@
   "highlights.vision.v_selection": "選択テキスト",
   "highlights.vision.v_voice": "あなたの声",
   "highlights.private.title": "100%デバイス上。ネットワークゼロ。",
-  "highlights.private.desc": "WhisperKitはNeural Engineで、LLMはMLX経由のMetalで動作。あなたの声、画面、データ — 何一つMacから出ません。DNSルックアップすら行いません。",
+  "highlights.private.desc": "WhisperKitまたはParakeetはNeural Engineで、LLMはMLX経由のMetalで動作。あなたの声、画面、データ — 何一つMacから出ません。DNSルックアップすら行いません。",
   "highlights.smart.title": "アプリごとの知能。",
   "highlights.smart.desc": "Slackには別のプロンプト、Xcodeには別、Mailには別。Dictumはどのアプリにいるか把握し、自動的に動作を適応させます。",
   "features.label": "機能",

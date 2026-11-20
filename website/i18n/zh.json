@@ -23,7 +23,7 @@
   "highlights.vision.v_selection": "选中文本",
   "highlights.vision.v_voice": "你的声音",
   "highlights.private.title": "100%本地运行。零网络。",
-  "highlights.private.desc": "WhisperKit在Neural Engine上运行，LLM通过MLX在Metal上运行。你的声音、屏幕、数据——没有任何东西离开你的Mac。连DNS查询都没有。",
+  "highlights.private.desc": "WhisperKit或Parakeet在Neural Engine上运行，LLM通过MLX在Metal上运行。你的声音、屏幕、数据——没有任何东西离开你的Mac。连DNS查询都没有。",
   "highlights.smart.title": "逐应用智能。",
   "highlights.smart.desc": "Slack用一个提示词，Xcode用另一个，Mail又是另一个。Dictum知道你在哪个应用中，并自动调整行为。",
   "features.label": "功能",

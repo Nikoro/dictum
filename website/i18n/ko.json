@@ -23,7 +23,7 @@
   "highlights.vision.v_selection": "선택된 텍스트",
   "highlights.vision.v_voice": "당신의 목소리",
   "highlights.private.title": "100% 기기에서. 네트워크 제로.",
-  "highlights.private.desc": "WhisperKit는 Neural Engine에서, LLM은 MLX를 통해 Metal에서 실행. 당신의 목소리, 화면, 데이터 — 어떤 것도 Mac을 떠나지 않습니다. DNS 조회조차 하지 않습니다.",
+  "highlights.private.desc": "WhisperKit 또는 Parakeet은 Neural Engine에서, LLM은 MLX를 통해 Metal에서 실행. 당신의 목소리, 화면, 데이터 — 어떤 것도 Mac을 떠나지 않습니다. DNS 조회조차 하지 않습니다.",
   "highlights.smart.title": "앱별 지능.",
   "highlights.smart.desc": "Slack에는 다른 프롬프트, Xcode에는 다른, Mail에는 다른. Dictum은 어떤 앱에 있는지 알고 자동으로 동작을 조정합니다.",
   "features.label": "기능",

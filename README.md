@@ -30,9 +30,9 @@ Native macOS menu bar app for voice dictation. Converts speech to text and auto-
 
 ## Stack
 
-- **STT:** [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) 1.1.1 — large-v3-turbo, CoreML on Neural Engine; or Parakeet TDT v3 via [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.18.0 — many times faster
+- **STT:** [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) 1.1.1 — large-v3-turbo, CoreML on Neural Engine; or Parakeet (TDT v3, Ultra, Redux) via [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.18.0 — many times faster
 - **LLM:** [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm) 3.32.3 — Gemma 4 E4B (default) with MTP speculative decoding, any mlx-community model
-- **Audio:** AVAudioEngine — PCM Float32, 16kHz mono
+- **Audio:** Core Audio HAL input unit bound to the chosen microphone, converted to 16 kHz mono Float32
 - **Auto-paste:** CGEvent Cmd+V via Accessibility API
 - **Updates:** [Sparkle](https://github.com/sparkle-project/Sparkle) 2.10.1+ — automatic updates from GitHub Releases
 
@@ -88,11 +88,12 @@ Planned work and research: [Dictum roadmap](docs/roadmap.md).
 - **Microphone choice** — pick any input device; Bluetooth route changes are handled
 - **Free memory after idle** — models unload after a chosen idle time and reload while you speak
 - **LLM text cleanup** — optional post-processing to fix punctuation, grammar, formatting
+- **Smart context** — optionally gives the LLM a screenshot of the target window and the clipboard
 - **Context-aware dictation** — select text before dictating to use it as LLM context; result is copied to clipboard instead of auto-pasted
 - **Per-app prompts** — custom LLM prompts per application (matched by bundle ID), with `{{text}}` placeholder
 - **General prompt toggle** — enable/disable the default system prompt independently
 - **Model browser** — search and download models from HuggingFace (MLX community), manage downloaded models
-- **Floating indicator** — translucent pill at the text cursor showing recording state and audio level
+- **Floating indicator** — translucent pill next to the text cursor or the focused text field, on any display, showing recording state and audio level
 - **Configurable hotkey** — modifier-only (e.g. Right ⌘) or key+modifier combos
 - **Hold / Toggle modes** — hold-to-record or press-to-start/press-to-stop
 - **Onboarding** — guided setup: permissions → speech model download → optional LLM download
@@ -104,7 +105,7 @@ Planned work and research: [Dictum roadmap](docs/roadmap.md).
 
 Dictum uses a layered macOS utility-app architecture, not DDD. `DictationPipeline` is the central orchestrator for recording, transcription, optional LLM cleanup, and output, while focused modules handle audio capture, model management, floating-indicator placement, menu bar UI, hotkeys, and settings.
 
-Runtime flow remains straightforward: hotkey press → audio capture (AVAudioEngine) → speech-to-text (WhisperKit on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into the active app or copy to clipboard in context mode. A floating indicator pill tracks recording state near the text cursor.
+Runtime flow remains straightforward: hotkey press → audio capture (Core Audio HAL) → live chunked speech-to-text (WhisperKit or Parakeet on Neural Engine) → optional LLM cleanup (MLX Swift on Metal GPU) → auto-paste into the active app or copy to clipboard in context mode. A floating indicator pill tracks recording state near the text cursor.
 
 See [AGENTS.md](AGENTS.md) and [docs/](docs/) for contributor and agent context.
 
@@ -117,7 +118,7 @@ Or visit the [landing page](https://nikoro.github.io/dictum/) for install instru
 ## Known limitations
 
 - First WhisperKit model run triggers CoreML compilation on ANE (~30-60s)
-- Floating indicator falls back to mouse position when the app doesn't expose AX text cursor (Electron, terminals)
+- Apps that don't expose the text cursor (Electron, Chrome) get the pill beside the focused text field; without one it appears under the mouse
 - ~5 GB disk space needed for models, ~5.5 GB unified memory at runtime
 
 ## iPhone and iPad
