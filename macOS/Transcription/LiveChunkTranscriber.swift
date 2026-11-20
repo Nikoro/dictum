@@ -59,6 +59,7 @@ final class LiveChunkTranscriber {
 
     private func transcribeNextChunkIfReady() async {
         let available = audioSource.capturedSampleCount
+        guard available > committedSampleCount else { return }
         let pending = audioSource.capturedSamples(in: committedSampleCount ..< available)
         guard let cut = Self.chunkCut(in: pending) else { return }
         let chunk = Array(pending[..<cut])

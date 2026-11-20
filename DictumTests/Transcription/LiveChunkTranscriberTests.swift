@@ -15,10 +15,24 @@ struct LiveChunkTranscriberTests {
 
         #expect(ContinuousClock.now - started < .milliseconds(200))
     }
+
+    @Test
+    func `live polling survives the recorder clearing its buffer before finish`() async throws {
+        let source = StaticAudioSource(samples: [Float](repeating: 0, count: 16000 * 29))
+        let transcriber = LiveChunkTranscriber(audioSource: source, language: "pl") { false }
+        transcriber.start()
+        try await Task.sleep(for: .milliseconds(1300))
+
+        source.samples = []
+        try await Task.sleep(for: .milliseconds(1200))
+
+        let text = try await transcriber.finish(allSamples: [])
+        #expect(text.isEmpty)
+    }
 }
 
 private final class StaticAudioSource: CapturedAudioSource {
-    let samples: [Float]
+    var samples: [Float]
 
     init(samples: [Float]) {
         self.samples = samples

@@ -151,6 +151,7 @@ final class DictationPipeline {
         guard isRecording else { return }
         isCancelled = false
         let samples = audioRecorder.stopRecording()
+        activeProcessor?.recordingStopped()
         isRecording = false
         endRecordingSignpost()
         hotkeyMonitor.isActive = false

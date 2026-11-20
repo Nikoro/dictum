@@ -40,6 +40,10 @@ final class DictationProcessor {
         }
     }
 
+    func recordingStopped() {
+        liveTranscriber.cancel()
+    }
+
     func cancel() {
         liveTranscriber.cancel()
         contextTask?.cancel()
