@@ -26,12 +26,22 @@ enum TextInputAnchorResolver {
         return resolve(from: focusedElement)
     }
 
+    struct ScreenGeometry {
+        let frame: CGRect
+        let visibleFrame: CGRect
+    }
+
     static func panelOrigin(for anchor: Anchor, panelSize: NSSize) -> NSPoint? {
-        guard let screen = screen(containingAXRect: anchor.rect) else {
+        let screens = NSScreen.screens.map { ScreenGeometry(frame: $0.frame, visibleFrame: $0.visibleFrame) }
+        return panelOrigin(for: anchor, panelSize: panelSize, screens: screens)
+    }
+
+    static func panelOrigin(for anchor: Anchor, panelSize: NSSize, screens: [ScreenGeometry]) -> NSPoint? {
+        guard let screen = screen(containingAXRect: anchor.rect, in: screens) else {
             return nil
         }
 
-        let anchorRect = convertAXRectToAppKit(anchor.rect)
+        let anchorRect = convertAXRectToAppKit(anchor.rect, screens: screens)
         let spacing: CGFloat = 8
         let preferredLeftX = anchorRect.minX - panelSize.width - spacing
         let fallbackRightX = anchorRect.maxX + spacing
@@ -149,31 +159,33 @@ enum TextInputAnchorResolver {
         return CGRect(origin: origin, size: size)
     }
 
-    private static func desktopMaxY() -> CGFloat {
-        NSScreen.screens.map(\.frame.maxY).max() ?? 0
+    private static func primaryScreenHeight(_ screens: [ScreenGeometry]) -> CGFloat {
+        (screens.first { $0.frame.origin == .zero } ?? screens.first)?.frame.height ?? 0
     }
 
-    private static func convertAXRectToAppKit(_ rect: CGRect) -> CGRect {
+    private static func axFrame(of screen: ScreenGeometry, primaryHeight: CGFloat) -> CGRect {
+        CGRect(
+            x: screen.frame.minX,
+            y: primaryHeight - screen.frame.maxY,
+            width: screen.frame.width,
+            height: screen.frame.height
+        )
+    }
+
+    private static func convertAXRectToAppKit(_ rect: CGRect, screens: [ScreenGeometry]) -> CGRect {
         CGRect(
             x: rect.origin.x,
-            y: desktopMaxY() - rect.origin.y - rect.height,
+            y: primaryScreenHeight(screens) - rect.origin.y - rect.height,
             width: rect.width,
             height: rect.height
         )
     }
 
-    private static func screen(containingAXRect rect: CGRect) -> NSScreen? {
+    private static func screen(containingAXRect rect: CGRect, in screens: [ScreenGeometry]) -> ScreenGeometry? {
         let center = CGPoint(x: rect.midX, y: rect.midY)
-        let maxY = desktopMaxY()
-
-        return NSScreen.screens.first { screen in
-            let topLeftFrame = CGRect(
-                x: screen.frame.minX,
-                y: maxY - screen.frame.maxY,
-                width: screen.frame.width,
-                height: screen.frame.height
-            )
-            return topLeftFrame.contains(center)
-        } ?? NSScreen.main
+        let primaryHeight = primaryScreenHeight(screens)
+        return screens.first { axFrame(of: $0, primaryHeight: primaryHeight).contains(center) }
+            ?? screens.first { axFrame(of: $0, primaryHeight: primaryHeight).intersects(rect) }
+            ?? screens.first
     }
 }

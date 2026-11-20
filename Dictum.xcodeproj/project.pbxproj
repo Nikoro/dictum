@@ -51,6 +51,7 @@
 		201F1DD6C945658EC994E05D /* AudioInputDevicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C299FC8BC63883CD504819 /* AudioInputDevicesTests.swift */; };
 		208A6FB2D85D6948461F93B7 /* STTModelSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 205DBACACCFAD9A944335FC0 /* STTModelSection.swift */; };
 		215105CE280EB78131B83CDA /* DictationKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC8A9E88B2E49FD0C8E640A /* DictationKey.swift */; };
+		218511F2C57E08E6B6A17A29 /* TextInputAnchorResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8946387EC55EA46413222E97 /* TextInputAnchorResolverTests.swift */; };
 		21E3F7464BD95F5AB91DAC4B /* KeyboardWordDeletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FBE3049967B934C28CA8A9B /* KeyboardWordDeletion.swift */; };
 		225F6BBB89C4E7923860FAE9 /* KeyboardShiftStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D34867B4E8C66481E86C6FAC /* KeyboardShiftStateTests.swift */; };
 		225FD7B108FBE0E55F098EA2 /* KeyboardKeyLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9DA17DBE2EB764D056CF16 /* KeyboardKeyLayout.swift */; };
@@ -492,6 +493,7 @@
 		844BF55F1496A3D225B63635 /* AudioRecordingTapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecordingTapTests.swift; sourceTree = "<group>"; };
 		8489A2F550B0B047426FE675 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		871104ADFB50A6D7E108F77A /* SetupLLMProcessingStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupLLMProcessingStep.swift; sourceTree = "<group>"; };
+		8946387EC55EA46413222E97 /* TextInputAnchorResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextInputAnchorResolverTests.swift; sourceTree = "<group>"; };
 		8BC4F2C29F2199383B5889DD /* LiveChunkTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveChunkTranscriber.swift; sourceTree = "<group>"; };
 		8C0B22F9AEF597E742E77AD0 /* SpeechModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelCatalog.swift; sourceTree = "<group>"; };
 		8C56C0975AB45CA9EE6141FC /* KeyboardLanguageHintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardLanguageHintTests.swift; sourceTree = "<group>"; };
@@ -748,6 +750,7 @@
 			children = (
 				D5C0C46494DD52282580E017 /* Audio */,
 				76BBFA825BE6E6D4CD2B0089 /* Distribution */,
+				E007A00F0B54460467B09F07 /* FloatingIndicator */,
 				98941BA98D214CCBDDA0B907 /* Keyboard */,
 				A7C48E900F148FD7A7C3504C /* Transcription */,
 			);
@@ -1022,6 +1025,14 @@
 				9406E25BA63E0A8EDDDECBEC /* TransformersTokenizerLoader.swift */,
 			);
 			path = TextProcessing;
+			sourceTree = "<group>";
+		};
+		E007A00F0B54460467B09F07 /* FloatingIndicator */ = {
+			isa = PBXGroup;
+			children = (
+				8946387EC55EA46413222E97 /* TextInputAnchorResolverTests.swift */,
+			);
+			path = FloatingIndicator;
 			sourceTree = "<group>";
 		};
 		E368195D54A7FB25EA9D0427 /* Emoji */ = {
@@ -1524,6 +1535,7 @@
 				D2F227E1A97F179FA06C5747 /* RepeatingKeyActionTests.swift in Sources */,
 				E1D68CEEDED57E49DEDBA66D /* SpeechSampleConverterTests.swift in Sources */,
 				8EF544192F50FC1981C88573 /* TestFlightExportTests.swift in Sources */,
+				218511F2C57E08E6B6A17A29 /* TextInputAnchorResolverTests.swift in Sources */,
 				8AF342B74620048AC9EC0AF5 /* TranscriptionPromptTests.swift in Sources */,
 				B2F8DC87209716C105EEF75B /* WhisperModelStorageTests.swift in Sources */,
 			);
