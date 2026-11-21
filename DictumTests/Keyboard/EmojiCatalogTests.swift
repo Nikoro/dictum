@@ -23,33 +23,3 @@ struct EmojiCatalogTests {
         #expect(catalog.search("xyznomatchingemoji12345").isEmpty)
     }
 }
-
-@MainActor
-struct EmojiPreferencesTests {
-    @Test func `recents move to front without duplicates and survive a new keyboard instance`() throws {
-        let suite = "Dictum.EmojiTests." + UUID().uuidString
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let preferences = EmojiPreferences(defaults: defaults)
-        preferences.record("👩‍💻")
-        preferences.record("👋🏽")
-        preferences.record("👩‍💻")
-        preferences.selectTone(3)
-        let reloaded = EmojiPreferences(defaults: defaults)
-        #expect(reloaded.recents == ["👩‍💻", "👋🏽"])
-        #expect(reloaded.tone == 3)
-    }
-
-    @Test func `history stays bounded and invalid skin preferences are clamped`() throws {
-        let suite = "Dictum.EmojiTests." + UUID().uuidString
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let preferences = EmojiPreferences(defaults: defaults)
-        for entry in EmojiCatalog.shared.entries.prefix(80) {
-            preferences.record(entry.symbol)
-        }
-        #expect(preferences.recents.count == 48)
-        preferences.selectTone(99)
-        #expect(preferences.tone == 5)
-    }
-}

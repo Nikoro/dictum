@@ -3,7 +3,34 @@ import Foundation
 import Testing
 
 @MainActor
-struct QuickEmojiTests {
+struct EmojiPreferencesTests {
+    @Test func `recents move to front without duplicates and survive a new keyboard instance`() throws {
+        let suite = "Dictum.EmojiTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = EmojiPreferences(defaults: defaults)
+        preferences.record("👩‍💻")
+        preferences.record("👋🏽")
+        preferences.record("👩‍💻")
+        preferences.selectTone(3)
+        let reloaded = EmojiPreferences(defaults: defaults)
+        #expect(reloaded.recents == ["👩‍💻", "👋🏽"])
+        #expect(reloaded.tone == 3)
+    }
+
+    @Test func `history stays bounded and invalid skin preferences are clamped`() throws {
+        let suite = "Dictum.EmojiTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = EmojiPreferences(defaults: defaults)
+        for entry in EmojiCatalog.shared.entries.prefix(80) {
+            preferences.record(entry.symbol)
+        }
+        #expect(preferences.recents.count == 48)
+        preferences.selectTone(99)
+        #expect(preferences.tone == 5)
+    }
+
     @Test func `choosing a skin variant sets the preference and its base resets it`() throws {
         let suite = "Dictum.EmojiVariantTests." + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -34,15 +61,5 @@ struct QuickEmojiTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(["👋🏽", "👩‍💻"], forKey: "emoji.recents")
         #expect(EmojiPreferences(defaults: defaults).frequent(limit: 10) == ["👋🏽", "👩‍💻"])
-    }
-
-    @Test func `quick strip fits the viewport without duplicates and personal choices lead`() {
-        #expect(QuickEmojiChoices.capacity(width: 402) == 10)
-        #expect(QuickEmojiChoices.capacity(width: 375) == 9)
-        let choices = QuickEmojiChoices.filling(["👋🏽", "😂"], limit: 10)
-        #expect(choices.count == 10)
-        #expect(Set(choices).count == 10)
-        #expect(Array(choices.prefix(2)) == ["👋🏽", "😂"])
-        #expect(QuickEmojiChoices.filling([], limit: 0).isEmpty)
     }
 }

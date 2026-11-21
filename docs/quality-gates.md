@@ -17,8 +17,12 @@
   to `docs/implementation-constraints.md`. Notes kept in changed files are reported as advice.
 - The instruction-file and journals gates are enabled; docs carry no dated headings or status history. `.agents` and `.claude` contain externally maintained skill packages and
   are excluded from source scanning; application, test, script and website sources remain in scope. No policy
-  limit is relaxed. The optional independent-review and universal mirror-test gates are not enabled; Dictum's
-  existing regression-test gate and review skill remain in place.
+  limit is relaxed.
+- The mirror test gate covers `Shared/**`: `Shared/Foo/Bar.swift` needs `DictumTests/Foo/BarTests.swift`.
+  `iOS/` and `macOS/` are UIKit/SwiftUI-heavy and stay outside it.
+- The knowledge gate checks only Dictum's own skills (dictum-qa, dictum-review, release); the vendored Swift
+  skills are left as published. The independent-review and quality-acceptance gates are not enabled; the
+  regression-test gate and the dictum-review skill cover that ground.
 - Longer implementation constraints and script usage notes live in
   [implementation-constraints.md](implementation-constraints.md).
 - `scripts/quality/check_log_privacy.py` rejects `dlog` interpolations whose names suggest

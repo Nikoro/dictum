@@ -5,3 +5,14 @@ enabled = true
 
 [journals]
 enabled = true
+
+[knowledge]
+enabled = true
+roots = [".agents/skills/dictum-qa", ".agents/skills/dictum-review", ".agents/skills/release"]
+
+[mirror_tests]
+enabled = true
+sources = ["Shared/**"]
+
+[mirror_tests.layouts.swift]
+segment = ["Shared", "DictumTests"]
