@@ -8,6 +8,7 @@ final class EmojiPreferences {
     private(set) var tone: Int
     private var frequencies: [String: Int]
     @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private var ranked: [String]?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -27,22 +28,33 @@ final class EmojiPreferences {
         recents.insert(symbol, at: 0)
         recents = Array(recents.prefix(48))
         frequencies[symbol] = min(frequencies[symbol] ?? 0, Int.max - 1) + 1
+        ranked = nil
         let retained = Set(frequent(limit: 256))
         frequencies = frequencies.filter { retained.contains($0.key) }
+        ranked = nil
         defaults.set(recents, forKey: "emoji.recents")
         defaults.set(frequencies, forKey: "emoji.frequencies")
     }
 
     func frequent(limit: Int) -> [String] {
+        Array(ranking.prefix(max(limit, 0)))
+    }
+
+    private var ranking: [String] {
+        if let ranked {
+            return ranked
+        }
         let recency = Dictionary(uniqueKeysWithValues: recents.enumerated().map { ($1, $0) })
-        return Array(frequencies.keys.sorted {
+        let result = frequencies.keys.sorted {
             if frequencies[$0] != frequencies[$1] {
                 return (frequencies[$0] ?? 0) > (frequencies[$1] ?? 0)
             }
             let first = recency[$0] ?? Int.max
             let second = recency[$1] ?? Int.max
             return first == second ? $0 < $1 : first < second
-        }.prefix(max(limit, 0)))
+        }
+        ranked = result
+        return result
     }
 
     func selectTone(_ tone: Int) {

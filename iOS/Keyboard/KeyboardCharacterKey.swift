@@ -50,6 +50,7 @@ final class KeyboardAccentKeyControl: UIControl {
     private var holding = false
     private var activeTouch = false
     private var touchOrigin = CGPoint.zero
+    private var touchPoint = CGPoint.zero
     private var trackedSymbol: String?
     private var normalColor = UIColor.clear
     private var pressedColor = UIColor.clear
@@ -150,11 +151,12 @@ final class KeyboardAccentKeyControl: UIControl {
     }
 
     override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
-        UIDevice.current.playInputClick()
+        KeyboardFeedback.keyDown()
         activeTouch = true
         isHighlighted = true
         holding = false
         touchOrigin = touch.location(in: self)
+        touchPoint = touchOrigin
         trackedSymbol = choices.first
         if choices.count > 1 {
             holdTask = Task { [weak self] in
@@ -175,6 +177,7 @@ final class KeyboardAccentKeyControl: UIControl {
     }
 
     override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+        touchPoint = touch.location(in: self)
         if model?.accentPopup?.owner == owner {
             model?.accentPopup?.move(to: touch.location(in: nil))
         }
@@ -198,6 +201,15 @@ final class KeyboardAccentKeyControl: UIControl {
             }
         }
         cancel()
+    }
+
+    func commitPendingCharacter() -> Bool {
+        guard activeTouch, !holding, tap == nil, !(tablet && !hint.isEmpty),
+              model?.accentPopup?.owner != owner, let trackedSymbol,
+              bounds.insetBy(dx: -10, dy: -12).contains(touchPoint) else { return false }
+        insert(trackedSymbol)
+        cancel()
+        return true
     }
 
     private func activateTap() {

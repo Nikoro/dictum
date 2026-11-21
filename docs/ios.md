@@ -408,6 +408,10 @@ rendered directly in the input controller. A single multi-touch dispatcher route
 retains each touch until release, and reuses controls. A near-transparent black surface is necessary for remote
 view-service hit testing to cover the gaps; it is not a flat keyboard background. SwiftUI renders the emoji and
 popup layers. The touch changes apply to both phone and tablet.
+Touches in the top quarter of bottom-row emoji, 123 and globe keys go to the row above; within 300 ms of a
+letter that grows to the top half, because Polish typing hits the Z above emoji constantly. A new touch commits
+a still-held letter first, keeping overlapping keystrokes in order. Key-down plays a light haptic plus the click.
+The key plane re-renders only when its visible state changes; session polling reads the mailbox off the main thread.
 
 Simulator checks reproduced a dropped gap tap before the change. After the change, 100 consecutive gap taps
 inserted all 100 characters; twenty simultaneous five-finger gestures inserted exactly 100 characters, with

@@ -10,6 +10,7 @@ final class KeyboardViewController: UIInputViewController {
     private weak var hostedView: UIView?
     private var pollingTask: Task<Void, Never>?
     private var heightConstraint: NSLayoutConstraint?
+    private var renderedState: KeyboardRenderState?
 
     override func loadView() {
         inputView = KeyboardInputView(frame: .zero, inputViewStyle: .keyboard)
@@ -99,11 +100,12 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         primaryLanguage = "pl-PL"
         hostResolver.appeared()
+        KeyboardFeedback.warmUp()
         model.connect(hasFullAccess: hasFullAccess, needsInputModeSwitchKey: needsInputModeSwitchKey)
         pollingTask?.cancel()
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
-                self?.poll()
+                await self?.poll()
                 do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
             }
         }
@@ -120,7 +122,7 @@ final class KeyboardViewController: UIInputViewController {
         model.accentPopup = nil
     }
 
-    private func poll() {
+    private func poll() async {
         let undo = undoManager?.canUndo == true
         let redo = undoManager?.canRedo == true
         if model.canUndo != undo {
@@ -133,7 +135,8 @@ final class KeyboardViewController: UIInputViewController {
         if model.activationURL != activation {
             model.activationURL = activation
         }
-        model.refresh()
+        await model.refreshInBackground()
+        guard !Task.isCancelled else { return }
         updateHeight()
         updatePlane()
         model.insertReadyResult(in: textDocumentProxy.documentIdentifier) { [weak self] text in
@@ -148,23 +151,20 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func updatePlane() {
-        let layout = KeyboardKeyLayout(
-            width: view.bounds.width,
-            tablet: model.tabletLayout,
-            landscape: model.landscapeLayout || model.compactLayout,
-            numbers: model.numbers,
-            symbols: model.symbols,
-            needsSwitch: model.needsInputModeSwitchKey
-        )
+        let layout = KeyboardKeyLayout(model: model, width: view.bounds.width)
         let top = model.noticeHeight(for: view.bounds.width) + (model.accentPopup?.topInset ?? 0)
             + (model.emojiSearchActive ? 147 : 0)
         let origin = layout.verticalOrigin(containerHeight: view.bounds.height, topInset: top)
         plane.frame = CGRect(x: 0, y: origin, width: layout.width, height: layout.height)
         plane.isHidden = model.emoji && !model.emojiSearchActive
+        let dark = traitCollection.userInterfaceStyle == .dark
+        let state = KeyboardRenderState(layout: layout, model: model, dark: dark)
+        guard state != renderedState else { bringActiveLayerToFront(); return }
+        renderedState = state
         let keyboard = KeyboardKeyPlane(
             layout: layout,
             model: model,
-            palette: KeyboardPalette(dark: traitCollection.userInterfaceStyle == .dark),
+            palette: KeyboardPalette(dark: dark),
             insert: { [weak self] in self?.insertTypedText($0) },
             start: { [weak self] in self?.beginRecording() },
             nextKeyboard: { [weak self] in self?.advanceToNextInputMode() },
@@ -172,6 +172,10 @@ final class KeyboardViewController: UIInputViewController {
             openApp: { [weak self] in self?.openContainingApp() }
         )
         keyboard.render(plane)
+        bringActiveLayerToFront()
+    }
+
+    private func bringActiveLayerToFront() {
         if model.accentPopup != nil, let hostedView {
             view.bringSubviewToFront(hostedView)
         } else {
@@ -193,16 +197,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func updateHeight() {
-        let metrics = KeyboardMetrics(
-            width: view.bounds.width,
-            tablet: model.tabletLayout,
-            landscape: model.landscapeLayout,
-            compact: model.compactLayout,
-            noticeHeight: model.noticeHeight(for: view.bounds.width),
-            emojiSearchActive: model.emoji && model.emojiSearchActive,
-            accentTopInset: model.accentPopup?.topInset ?? 0,
-            emojiVisible: model.emoji
-        )
+        let metrics = KeyboardMetrics(model: model, width: view.bounds.width)
         if heightConstraint?.constant != metrics.height {
             heightConstraint?.constant = metrics.height
         }
@@ -243,7 +238,7 @@ extension KeyboardViewController {
 
     private func delete(unit: KeyboardDeletionUnit) {
         spaceShortcut.reset()
-        UIDevice.current.playInputClick()
+        KeyboardFeedback.keyDown()
         if model.emojiSearchActive {
             deleteFromSearch(unit: unit)
         } else {

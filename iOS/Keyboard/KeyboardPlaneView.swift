@@ -9,6 +9,7 @@ final class KeyboardPlaneView: UIView {
     private var modifiers: [ObjectIdentifier: KeyboardModifierGesture] = [:]
     private var controls: [Int: UIControl] = [:]
     private var touches: [ObjectIdentifier: UIControl] = [:]
+    private var lastCharacterTouch: TimeInterval = -.infinity
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -56,11 +57,11 @@ final class KeyboardPlaneView: UIView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !trackpad.active else { return }
         for touch in touches {
-            guard let slot = layout.nearest(to: touch.location(in: self)),
-                  let control = controls[slot.id], control.isEnabled else { continue }
+            guard let slot = slot(for: touch), let control = controls[slot.id], control.isEnabled else { continue }
+            commitRolledOverCharacters()
             if [.shift, .numbers, .symbols].contains(slot.role), let model {
                 guard modifiers.isEmpty else { continue }
-                UIDevice.current.playInputClick()
+                KeyboardFeedback.keyDown()
                 modifiers[ObjectIdentifier(touch)] = KeyboardModifierGesture(
                     role: slot.role, at: touch.location(in: self), model: model
                 )
@@ -68,6 +69,29 @@ final class KeyboardPlaneView: UIView {
             }
             beginTracking(touch, control: control, event: event)
         }
+    }
+
+    private func slot(for touch: UITouch) -> KeyboardKeySlot? {
+        let typing = touch.timestamp - lastCharacterTouch < 0.3
+        let slot = layout.nearest(to: touch.location(in: self), typing: typing)
+        if case .character = slot?.role {
+            lastCharacterTouch = touch.timestamp
+        }
+        return slot
+    }
+
+    private func commitRolledOverCharacters() {
+        for (id, control) in touches {
+            guard let key = control as? KeyboardAccentKeyControl, key.commitPendingCharacter() else { continue }
+            touches.removeValue(forKey: id)
+            holdShiftIfPressed()
+        }
+    }
+
+    private func holdShiftIfPressed() {
+        guard modifiers.values.contains(where: { $0.role == .shift }) else { return }
+        model?.shift.hold()
+        model?.keysChanged()
     }
 
     private func beginTracking(_ touch: UITouch, control: UIControl, event: UIEvent?) {
@@ -106,10 +130,7 @@ final class KeyboardPlaneView: UIView {
             let control = self.touches.removeValue(forKey: ObjectIdentifier(touch))
             if let key = control as? KeyboardAccentKeyControl {
                 key.endTracking(touch, with: event)
-                if modifiers.values.contains(where: { $0.role == .shift }) {
-                    model?.shift.hold()
-                    model?.keysChanged()
-                }
+                holdShiftIfPressed()
             }
             if let key = control as? DeleteKeyButton {
                 key.isHighlighted = false; key.onRelease?()

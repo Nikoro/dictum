@@ -101,27 +101,11 @@ struct KeyboardView: View {
     }
 
     private func metrics(width: CGFloat) -> KeyboardMetrics {
-        KeyboardMetrics(
-            width: width,
-            tablet: model.tabletLayout,
-            landscape: model.landscapeLayout,
-            compact: model.compactLayout,
-            noticeHeight: model.noticeHeight(for: width),
-            emojiSearchActive: model.emoji && model.emojiSearchActive,
-            accentTopInset: model.accentPopup?.topInset ?? 0,
-            emojiVisible: model.emoji
-        )
+        KeyboardMetrics(model: model, width: width)
     }
 
     private func keyLayout(width: CGFloat) -> KeyboardKeyLayout {
-        KeyboardKeyLayout(
-            width: width,
-            tablet: model.tabletLayout,
-            landscape: model.landscapeLayout || model.compactLayout,
-            numbers: model.numbers,
-            symbols: model.symbols,
-            needsSwitch: model.needsInputModeSwitchKey
-        )
+        KeyboardKeyLayout(model: model, width: width)
     }
 
     private var palette: KeyboardPalette {

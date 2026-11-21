@@ -43,13 +43,20 @@ final class KeyboardModel {
     @ObservationIgnored private var pendingPhase: KeyboardSession.Phase?
     @ObservationIgnored private var delivery = KeyboardResultDelivery()
     @ObservationIgnored private var deletion: RepeatingKeyAction?
+    @ObservationIgnored private var measuredNotice: (message: String?, width: CGFloat, height: CGFloat)?
 
     var notice: String? {
         noticeState.visibleMessage
     }
 
     func noticeHeight(for width: CGFloat) -> CGFloat {
-        KeyboardNoticeLayout.height(message: notice, width: width)
+        let message = notice
+        if let measuredNotice, measuredNotice.message == message, measuredNotice.width == width {
+            return measuredNotice.height
+        }
+        let height = KeyboardNoticeLayout.height(message: message, width: width)
+        measuredNotice = (message, width, height)
+        return height
     }
 
     func dismissNotice() {
@@ -119,9 +126,20 @@ final class KeyboardModel {
     }
 
     func refresh() {
+        apply(Result { try mailbox?.readSession() })
+    }
+
+    func refreshInBackground() async {
+        guard let mailbox else { refresh(); return }
+        let result = await Task.detached(priority: .userInitiated) { Result { try mailbox.readSession() } }.value
+        guard self.mailbox?.directory == mailbox.directory else { return }
+        apply(result)
+    }
+
+    private func apply(_ result: Result<KeyboardSession?, any Error>) {
         defer { updateNotice() }
         do {
-            let latest = try mailbox?.readSession()
+            let latest = try result.get()
             bridgeFailed = mailbox == nil
             session = latest?.isAvailable(at: Date()) == true ? latest : nil
             delivery.observe(session)

@@ -197,7 +197,7 @@ struct EmojiBrowserView: View {
     }
 
     private func pick(_ symbol: String) {
-        UIDevice.current.playInputClick()
+        KeyboardFeedback.keyDown()
         insert(symbol)
         model.emojiPreferences.record(symbol)
     }
