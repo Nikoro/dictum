@@ -9,7 +9,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "0.12.0"
-    CURRENT_PROJECT_VERSION: "26112001"
+    CURRENT_PROJECT_VERSION: "26112101"
 
 packages:
   WhisperKit:
