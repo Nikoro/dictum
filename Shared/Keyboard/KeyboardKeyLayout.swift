@@ -11,7 +11,7 @@ struct KeyboardKeySlot: Identifiable, Equatable {
     let frame: CGRect
 }
 
-struct KeyboardKeyLayout {
+struct KeyboardKeyLayout: Equatable {
     let width: CGFloat
     let tablet: Bool
     var landscape = false
@@ -51,9 +51,18 @@ struct KeyboardKeyLayout {
         tablet ? topInset : max(topInset, containerHeight - height)
     }
 
-    func nearest(to point: CGPoint) -> KeyboardKeySlot? {
+    func nearest(to point: CGPoint, typing: Bool = false) -> KeyboardKeySlot? {
         guard CGRect(x: 0, y: 0, width: width, height: height).contains(point) else { return nil }
-        return slots.min { distance(point, from: $0.frame) < distance(point, from: $1.frame) }
+        let slots = slots
+        guard let nearest = closest(to: point, in: slots) else { return nil }
+        let guarded: [KeyboardKeyRole] = [.emoji, .numbers, .nextKeyboard]
+        let reach = keyHeight * (typing ? 0.5 : 0.25)
+        guard guarded.contains(nearest.role), point.y < nearest.frame.minY + reach else { return nearest }
+        return closest(to: point, in: slots.filter { $0.frame.maxY < nearest.frame.minY }) ?? nearest
+    }
+
+    private func closest(to point: CGPoint, in slots: [KeyboardKeySlot]) -> KeyboardKeySlot? {
+        slots.min { distance(point, from: $0.frame) < distance(point, from: $1.frame) }
     }
 
     private func distance(_ point: CGPoint, from frame: CGRect) -> CGFloat {
