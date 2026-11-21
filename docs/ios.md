@@ -176,7 +176,7 @@ its audio file before transcription. The app reports missing signal rather than 
 empty dictation. Device integration tests play a short bundled synthetic Polish sentence through the speaker,
 record locally, assert recognition and delete the temporary captures; no microphone recording leaves the phone.
 
-## Keyboard reference review (2026-11-12)
+## Keyboard reference review
 
 Reviewed snapshots: Dictus `8804c36`, VivaDicta `88419b4`, Ara `e7a2cc5`. These are source findings,
 not a comparative device test. No reference keyboard engine, dictionary or emoji catalog was copied.
@@ -567,7 +567,7 @@ cancellation, timeout, readiness loss and exactly-once return. End-to-end host d
 return on physical iPhone/iPad still require device verification; private host APIs are best effort.
 
 
-## Apple keyboard gestures research (2026-11-14)
+## Apple keyboard gestures research
 
 Apple's [iPhone keyboard guide](https://support.apple.com/guide/iphone/iph3c50f96e/ios)
 describes space-bar trackpad mode, second-finger selection, Shift-to-letter dragging,

@@ -155,7 +155,7 @@ Inspiration: [Superwhisper file transcription](https://superwhisper.com/docs/get
 ## Keyboard parity follow-up
 
 The gesture implementation shipped in TestFlight 0.11.0 (26111401). Research, simulator evidence and known
-limitations are recorded in [iOS development and gesture QA](ios.md#apple-keyboard-gestures-research-2026-11-14).
+limitations are recorded in [iOS development and gesture QA](ios.md#apple-keyboard-gestures-research).
 
 ### KEYBOARD-01 — Shift and space range selection
 

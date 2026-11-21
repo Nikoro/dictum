@@ -2,3 +2,6 @@ exclude = [".agents", ".claude"]
 
 [instructions]
 enabled = true
+
+[journals]
+enabled = true

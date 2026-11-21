@@ -15,7 +15,7 @@
   `Workaround: <issue URL>` note, at most 100 characters after the prefix, three notes per file and two net new
   notes per commit. No TODO/FIXME, prose or private documentation comments, also in YAML and TOML: move the reason
   to `docs/implementation-constraints.md`. Notes kept in changed files are reported as advice.
-- The instruction-file gate is enabled. `.agents` and `.claude` contain externally maintained skill packages and
+- The instruction-file and journals gates are enabled; docs carry no dated headings or status history. `.agents` and `.claude` contain externally maintained skill packages and
   are excluded from source scanning; application, test, script and website sources remain in scope. No policy
   limit is relaxed. The optional independent-review and universal mirror-test gates are not enabled; Dictum's
   existing regression-test gate and review skill remain in place.
