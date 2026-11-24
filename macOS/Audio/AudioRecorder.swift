@@ -97,6 +97,7 @@ final class AudioRecorder: CapturedAudioSource, @unchecked Sendable {
 
     @MainActor
     private func handleHardwareChange() {
+        NotificationCenter.default.post(name: AudioInputDevices.didChange, object: nil)
         guard isRecording else {
             prepare(inputDeviceUID: selectedUID)
             return

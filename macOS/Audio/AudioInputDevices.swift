@@ -7,6 +7,8 @@ struct AudioInputDevice: Identifiable, Hashable {
 }
 
 enum AudioInputDevices {
+    static let didChange = Notification.Name("AudioInputDevices.didChange")
+
     static func all() -> [AudioInputDevice] {
         deviceIDs().compactMap { id in
             guard hasInputChannels(id),

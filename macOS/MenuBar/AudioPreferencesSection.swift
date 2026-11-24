@@ -4,14 +4,18 @@ import SwiftUI
 struct AudioPreferencesSection: View {
     @Environment(AppSettings.self) private var settings
     @State private var inputDevices: [AudioInputDevice] = []
+    @State private var defaultInputName: String?
 
     private static let idleUnloadOptions = [0, 5, 15, 30, 60]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PreferenceRow(title: String(localized: "section.microphone", defaultValue: "Microphone")) {
-                Picker("", selection: Bindable(settings).inputDeviceUID) {
-                    Text(String(localized: "section.microphone.systemDefault", defaultValue: "System default")).tag("")
+            PreferenceRow(
+                title: String(localized: "section.microphone", defaultValue: "Microphone"),
+                maxControlWidth: .infinity
+            ) {
+                Picker("", selection: microphoneSelection) {
+                    Text(defaultInputLabel).tag("")
                     ForEach(inputDevices) { device in
                         Text(device.name).tag(device.uid)
                     }
@@ -30,7 +34,34 @@ struct AudioPreferencesSection: View {
         }
         .padding(.horizontal)
         .padding(.bottom)
-        .onAppear { inputDevices = AudioInputDevices.all() }
+        .onAppear(perform: refreshInputs)
+        .onReceive(NotificationCenter.default.publisher(for: AudioInputDevices.didChange)) { _ in
+            refreshInputs()
+        }
+    }
+
+    private var microphoneSelection: Binding<String> {
+        Binding {
+            inputDevices.contains { $0.uid == settings.inputDeviceUID } ? settings.inputDeviceUID : ""
+        } set: { uid in
+            settings.inputDeviceUID = uid
+        }
+    }
+
+    private var defaultInputLabel: String {
+        guard let defaultInputName else {
+            return String(localized: "section.microphone.systemDefault", defaultValue: "System default")
+        }
+        return String(
+            localized: "section.microphone.systemDefault.named",
+            defaultValue: "System default (\(defaultInputName))"
+        )
+    }
+
+    private func refreshInputs() {
+        inputDevices = AudioInputDevices.all()
+        let defaultID = AudioInputDevices.systemDefaultInputID()
+        defaultInputName = inputDevices.first { $0.id == defaultID }?.name
     }
 
     private static func idleUnloadLabel(_ minutes: Int) -> String {

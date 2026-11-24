@@ -1361,6 +1361,23 @@
         }
       }
     },
+    "section.microphone.systemDefault.named": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System default (%@)"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domyślny systemowy (%@)"
+          }
+        }
+      }
+    },
     "section.mode": {
       "extractionState": "manual",
       "localizations": {
