@@ -2162,6 +2162,23 @@
         }
       }
     },
+    "ios.standby_duration": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause microphone after"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstrzymaj mikrofon po"
+          }
+        }
+      }
+    },
     "ios.status.transcribing": {
       "extractionState": "manual",
       "localizations": {

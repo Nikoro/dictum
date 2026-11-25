@@ -124,6 +124,9 @@ struct KeyboardKeyPlane: UIViewRepresentable {
 
     private func activateDictation() {
         model.dismissNotice()
+        if model.session == nil {
+            model.refresh()
+        }
         guard let session = model.session, session.phase != .inactive else { openApp(); return }
         if session.phase == .ready {
             start()

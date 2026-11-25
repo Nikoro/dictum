@@ -5,6 +5,10 @@ import Observation
 @Observable
 @MainActor
 final class DictationSession {
+    var standbyMinutes: Int {
+        didSet { preferences.set(standbyMinutes, forKey: "ios.standbyMinutes") }
+    }
+
     var useUltra = true
     private(set) var preparing = false
     private(set) var modelReady = false
@@ -12,7 +16,7 @@ final class DictationSession {
     private(set) var session = KeyboardSession(id: UUID(), updatedAt: .distantPast, phase: .inactive)
     private(set) var errorMessage: String?
     private(set) var starting = false
-    private(set) var isSuspended = false
+    var isSuspended = false
     private(set) var captureSummary = AudioCaptureSummary()
     private(set) var installations: [IOSSpeechModel: IOSModelInstallation] = [:]
 
@@ -25,16 +29,17 @@ final class DictationSession {
     @ObservationIgnored private var mailbox: KeyboardMailbox?
     @ObservationIgnored private var recordingStartedAt: Date?
     @ObservationIgnored private var resultCreatedAt: Date?
-    @ObservationIgnored private var idleTimer = DictationIdleTimer()
+    @ObservationIgnored private(set) var idleTimer = DictationIdleTimer()
 
-    var isActive: Bool {
-        session.phase != .inactive
-    }
+    @ObservationIgnored var interruptedStandby: DictationIdleTimer?
 
     init(preferences: UserDefaults = .standard) {
         self.preferences = preferences
         useUltra = preferences.object(forKey: "ios.useUltra") as? Bool ?? true
-        microphone.onInterruption = { [weak self] in self?.endSession() }
+        let saved = preferences.object(forKey: "ios.standbyMinutes") as? Int
+        standbyMinutes = saved.flatMap { DictationIdleTimer.choices.contains($0) ? $0 : nil } ?? DictationIdleTimer.defaultMinutes
+        microphone.onInterruptionBegan = { [weak self] in self?.interruptSession() }
+        microphone.onInterruptionEnded = { [weak self] shouldResume in self?.finishInterruption(shouldResume: shouldResume) }
         if let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: KeyboardMailbox.appGroup) {
             mailbox = try? KeyboardMailbox(directory: root.appendingPathComponent("KeyboardSession", isDirectory: true))
             try? mailbox?.clear()
@@ -87,15 +92,23 @@ final class DictationSession {
             errorMessage = String(localized: "ios.error.group")
             return
         }
+        let previousID = session.id
         guard await AVAudioApplication.requestRecordPermission() else {
             errorMessage = String(localized: "ios.error.permission")
             return
         }
+        guard previousID == session.id, !isSuspended else { return }
+        beginStandby(timer: DictationIdleTimer())
+    }
+
+    func beginStandby(timer: DictationIdleTimer) {
+        interruptedStandby = nil
         do {
             try microphone.activate()
             try mailbox?.clear()
             session = KeyboardSession(id: UUID(), updatedAt: Date(), phase: .ready)
-            idleTimer.reset()
+            idleTimer = timer
+            _ = idleTimer.hasExpired(phase: .ready, at: Date(), minutes: standbyMinutes)
             errorMessage = nil
             try publish()
             sessionTask = Task { [weak self] in
@@ -112,6 +125,7 @@ final class DictationSession {
     }
 
     func endSession() {
+        interruptedStandby = nil
         sessionTask?.cancel()
         sessionTask = nil
         transcriptionTask?.cancel()
@@ -206,7 +220,7 @@ extension DictationSession {
 
     private func tick() {
         guard microphone.isRunning else {
-            endSession()
+            interruptSession()
             return
         }
         if session.phase == .recording {
@@ -222,7 +236,7 @@ extension DictationSession {
             if let resultCreatedAt, Date().timeIntervalSince(resultCreatedAt) >= 60 {
                 discardResult(issue: .resultExpired)
             }
-            if idleTimer.hasExpired(phase: session.phase, at: Date()) {
+            if idleTimer.hasExpired(phase: session.phase, at: Date(), minutes: standbyMinutes) {
                 isSuspended = true
                 endSession()
                 return
@@ -246,19 +260,8 @@ extension DictationSession {
         session.updatedAt = Date()
         try mailbox?.publish(session)
     }
-}
 
-extension DictationSession {
     func refreshModelInventory() async {
         installations = await speech.installations()
-    }
-
-    func setMicrophoneEnabled(_ enabled: Bool) async {
-        isSuspended = !enabled
-        if enabled {
-            await activate()
-        } else {
-            endSession()
-        }
     }
 }

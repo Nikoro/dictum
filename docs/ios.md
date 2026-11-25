@@ -333,8 +333,11 @@ measurements and interactive overlay are in build/qa/keyboard/. This measures ge
 rendered pixel: the visible difference image retains font, icon and space-label differences.
 
 A completely stopped microphone is resumed by dictum://session in the containing app. A warm session mutes
-input between recordings and shuts down after five minutes in the ready state; recording, transcription and
-pending insertion do not consume that idle period. Returning automatically to an arbitrary host app has no
+input between recordings and allows other apps to continue playback. The default standby window is
+15 minutes. The app form offers 1, 5, 10, 15, 30 or 60 minutes, or Never. Recording, transcription
+and pending insertion do not consume that idle period. If iOS interrupts standby, Dictum yields the
+microphone. When iOS signals that resumption is appropriate, Dictum can restore standby within the
+original window. An interrupted recording requires a new tap. Returning automatically to an arbitrary host app has no
 public iOS API (Apple DTS, developer.apple.com/forums/thread/826851). Dictus uses a private keyboard arbiter
 resolver plus a catalogue of public resume URLs, including t3code://. That unsupported host detection was
 not copied. A fixed, explicitly selected callback target is possible, but must not be mistaken for automatic

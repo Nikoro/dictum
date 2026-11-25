@@ -39,6 +39,9 @@ struct DictationView: View {
                 Text(String(localized: "ios.model"))
             }
             Section {
+                standbyPicker
+            }
+            Section {
                 TextEditor(text: $testText)
                     .focused($testFieldFocused)
                     .frame(minHeight: 180)
@@ -54,6 +57,19 @@ struct DictationView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    private var standbyPicker: some View {
+        Picker(String(localized: "ios.standby_duration"), selection: $dictation.standbyMinutes) {
+            ForEach(DictationIdleTimer.choices, id: \.self) { minutes in
+                if minutes == 0 {
+                    Text(String(localized: "section.idleUnload.never")).tag(minutes)
+                } else {
+                    let value = String(minutes)
+                    Text(String(localized: "section.idleUnload.minutes \(value)")).tag(minutes)
+                }
+            }
+        }
     }
 
     private var versionFooter: some View {

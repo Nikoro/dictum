@@ -20,12 +20,33 @@ struct LocalSpeechEngineTests {
 @Suite(.serialized)
 struct MicrophoneCaptureTests {
     @MainActor @Test
+    func `interruption end is still delivered after microphone teardown`() async {
+        let microphone = SessionMicrophone()
+        var delivered = false
+        microphone.onInterruptionEnded = { delivered = $0 }
+        microphone.deactivate()
+        NotificationCenter.default.post(
+            name: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            userInfo: [
+                AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.ended.rawValue,
+                AVAudioSessionInterruptionOptionKey: AVAudioSession.InterruptionOptions.shouldResume.rawValue
+            ]
+        )
+        for _ in 0 ..< 20 where !delivered {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(delivered)
+    }
+
+    @MainActor @Test
     func `idle input is system muted and only dictation opens the microphone`() throws {
         let microphone = SessionMicrophone()
         let application = AVAudioApplication.shared
         defer { microphone.deactivate() }
         try microphone.activate()
         #expect(microphone.isRunning)
+        #expect(AVAudioSession.sharedInstance().categoryOptions.contains(.mixWithOthers))
         #expect(application.isInputMuted)
         try microphone.beginRecording()
         #expect(!application.isInputMuted)

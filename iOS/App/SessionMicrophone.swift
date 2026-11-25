@@ -1,10 +1,12 @@
 import AVFoundation
+import Combine
 import Foundation
 
 @MainActor
 final class SessionMicrophone {
-    var onInterruption: (() -> Void)?
-    private var interruptionObserver: NSObjectProtocol?
+    var onInterruptionBegan: (() -> Void)?
+    var onInterruptionEnded: ((Bool) -> Void)?
+    private var interruptionObserver: AnyCancellable?
     private var engine: AVAudioEngine?
     private let sink = RecordingSink()
     private var hasTap = false
@@ -16,17 +18,25 @@ final class SessionMicrophone {
         for file in files where file.lastPathComponent.hasPrefix("dictum-") && file.pathExtension == "caf" {
             try? FileManager.default.removeItem(at: file)
         }
+        interruptionObserver = NotificationCenter.default.publisher(
+            for: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance()
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] note in
+            guard let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt else { return }
+            switch AVAudioSession.InterruptionType(rawValue: type) {
+            case .began: self?.onInterruptionBegan?()
+            case .ended:
+                let flags = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+                self?.onInterruptionEnded?(AVAudioSession.InterruptionOptions(rawValue: flags).contains(.shouldResume))
+            default: break
+            }
+        }
     }
 
     func activate() throws {
-        interruptionObserver = NotificationCenter.default.addObserver(
-            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.onInterruption?() }
-        }
-
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
+        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP, .mixWithOthers])
         try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true)
         let engine = AVAudioEngine()
@@ -75,10 +85,6 @@ final class SessionMicrophone {
     }
 
     func deactivate() {
-        if let interruptionObserver {
-            NotificationCenter.default.removeObserver(interruptionObserver)
-        }
-        interruptionObserver = nil
         engine?.stop()
         if hasTap {
             engine?.inputNode.removeTap(onBus: 0)
